@@ -19,9 +19,9 @@ ex: import_code("/home/USER/src/utils.src")
 4.) binary.src --> ** MUST ALLOW IMPORTS ** --> SENSITIVE FILE, DELETE THE SRC<br>
 5.) send.src --> ** MUST ALLOW IMPORTS ** --> SENSITIVE FILE, DELETE THE SRC<br>
 6.) eel.src --> SENSITIVE FILE, DELETE THE SRC<br>
-6.) payload.src <br>
-7.) wipe.src  <br>
-8.) main.src --> RENAME TO ss 
+7.) payload.src <br>
+8.) wipe.src  <br>
+9.) main.src --> RENAME TO ss 
 
 eel.src --> rshell payload, must define your rshell's IP <br>
 binary.src --> contains obfuscated variables for root, users, and your FTP depot server info <br> 
