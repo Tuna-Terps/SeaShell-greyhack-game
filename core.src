@@ -1,0 +1,790 @@
+//////////////////////////////////////////////////////////////  
+///======================= CORE =========================////
+////////////////////////////////////////////////////////////
+Core = {}
+// object: ShellObject: Map | CompObject: Map | FileObject: Map
+// global_path = out global path fool
+///======================= PROMPT =========================////
+Core.prompt = function(object, p, anonymous)
+	type = color.purple+"Shell"+color.cap 
+	if (object isa ShellObject) == true then
+		object = object.shell.host_computer
+	else if (object isa CompObject) == true then
+		object = object.PC 
+		type = color.blue+"Computer"+color.cap
+	else if (object isa CompObject) == true then 
+		type = color.green+"File"+color.cap
+	else 
+		return print(warning+ " Invalid prompt type")
+	end if
+	// core relies on utils and is invoked first, we cannot use our objects /:
+	user = Utils.user(object)
+	if @user == "root" or "2NA" then user_color = color.green
+	if @user == "guest" then user_color = color.orange
+	if @user == "unknown" then user_color = color.red
+  	ip = object.public_ip
+	lan = object.local_ip
+	if anonymous == true then ip = "HIDDEN"
+  	str =  "\n<s>• </s>{<b>"+user_color+user+color.cap+"</b>}<s> </s>{<b>"+color.white + ip + color.cap+ "</b>}<s> </s>{<b>"+color.grey + lan + color.cap+ "</b>}<s> </s>{<b>"+color.white+p+color.cap+"</b>}<s> </s>{<b>"+type+"</b>}<s> •</s>\n" +"<s>•   	•</s>:~"+color.white+"$"+color.cap+" " 	
+	response = user_input(str)
+	return response
+end function
+///======================= CMD =========================////
+// object: ShellObject: Map | CompObject: Map | FileObject: Map
+// params: List
+// forgive me for what is about to happen next
+Core.cmd = function(object, params)
+	error = null
+	result = null
+	parse = params.split(" ")
+	
+	if parse.len == 1 then
+		p = parse[0] 
+		if p == "-h" or p == "help" then 
+			Core.cmd_list
+		else if p == "-t" and (object isa ShellObject ) == true then 
+			object.shell.start_terminal
+		else if p == "-c" then 
+			clear_screen
+		else if p == "-a" then 
+			if anonymous == true then globals.anonymous = false else globals.anonymous = true
+		else if p == "iam" then 
+			Core.me(object)
+		else if p == "ls" then 
+			Core.ls(object)
+		else if p == "ps" then 
+			Core.ps(object)
+		else if p == "cd" then
+			Current_Path = Core.cd(object, null)
+		else if p == "lan" then
+			Core.lan
+		else if p == "depot" then 
+			remote_transfer(object)
+		else if p == "wipe" then
+			confirm = user_input(warning+"~~^~ WIPE ~~^~ \n1.) Logs\n2.) Tools\n--> ")
+			confirm = confirm.val
+			if confirm == 1 then Utils.wipe_log(object)
+			if confirm == 2 then object.shell.launch("/home/guest/autoclean")
+		else if p == "mount" then
+			Utils.transfer_tools(object)
+		else if p == "|" and (object isa ShellObject) == true then
+			object.shell.launch("/home/guest/eel")
+		else if p == "||" and (object isa ShellObject) == true then
+			object.shell.launch("/home/guest/autolocal")
+		else if p == "sf" then
+			Core.sniff
+		else if p == "exit" then
+			result = "EXIT"
+		else 
+			error = true
+		end if
+	else if parse.len == 2 then 
+		p1 = parse[0]; p2 = parse[1]
+		if p1 == "cd" then
+			Current_Path = Core.cd(object, p2)
+		else if p1 == "-s" then 
+			Core.sudo(object, p2)
+		else if p1 == "pw" then 
+			Core.pw(object, p1, p2)
+		else if p1 == "kill" then 
+			Core.kill(object, p2.val)
+		else if p1 == "git" then 
+			Core.git(object, p2)
+		else if p1 == "--" then
+			result = Core.Probe(p2)
+		else if p1 == "-w" then
+			Core.Probe(nslookup(p2))
+			
+		else if p1 == "eel" then
+			if p2 == "-l" then 
+				Eel.get
+			else if p2 == "-p" then
+				Eel.plant
+			else if p2 == "--" then 
+				Eel.capture
+			end if   
+		else 
+			error = true
+		end if
+	else if parse.len == 3 then 
+		p1 = parse[0]; p2 = parse[1]; p3 = parse[2]
+		if p1 == "-s" then 
+			Core.sudo(object, p2, p3)
+		else if p1 == "chmod" then 
+			Core.ch(object, false, p2, p3)
+		else if p1 == "git" then 
+			Core.git(object, p2, null, p3) 
+		else if p1 == "scp" then
+			Surf.ssp(object, p1, p2, p3)
+		else 
+			error = true
+		end if
+	else if parse.len == 4 then
+		p1 = parse[0]; p2 = parse[1]; p3 = parse[2]; p4 = parse[3]
+		 if p1 == "-s" then 
+			Core.sudo(object, p2, p3, p4)
+		else if p1 == "chmod" then 
+			Core.ch(object, true, p3, p4)
+		else if p1 == "scp" then
+			Surf.ssp(object, p1, p2, p3)
+		else 
+			error = true
+		end if
+	else
+		return print(error+" too many arguments")
+	end if
+	return result
+end function
+Core.cmd_list = function()
+	return print(format_columns("[CMD] [arg1] [arg2] [DESCRIPTION]\n-h * * Display_a_list_of_commands\n-a * * Toggle_Anonymous_Mode\n-p * * Print_Global_Path\n-c * * Clear_The_Screen\ncd path * Change_Directory(global_path)\nls * * List_Directory_Contents(+permissions)\nps * * List_All_Processes\n-s */-s/-u */user Sudo_[launch/root/user+username]\niam * * I_Am\nkill PID * Kill_Process\nchmod perms path Change_File_Permissions\npw user * Change_User_PW(requires_root)\nsf * * Sniff_Local_Machine\nrouter ip * Scan_Router_Info\nlan * * Poor_Man_Scan_Lan\ngit -u/-- */package Update_Packages\n-- ip * target_ip_for_Net_Session_Entry\n-w domain * Target_Domain_Net_Session\nbf * * Brute_Force_Attacks(dict/Hail_Mary)\nwipe * * Wipe_Tools_From_Machine"))
+end function
+// =======================  cd =======================
+
+Core.cd = function(obj, p = home_dir)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" then obj = obj.host_computer
+	dir = obj.File(p)
+	if dir == null then return print("No directory found")
+	globals.Current_Path = p
+	return globals.Current_Path
+end function
+// =======================  ls =======================
+Core.ls = function(obj)
+	p = globals.Current_Path
+	if not p then p = current_path
+	print(init+" fs: "+color.yellow+p)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" then 
+		folder = obj.host_computer.File(p)
+	else if typeof(obj) == "computer" then 
+		folder = obj.File(p)
+	end if
+	if folder == null then return print("ls no file or directory found")
+	if not folder.has_permission("r") then return print("You do not have read access for "+folder)
+	folder_path = p
+	sub_files = folder.get_folders + folder.get_files
+	output = ""
+	for f in sub_files
+		if output.len > 0 then 
+			output = output + "\n"
+		end if
+		file_name = f.name
+		permission = f.permissions
+		output = output + permission + " " + f.owner + " " + f.group + " " + f.size + " 00:00 " + file_name
+	end for
+	print(format_columns(output))
+end function
+// =======================  iam =======================
+Core.me = function(obj)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" then me = obj.host_computer.File(home_dir).owner
+	if typeof(obj) == "computer" then me = obj.File(home_dir).owner
+	if typeof(obj) == "file" then me = obj(home_dir).owner
+	return me
+end function
+// =======================  pw =======================
+Core.pw = function(obj, user)
+	obj = Utils.handle(obj)
+	inputMsg = "Changing password for user " + user +".\nNew password:"
+	inputPass = user_input(inputMsg, true)
+	output = obj.change_password(user, inputPass)
+	if output == true then return print(user+" password modified OK")
+	if output then return print(output)
+	print(warning+" password not modified, are you root?")
+end function
+// =======================  ps =======================
+Core.ps = function(obj)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" then obj = obj.host_computer
+	output = obj.show_procs
+	return print(format_columns(output))
+end function
+// =======================  kill =======================
+Core.kill = function(obj, pid)
+	if typeof(pid) != "number" then return print(warning+" The PID must be a number\n")
+	output = shell.host_computer.close_program(pid)
+	if output == true then return print("Process " + pid + " closed");
+	if output then return print(output)
+	print("Process " + pid + " not found")
+end function
+// =======================  sudo =======================
+Core.sudo = function(s = get_shell, arg, arg2=null, arg3=null)
+	if typeof(s) == "map" then s = Utils.handle(s)
+	computer = s.host_computer
+	inputPass = user_input("Password: ", true)
+	if arg == "-u" then s = get_shell(arg2, inputPass)
+	if arg == "-s" or arg == "-l" then s = get_shell("root", inputPass)
+	if not s then return print(color.orange+"AUTH FAIL")
+	if arg == "-l" then 
+		program = computer.File(arg2)
+		if not program then return print(arg2 + " not found.")
+		if not arg3 then s.launch(arg2)
+		if arg3	then s.launch(arg2, arg3)
+	end if
+	confirm = user_input("[SELECT] "+color.white+"1.) Terminal"+color.grey+" 2.) Pass Shell"+color.cap+" --> ")
+	if confirm.val == 1 then return s.start_terminal
+	if confirm.val == 2 then return s
+end function
+// =======================  chmod =======================
+Core.ch = function(obj, recursive, perms, path_to_file)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" then obj = obj.host_computer
+	file = obj.File(path_to_file)
+	if file == null then return print("cannot find file "+path_to_file)
+	output = file.chmod(perms, recursive)
+	if output then print(output)
+end function
+// =======================  ping =======================
+Core.p = function(shell, ip)
+	result = shell.ping(ip)
+	if result then
+    	if typeof(result) == "string" then
+        	print(result) 
+		else
+	    	print("Ping successful")
+		end if
+	else
+		print("ip unreachable");
+	end if
+end function
+// ======================= SERVICES =========================
+// ======================= SCP =========================
+Core.ssp = function(remote_shell, type, origPath, destPath=null)
+	if type == "-u" then 
+		remote_shell.scp(origPath, global_path, home_shell)
+	else if type == "-d" then 
+		home_shell.scp(origPath, destPath, remote_shell)
+	else 
+		return print("an error occured")
+	end if
+
+end function 
+// ======================= SSH =========================
+Core.ssh = function(shell, connect_string, ip, port = 22)
+	object = Utils.handle(object)
+	if typeof(object) != "shell" then return print(" no shell detected")
+	connect_string = connect_string.split("@")
+	service = object.connect_service(ip, port, connect_string[0], connect_string[1])
+	return service
+end function
+// ======================= FTP =========================
+Core.ftp = function(object, connect_string, ip, port = 21)
+	object = Utils.handle(object)
+	if typeof(object) != "shell" then return print(" no shell detected")
+	if not object then object = Global_Shells[0][0]
+	connect_string = connect_string.split("@")
+	service = object.connect_service(ip, port, connect_string[0], connect_string[1], "ftp")
+	return service
+end function
+// ======================= sniff =========================
+Core.sniff = function()
+	print(init+" Listening for connections . . .")
+	metaxploit = include_lib("/lib/cheese/metaxploit.so")
+	if not metaxploit then metaxploit = include_lib("/lib/metaxploit.so")
+	if not metaxploit then metaxploit = include_lib("/lhome/guest/metaxploit.so")
+	if not metaxploit then return print("no mx found")
+	output = metaxploit.sniffer
+	print(output)
+end function
+// ======================= router ========================= 
+Core.router = function(p1)
+	router = get_router( p1 )
+	if router == null then 
+		print("scanrouter: ip address not found")
+		return
+	end if
+	print("Connecting to router at address: " + p1 + "\nScanning kernel library...")
+	version = router.kernel_version
+	if not version then
+		print("Warning: kernel_router.so not found")
+	else 
+		print("kernel_router.so : v" + version)
+	end if
+	
+	firewall_rules = router.firewall_rules
+	if typeof(firewall_rules) == "string" then exit(firewall_rules)
+	print("\nScanning firewall rules...")
+	if firewall_rules.len == 0 then exit("No rules found.")
+	info = "ACTION PORT SOURCE_IP DESTINATION_IP"
+	for rules in firewall_rules
+		info = info + "\n" + rules
+	end for
+	print(format_columns(info) + "\n")
+end function
+
+
+// ======================= lan =========================
+Core.lan = function(dump)
+	c = get_shell.host_computer
+	if c.is_network_active == false then return print("Computer is operating on 0.0.0.0")
+	r = get_router
+	devices = r.devices_lan_ip
+	deviceList = []
+	//print("\n")
+
+	for device in devices
+		lanDevice = get_router(device)
+		if lanDevice then
+			if deviceList.indexOf(lanDevice.local_ip) == null then deviceList.push(lanDevice.local_ip)
+		end if
+	end for
+
+	for device in devices
+		ports = null
+		if get_switch(device) == null and get_router != null then
+			deviceInfo = "<color=green>* router *</color>"
+		else
+			deviceInfo = "<color=yellow>| switch |</color>"
+	end if
+	lanDevice = get_router(device)
+	if lanDevice then
+		if device == c.local_ip then device = "<color=green>" + device + "</color>"
+		firewall_rules = lanDevice.firewall_rules
+		if firewall_rules and firewall_rules.len > 0 then firewall = color.orange+"(firewall)" else firewall = ""
+		print(color.blue+"~^~^~^~^~^~^~^~^~^~"+color.cap+"<b>[<color=white>" + device + "</color>]</b> " + deviceInfo + " " + firewall)
+		for subDevice in lanDevice.devices_lan_ip
+			if deviceList.indexOf(subDevice) == null then
+				ports = lanDevice.device_ports(subDevice)
+				if not ports then return print("an error occured attempting to scan lan")
+				if ports.len > 0 then
+					if subDevice == c.local_ip then subDevice = "<color=green>" + subDevice + "</color>"
+					print("<b>   [" + subDevice + "]")
+					portPrint = ""
+					for port in ports
+						if lanDevice.port_info(port) != null then info = lanDevice.port_info(port).split(" ")[0] else info = null
+						if info != null then
+							if port.is_closed then
+								port_status = color.orange
+							else
+								port_status = color.green
+							end if
+							portPrint = portPrint + ("      { " +  port_status + " " + port.port_number + " " + info +color.cap+ " }" + "\n")
+						end if
+					end for
+					if portPrint != "<i>~^~^~~[" then print(portPrint)
+				end if
+			end if
+		end for
+	end if
+end for
+end function
+// =======================  crack =======================
+
+// =======================  BRUTE =======================
+Core.brute = function(shell)
+  print("Beginning tsunami (simple brute force)")
+	upperCaseLetters = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z "
+  	lowerCaseLetters = "a b c d e f g h i j k l m n o p q r s t u v w x y z "
+  	numberCaseLetters = "1 2 3 4 5 6 7 8 9 0"
+	str = upperCaseLetters+lowerCaseLetters+numberCaseLetters
+  	starting_point = user_input("What length should we begin attempting?")
+  	starting_point = starting_point.val
+  	attempted_range = 0 
+  	maximum_len = 6
+  	attempts_per_length = user_input("How many attempts per length?")
+	attempts_per_length = attempts_per_length.val
+	tries = 1
+	// length of pw
+  	for i in range(starting_point, maximum_len) 
+    	combinations = {};
+		chars = lowerCaseLetters + upperCaseLetters + numberCaseLetters;total = chars.len + i
+		// attempts for pw
+    	for attempt in range(1, attempts_per_length) 
+      		password = "";
+			index = attempt;
+			j = 0
+			while j < i
+				chars = shuffle_chars(str, i)  //Shuffle the characters before each iteration
+        		remainder = index % chars.len
+        		//password = chars[remainder + 1] + password
+        		index = floor(index / chars.len)
+        		j = j + 1
+			end while
+			print("[tsunami] attempting login with pw: "+chars+ " #"+tries);result = get_shell("root", chars)
+			if result != null then
+				print(chars) 
+				return Utils.got_rooted()
+			end if
+			tries = tries +1;wait(0.1)
+    	end for
+  end for
+end function
+
+shuffle_chars = function(str, length)
+   chars = str.split(" ")
+   shuffled = ""
+
+  for i in range(1, length) 
+     randomIndex = floor(rnd * chars.len-1) + 1
+     char = chars[randomIndex]
+
+    while shuffled.indexOf(char) != null 
+      randomIndex = floor(rnd * chars.len-1) + 1
+      char = chars[randomIndex]
+    end while
+
+    shuffled = shuffled + char
+  end for
+  return shuffled
+end function
+
+Core.brute_v2 = function(object)
+	object = Utils.handle(object)
+	if typeof(object) == "shell" then object = object.host_computer 
+	dict = null
+	dict = object.File(current_path+"/dictionary.txt")
+	if dict == null then 
+		p = user_input("no path found, specify it here\n--> ")
+		dict = object.File(p)
+		if dict == null then return print("Path incorrect; Not saying its a you thing, but . . . ")
+	end if
+ 	pass_list = dict.get_content.split("\n")
+	tries = 1
+	for pass in pass_list
+		print("[tsunamiV2] attempting login with pw: "+pass+ " #"+tries);result = get_shell("root", pass)
+		if result != null then
+			print(pass) 
+			return Utils.got_rooted()
+		end if
+		tries = tries +1;wait(0.1)
+	end for
+	dict = null 
+end function
+
+// =======================  apt-get =======================
+PendingUpdating = function(folderPath)
+	pendingUpdate = []
+	targetFolder = get_shell.host_computer.File(folderPath)
+	if targetFolder != null then
+		files = targetFolder.get_files
+		for itemFile in files
+			output = aptclient.check_upgrade(itemFile.path)
+			if output == true then
+				pendingUpdate.push(itemFile.name)
+			end if
+		end for
+	end if
+	return pendingUpdate
+end function 
+
+//  shell: Shell
+// (action) p1: action: string
+// (lib) p2: string | null
+// (force) p3: boolean | null
+
+// i dont even want to look at this pos 
+// =======================  apt-get =======================
+Core.git = function(shell, p1, p2=null, p3=null)
+	shell = Utils.handle(shell)
+	aptclient = include_lib("/lib/aptclient.so")
+	if not aptclient then
+    	aptclient = include_lib(current_path + "/aptclient.so")
+	end if
+	if not aptclient then return print(warning+ " Missing aptclient.so library in the /lib path or the current folder")
+
+	if p2 == null then // UPDATE
+		if p1 == "-u" then 
+			print("Updating package lists...")
+			output = aptclient.update
+			if output then print(output)
+		else if p1 == "--" then //UPGRADE
+			if p2 != null then 
+				pendingPackages = PendingUpdating("/lib") + PendingUpdating("/bin")
+				if pendingPackages.len == 0 then return print("No updates needed")
+				print("The following packages will be updated:")
+				pkgs = ""
+				for itemPackage in pendingPackages
+					pkgs = pkgs + " " + itemPackage
+				end for
+				print(pkgs)
+				force = null
+				if p3 != "-f" then 
+					option = user_input("\nDo you want to continue?(y/n): ")
+					if input != "y" or input != "yes" or input.val != 1 then return print("Exiting . . .")
+				end if
+				counter = 0
+				for itemPackage in pendingPackages
+					output = aptclient.install(itemPackage)
+					if output == true then
+						counter = counter + 1
+					else if output then
+						print(output)
+					end if
+				end for
+				print(counter + " packages updated")
+			else 
+				output = aptclient.check_upgrade(p2)
+				if not output then return print("No updates needed")
+				if output == true then
+					print("The following package will be updated:\nparams[1]")
+					option = user_input("\nDo you want to continue?(y/n): ")
+					if option == "y" or option == "yes" then
+						output = aptclient.install(p2)
+						if output == true then exit(p2 + " installed.")
+						print(output)				
+					else 
+						return print("aborted")
+					end if
+				else 
+					print(output)
+				end if
+			end if 
+		
+	else if p1 == "-i" and p2 != null then // INSTALL
+		print("Reading package lists...")
+		if not p2 then  
+			print(command_info("apt-get_usage"))
+		end if
+		print("Downloading " + p2)
+		output = aptclient.install(p2)
+		if output == true then 
+			print(p2 + " installed")
+		end if
+		print(output)
+
+	else if p1 == "-s" then 
+		print(aptclient.search(p2));
+	else if p1 == "-sh" then 
+		print(aptclient.show(p2));
+	else if p1 == "-a" and p2 != null then // ADD_REPO 
+		port = 1542
+    	if p3 then port = p3.val
+		output = aptclient.add_repo(p2)
+		if output then print(output)
+		print("Repository " + p2 + " added succesfully.\nLaunch apt with the update option to apply the changes")
+	
+	else if p1 == "-d" then // DEL_REPO
+    	output = aptclient.del_repo(p2)
+    	if output then print(output)
+    	print("Repository " + p2 + " removed succesfully.\nLaunch apt with the update option to apply the changes")
+		
+	else
+		print(command_info("apt-get_usage"))
+	end if     
+end function
+
+//////////////////////////////////////////////////////////////////////////////  
+///============================ ATTACKS / FUNCTIONS =====================///
+//////////////////////////////////////////////////////////////////////////
+Core.Probe = function(addr)
+    print(init+"Net Session: searching: "+addr)
+    router = null;ports = null;isLanIp = is_lan_ip(addr);fwd_machines = [];closed_machines = [];
+    if isLanIp then 
+		print("lan detected")
+        router = get_router;ports = router.device_ports(addr) // these appear to be forwarded ports ?
+	else 
+        router = get_router(addr); ports = router.used_ports
+	end if 
+    if not router then exit(error+" An error occured")
+    //optional router attack
+    if ports.len == 0 then 
+        input = user_input(title+color.orange+"[Alert] No forward ports found\n"+color.yellow+"[SELECT]\n1.) Exploit the router \n0.) Exit\n--> ")
+        if input.val == 1 then return Core.RouterEntry(addr)
+        if input.val != 1 then return print(title+" exiting . . .")
+    end if 
+    devices = router.devices_lan_ip 	// any machine on the network reachable by ping on this address 
+    local_machines = devices // assign this list to a refernce of machine if we have 
+    print(color.blue+"><> ><>"+color.cap+color.grey+" Machines reachable by ping: "+color.cap+"[ <b>"+color.white+devices.len+color.cap+"</B> ]"+color.blue+" ><> ")
+    print(color.blue+color.fill); print(color.blue+"><> ><>"+color.cap+color.grey+" Machines with fowarded ports"+color.cap+color.blue+" ><> ><>")
+    choices = color.orange+"0.) Attack_Router"; num = 1;info = null;
+    for port in ports
+        service = router.port_info(port)
+		if not service then continue
+        service_parsed = service.split(" ")
+        service_lib = service_parsed[0]
+        service_version = service_parsed[1]
+        status = color.green+"open"+color.cap
+        lan = port.get_lan_ip
+        number = port.port_number
+        if (port.is_closed and not isLanIp) then 
+            status = color.red+"closed"+color.cap
+            closed_machines.push(lan)
+        else  
+            // insert into list of processes to exploit
+            fwd_machines.push([lan, number])
+            choices = choices + "\n"+color.cyan + num+".) "+color.cap+color.purple+ lan +color.cap+color.white+ " " + number +color.cap+color.green +" " + service_lib
+            num = num+1	
+        end if
+        info = info + color.cyan+service_lib+color.cap + " " + status + " " +color.grey+service_version+color.cap + " " + color.purple+lan+color.cap+color.white+" "+number+"\n"
+    end for
+    if fwd_machines.len == 0 then 
+        input = user_input(title+color.orange+"[Alert] No open ports found\n"+color.yellow+"[SELECT]\n1.) Exploit the router \n0.) Exit\n--> ")
+        if input.val == 1 then return Core.RouterEntry(addr)
+		if input.val != 1 then return print(title+" exiting . . .")
+    end if 
+    print(color.blue+"><>"+color.cap+" "+addr+color.cap+"::"+color.grey+number+color.cap)
+    print(color.green+"><> "+color.cap+format_columns("LIB STATE VERSION LAN PORT")+color.green+" ><>")
+    print(format_columns(info))
+    print(color.blue+color.fill); print(format_columns(choices)); print(color.blue+color.fill)
+    response = user_input(title+color.green+"-- "+color.white+"SelectEntry"+color.cap+" --> "+color.cap+color.white)
+    response = response.val
+    if response == 0 then return Core.RouterEntry(addr)
+	lan = fwd_machines[response - 1][0]
+	port = fwd_machines[response - 1][1]
+	return Core.NetEntry(addr, lan, port)
+end function
+
+Core.RouterEntry = function(addr)
+    // begin a task to begin a net session hack
+    print(init+" Beginning Router Entry @ "+addr)
+    test = user_input(title+"\n1.) Test Bounce \n2.) Attempt net router\n-->  ")
+    v = test.val 
+    if v == 1 then
+        value = user_input(color.yellow+"Enter a LAN: \n-->") 
+        hacked_object = auto_hack(addr, 0, value)
+    else 
+        hacked_object = auto_hack(addr, 0)
+    end if
+    if not hacked_object then 
+        return print(addr +" Router couldnt be penetrated" )
+    end if
+    //hacked_machines.push([hacked, addr])	// push the shell objects into memory
+    //VerifyHack(hacked, addr, 0)
+    //print("exiting router entry . . .")
+    return hacked_object
+end function
+
+Core.NetEntry = function(ip, lan, port)
+	print(init+color.white+" Beginning Net Entry!"+color.cap+" --> "+color.grey+ip+color.cap+"/"+color.purple+lan+color.cap+":"+color.blue+port)
+	hacked_object = null
+	//obj = Utils.handle(object)
+	if not is_valid_ip(ip) then return print(warning+ "invalid IP")
+	hacked_object = auto_hack(ip, port)
+	if not hacked_object then 
+		print(warning+" "+color.white+ip +color.cap+" @ "+color.grey+lan+color.cap+" : "+color.orange+port+color.red+" Net Session FAILED" )
+        input = user_input("1.) Router Attack\n2.) New Net Attack \n3.) Bounce Test \n4.) Exit\nSELECT ->  ")
+        input = input.val
+		if input == 1 then
+            hacked_object = auto_hack(ip, 0)
+            if not hacked_object then return print(warning+ip+" couldnt be penetrated via router")
+		end if
+		if input == 2 then return Core.probe(ip)
+		if input == 3 then 
+			value = user_input(color.yellow+"Enter a LAN: \n-->") 
+        	hacked_object = auto_hack(addr, 0, value)
+		end if
+//		if input == 4 then exit("You chose to exit")
+	end if
+	print("exiting net entry . . .")
+//	if (hacked_object isa ShellObject) == true then 
+//		so = new ShellObject
+//		so.init(hacked_object)
+//		return so
+//	else if typeof(hacked_object) == "computer" then
+//		co = new CompObject
+//		co.init(hacked_object)
+//		return co
+//	end if
+	return hacked_object
+end function
+
+Core.LocalElevation = function(object)
+	obj = Utils.handle(object)
+	if typeof(obj) == "shell" then file = obj.host_computer.File("/home/guest/autolocal")
+	if typeof(obj) == "computer" then file = obj.File("/home/guest/autolocal")
+	if typeof(obj) == "file" then file = obj("/home/guest/autolocal")
+	attempt = obj.launch("/home/guest/autolocal")	
+	// returns null on success, 0 on failure
+	return attempt
+end function
+
+//////////////////////////////////////////////////////////////  
+///======================= EEL ===========================///
+////////////////////////////////////////////////////////////
+
+Eel = {}
+
+Eel.get = function()
+	print(title+"Listening for upcoming connections...")
+	metaxploit = meta
+	shells = []
+	while shells.len == 0	
+		shells = metaxploit.rshell_server
+		if(typeof(shells) == "string") then exit(shells)	
+		if(shells.len == 0) then wait(2)
+	end while
+
+	option = 0
+	while typeof(option) != "number" or (option < 1 or option > shells.len)
+		print(shells.len + " shell(s) connected!\n<b>Select a shell to start a terminal:</b>")
+		for i in range(0, shells.len - 1)
+			print("\n<b>"+color.purple+"Shell"+color.cap+" [ " +color.white+ (i + 1) +color.cap+ " ]</b>\n"+color.white+"Public IP: " +color.cap+ shells[i].host_computer.public_ip + "\n"+color.grey+"Local IP: " +color.cap+ shells[i].host_computer.local_ip)
+		end for
+		print("-----------")
+		option = user_input("Select shell>").to_int
+	end while
+
+	choice = user_input("Select Choice>\n"+color.white+"1.)"+color.cap+color.green+" Surf Mode\n"+color.white+"2.)"+color.yellow+" Terminal"+color.cap+" [this will leave a "+color.orange+"trace"+color.white+"]\n--> ").to_int
+	if choice == 1 then 
+		so = new ShellObject 
+		so.init(shells[option-1])
+		print("Surfing on shell # " +color.green+ option)
+		Main.surf_mode(so)
+	else if choice == 2 then 
+		print("Starting terminal on shell # " +color.green+ option)
+		shells[option - 1].start_terminal
+	end if
+
+end function
+
+Eel.capture = function()
+	confirm = user_input("*"+color.white+" Press 1 to extend eel"+color.cap+" * "+color.grey+"Press Any to Return"+color.cap+" * -->").to_int
+	if confirm != 1 then return
+	metaxploit = meta
+	shells = []
+	while shells.len == 0	
+		shells = metaxploit.rshell_server
+		if(typeof(shells) == "string") then exit(shells)	
+		if(shells.len == 0) then wait(2)
+	end while
+	option = 0
+	while typeof(option) != "number" or (option < 1 or option > shells.len)
+		print(shells.len + " shell(s) connected!\n<b>Select a shell to start a terminal:</b>")
+		for i in range(0, shells.len - 1)
+			
+			print("\n<b>"+color.yellow+"Capturing Shell"+color.cap+" [ " +color.white+ (i + 1) +color.cap+ " ]</b> "+color.purple+"Public IP: " +color.cap+ shells[i].host_computer.public_ip + color.white+"Local IP: " +color.cap+ shells[i].host_computer.local_ip)
+			transfer = Utils.transfer_tools(shells[i])
+			if not transfer then print(color.orange + "eel transfer --> FAILED")
+			if transfer == true then capture = shells[i].launch("/home/guest/eel")
+			if transfer == true and capture != 0 then print(color.green+"eel --> LAUNCHED")
+		end for
+		print("-----------")
+		option = user_input("Select shell>").to_int
+	end while
+	
+end function
+
+Eel.collect_info = function()
+	metaxploit = meta
+	shells = []
+	while shells.len == 0	
+		shells = metaxploit.rshell_server
+		if(typeof(shells) == "string") then exit(shells)	
+		if(shells.len == 0) then wait(2)
+	end while
+	option = 0
+	while typeof(option) != "number" or (option < 1 or option > shells.len)
+		print(shells.len + " shell(s) connected!\n<b>Select a shell to start a terminal:</b>")
+		for i in range(0, shells.len - 1)
+			
+			print("\n<b>"+color.yellow+"Phishing Shell"+color.cap+" [ " +color.white+ (i + 1) +color.cap+ " ]</b> "+color.purple+"Public IP: " +color.cap+ shells[i].host_computer.public_ip + color.white+"Local IP: " +color.cap+ shells[i].host_computer.local_ip)
+			remote_transfer(shells[i])
+			if not transfer then print(color.orange + "eel transfer --> FAILED")
+			if transfer == true then capture = shells[i].launch("/home/guest/eel")
+			if transfer == true and capture != 0 then print(color.green+"eel --> LAUNCHED")
+		end for
+	end while
+	
+end function
+
+Eel.plant = function(object)
+	object = Utils.handle(object)
+	eel = object.host_computer.File("/home/guest/eel")
+	if eel == null then eel = Utils.transfer_tools(object, true)
+	wait(0.1)
+	l = 0
+	if eel == true then l = object.launch("/home/guest/eel")
+	if l == 0 then print(warning+" failed to launch eel")
+end function
+
+
