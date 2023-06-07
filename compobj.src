@@ -1,0 +1,82 @@
+// compobject -> create mutable instances of each exploit object
+//////////////////////////////////////////////////////////
+//////////////////////// INIT  ///////////////////////////
+/////////////////////////////////////////////////////////
+
+Mut_Comp = null // this is a shell that we will use for handling and throwing away shells 
+
+CompObject = {}
+CompObject.shell = {} 
+CompObject.fs = {}
+CompObject.user = "unknown"
+CompObject.pass = "pass"
+CompObject.type = "base"
+
+
+CompObject.init = function(computer)
+	if typeof(computer) != "computer" then print("c.o init error 1: computer expected, got"+typeof(computer))
+	if not computer then return print("c.o init error 2")
+	self.PC = computer
+	self.ip = computer.public_ip
+	self.lan = computer.local_ip
+end function
+
+
+CompObject.pw_attack = function(net_session = null, addr = null, port = null)
+	print(color.green+"[C]"+color.white+" attempting simple password change . . .") 
+	root_shell = null
+	password = null
+	password = user_input("Enter a new password: ", true)
+	pw_change = self.PC.change_password("root", password)
+	wait(0.1)
+	if pw_change == 1 then
+		print(color.green+"-- auth change OK !  --> "+password)
+	else
+		print(color.grey+"not root -->"+color.yellow+" attempting /etc/passwd . . .")
+		file = self.PC.File("/etc/passwd")
+		if not file then return print(color.yellow+"Error: Cannot get passwd file.")
+		if not file.has_permission("r") then return print(color.red+"/etc/passwd: Permission denied.") 
+		if file.is_binary or file.is_folder then return print(color.purple+"File is either binary or a folder.")
+		roothash = file.get_content.split("\n")[0].split(":")[1]
+		if not roothash then return print(color.red+"Error: Cannot get root hash.")
+		password = crypto.decipher(roothash)
+
+		if not password then return print(warning+"Error: Failed to decrypt root password.")
+		print("><> ><> Root AUTH Obtained ! ><> ><> " +color.green+ password)
+	end if
+	root_shell = new ShellObject
+	if net_session then 
+		root_shell = Utils.connect(null, "root", password, addr, port)
+		if typeof(root_shell) == "shell" or typeof(root_shell) == "ftpshell" then Utils.paired_msg
+	else
+		root_shell.init(null, "root", password, "root")
+		Utils.paired_msg
+	end if
+	return root_shell
+end function
+
+CompObject.touch_attack = function()
+	mole_file = self.PC.touch(home_dir, "Bank.txt")
+	wait(0.2)
+	print("molefile: "+typeof(mole_file)+" exploitobject: "+selected_exploit)
+	mole_file = selected_exploit.File(home_dir+"/Bank.txt")
+	if mole_file then 
+		print(mole_file.path+" owner: "+mole_file.owner+" "+mole_file.has_permission("r")+" "+mole_file.has_permission("r")+" "+mole_file.has_permission("x"))
+		return true
+	else 
+		print(warning+" failed to touch a file /:")
+		attempt_2 = user_input("enter path to try again, 0 to exit\n--> ")
+		mole_file = self.PC.touch(attempt_2, "Bank.txt")
+		wait(0.1)
+		if mole_file == true then
+			file = self.PC.File(attempt_2+"Bank.txt") 
+			if file == null then 
+				print("File was null?")
+				return false
+			end if
+			print(file.path+" "+file.has_permission("r")+" "+file.has_permission("r")+" "+file.has_permission("x")+" "+file.permissions)
+			return true
+		end if
+	end if
+	
+end function
