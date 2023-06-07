@@ -1,0 +1,103 @@
+// compobject -> create mutable instances of each exploit object
+//////////////////////////////////////////////////////////
+//////////////////////// INIT  ///////////////////////////
+/////////////////////////////////////////////////////////
+
+Mut_Comp = null // this is a shell that we will use for handling and throwing away shells 
+
+FileObject = {}
+FileObject.shell = {} 
+FileObject.fs = {}
+FileObject.user = "unknown"
+FileObject.pass = "pass"
+FileObject.type = "base"
+
+FileObject.init = function(file=null, file_path=null)//path
+	if file then 
+		self.F = file
+	else 
+		self.F = File(file_path)
+	end if
+	if typeof(self.F) != "file" then return print("fo init error; expected file, got "+typeof(self.F))
+	self.fname = self.F.name
+	self.fpath = self.F.path
+	self.fowner = self.F.owner
+	self.fperms = self.F.permissions
+	self.isf = self.F.is_folder
+	self.scope = self.F.has_permission("r")+" "+self.F.has_permission("w")+" "+self.F.has_permission("x")
+end function
+
+
+FileObject.file_attack = function( net = null )
+	root_attempt = null
+	password = null
+	print(self.F.is_folder)
+	if self.F.is_folder then 
+		
+		for file in self.F.get_files
+			if not file.is_binary and file.has_permission("r") then 
+				print("read access available: "+color.green+file.name)
+				if file.name == "passwd" then 
+					print(color.green+" passwd file --> OK ")
+					root_attempt = user_input("1.) Decipher\n2.) Press any to return\n--> ")
+					root_attempt = root_attempt.val
+					if root_attempt == 1 then 
+						roothash = file.get_content.split("\n")[0].split(":")[1]
+						if not roothash then return print(color.red+"Error: Cannot get root hash.")
+						password = crypto.decipher(roothash)
+						if not password then return print(warning+"Error: Failed to decrypt root password.")
+						//s = get_shell("root", password)
+						//root = s 
+						//return root
+					end if
+				end if
+				print(self.F.get_content)
+			end if
+		end for
+		
+		for sub_folder in self.F.get_folders
+			print("sub folder: "+sub_folder.name)
+			if sub_folder.is_folder then 
+				for sub_file in sub_folder.get_files
+					if not sub_file.is_binary and sub_file.has_permission("r") then 
+						print("sub file: "+ sub_file.name)
+						print(sub_file.get_content)
+						if sub_file.name == "passwd" then 
+						print(color.yellow+"passwd file --> OK ")
+						root_attempt = user_input("1.) Decipher\n2.) Press any to return\n--> ")
+						root_attempt = root_attempt.val
+						if root_attempt == 1 then 
+								roothash = file.get_content.split("\n")[0].split(":")[1]
+								if not roothash then return print(color.red+"Error: Cannot get root hash.")
+								password = crypto.decipher(roothash)
+								if not password then return print(warning+"Error: Failed to decrypt root password.")
+								if not net_session then 
+									// local shell 
+									root_shell.init(null, "root", password, "root")
+									Utils.paired_msg
+								else
+									root_shell = Utils.connect(null, "root", password, addr, port)
+									if root_shell != null then root_shell.init()
+								end if
+								return root_shell
+							end if
+						end if
+						print("file: "+file.name)
+						print(file.get_content)
+					end if
+				end for
+		else
+			scopeR = self.F.has_permission("r")
+		end if
+		root_shell = null
+		root_shell = new ShellObject
+		if not net_session and password then 
+			// local shell 
+			root_shell.init(null, "root", password, "root")
+			Utils.paired_msg
+		else
+			root_shell = Utils.connect(null, "root", password, addr, port)
+		end if
+		return root_shell
+	
+end function
