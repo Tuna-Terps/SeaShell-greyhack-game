@@ -9,10 +9,10 @@ A collection of scripts written for use in the game grey hack https://store.stea
 
 -- create a folder named src, and place all scripts inside of it via the game code editor
 
--- adjust the paths for the refernce code in main.src and autolocal.src 
+-- adjust the paths for the refernce code in main.src and autolocal.src <br>
 ex: import_code("/home/USER/src/utils.src")
 
--- You will need to compile the following files in this order, name the binary the same as the src
+-- You will need to compile the following files in this order, name the binary the same as the src<br><br>
 1.) shellobj.src --> ** MUST ALLOW IMPORTS ** <br>
 2.) compobj.src --> ** MUST ALLOW IMPORTS **<br>
 3.) fileobj.src --> ** MUST ALLOW IMPORTS **<br>
