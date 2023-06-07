@@ -2,7 +2,7 @@
 <br>
 <small> WIP </small><br>
 
-<b> Acknowledgments </b>
+<b> Acknowledgments </b><br>
 // Thank you @github: WyattSL for the GreyHack Game documentation<br>
 // Thank you @github: psimonson for https://github.com/psimonson/greyhack-scripts/tree/master/v0.8/scripts<br>
 <br>
