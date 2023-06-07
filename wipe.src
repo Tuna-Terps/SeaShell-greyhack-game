@@ -1,0 +1,14 @@
+pc = get_shell.host_computer
+files = ["metaxploit.so", "crypto.so", "payload", "wipe", "eel", "ss"]
+for file in files
+	result = pc.File("/home/guest/" + file)
+	if not result then continue
+	print("Deleting file: " + result.path)
+	result.delete
+	if result.delete then
+		print("Success.")
+	else
+		print("Failed.")
+	end if
+end for
+print("======= AUTOCLEAN =======\nTask Done")
