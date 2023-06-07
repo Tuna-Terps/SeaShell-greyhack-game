@@ -23,8 +23,8 @@ ex: import_code("/home/USER/src/utils.src")
 7.) wipe.src  <br>
 8.) main.src --> RENAME TO ss 
 
-eel.src --> rshell payload, must define your rshell's IP 
-binary.src --> contains obfuscated variables for root, users, and your FTP depot server info
-send.src --> references binary.src, for your protection, do not keep src as these can be easily compromised
+eel.src --> rshell payload, must define your rshell's IP <br>
+binary.src --> contains obfuscated variables for root, users, and your FTP depot server info <br> 
+send.src --> references binary.src, for your protection, do not keep src as these can be easily compromised<br>
 
 
