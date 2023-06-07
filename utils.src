@@ -1,0 +1,412 @@
+//////////////////////// NEW CORE ////////////////////////
+// ><> ><> ><> ><> LIBRARIES ><> ><> ><> ><>
+meta = include_lib("/lib/metaxploit.so")
+if not meta then meta = include_lib("/lib/cheese/metaxploit.so")
+if not meta then meta = include_lib(current_path+"/metaxploit.so")
+if not meta then meta = include_lib(launch_path+"/metaxploit.so")
+if not meta then meta = include_lib(home_dir+"/metaxploit.so")
+if not meta then meta = include_lib("/home/guest/metaxploit.so")
+if not meta then exit("metaxploit.so was not found in /home or /lib")
+crypto = include_lib("/lib/crypto.so")
+if not crypto then crypto = include_lib("/lib/cheese/crypto.so")
+if not crypto then crypto = include_lib("/bin/crypto.so")
+if not crypto then crypto = include_lib("/home/guest/crypto.so")
+if not crypto then print(warning+" crypto was not found")
+// ><> ><> ><> ><> VARIABLES ><> ><> ><> ><>
+// ><> CORE ><>
+globals.anonymous = false
+
+base_shell = new ShellObject
+base_shell.init()
+
+base_pc = new CompObject
+base_pc.init(get_shell.host_computer)
+
+base_file = new FileObject
+base_file.init(get_shell.host_computer.File("/"))
+
+globals.Shells = [ [base_shell, base_shell.user, "MAIN"] ] // our collection of global shell objects
+globals.Computers = [ [base_pc, "MAIN"] ] // our collection of global computer objects
+globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects
+globals.Exploits = [] // our collection of global exploit objects
+globals.Global_Path = "/home" // our mutable path for 1 or more? objects
+
+Current_Shell = get_shell // mutable shell
+Current_Computer = @host_computer // well see how it goes
+
+globals.Current_Path = current_path // a path for more specific commands
+
+// ATTACKS 
+fwd_machines = [] // collection of machines from a probe with open, fwd ports
+local_machines = [] // machines found by ping
+
+// MISC
+color = {}
+color.white = "<color=#FFFFFF>";color.grey = "<color=#A5A5A5>";color.blue = "<color=#003AFF>";
+color.cyan = "<color=#00FFE7>";color.purple = "<color=#D700FF>";color.red = "<color=#AA0000>";
+color.yellow = "<color=#FBFF00>";color.orange = "<color=#FF8701>";color.green = "<color=#00ED03>";
+color.fill = "><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>"
+color.cap = "</color>"
+title = "<color=#00FFE7>[<b>SeaShell</b>]</color>"
+init = "<color=#00ED03>[SeaShell]</color>"
+error = "<color=#AA0000>[SeaShell] <b>Error: </b></color>"
+warning = "<color=#FF8701>[SeaShell] <b>Warning: </b></color>"
+
+cmd = {}
+cmd.usage = "'Invalid Arguments' Use command -"+color.blue+" seashell"+color.cap+color.green+" [ip]\n"+color.green+" For more info - use argument -h or -d"
+cmd_list = "[CMD] [args] [DESCRIPTION]\n-h * Display_a_list_of_commands\n-d * Tool_&_Author_Info\n-s -a Enter_Surf_Mode(-a=anon)\n-- ip target_ip_for_Net_Session_Entry\n-w domain target_domain_for_Net_Session_Entry\n-r * target_random_ip\n-rp * fish_for_player_ip_(rshell/chat)"
+cmd.options = format_columns(cmd_list)
+cmd.description = color.grey+"A tool to discretely probe and penetrate networks \n1.) Finds all machines with open processes\n2.) Exploits net sessions \n3.) Local Elevate + rShell Insertion\n4.) Info Collection (Mail, Bank, .log)"//+color.white+"-> Returns a list of machines with closed ports for deeper penetration";
+
+Utils = {}
+
+Utils.handle = function(object)
+	if (object isa ShellObject) == true then object = object.shell
+	if (object isa CompObject) == true then object = object.PC
+	if (object isa FileObject) == true then object = object.F
+	return object
+end function
+
+Utils.add = function(object)
+	if (object isa ShellObject) == true then 
+		globals.Shells = globals.Shells + [ object.shell, object.user, "CAPTURED"]
+	else if (object isa CompObject) == true then 
+		globals.Computers = globals.Computers + [object, "CAPTURED"]
+	else if (object isa FileObject) == true then 
+		globals.Files = globals.Files + [object, "CAPTURED"]
+	else 
+		return
+	end if
+	
+end function
+
+//////////////////////////////////////////////////////////////  
+///==================== USERS =======================////
+////////////////////////////////////////////////////////////
+
+////////////////////////////// USER /////////////////////
+Utils.user = function(object)
+	object = Utils.handle(object)
+	if typeof(object) == "shell" then object = object.host_computer
+	if not object then return print("User check error, no object found")
+	if object.File("/root").has_permission("r") and object.File("/root").has_permission("w") and object.File("/root").has_permission("x") then return object.File("/root").name
+	if object.File("/home") == null then return "unknown"
+	for f in object.File("/home/").get_folders
+    	if f.name=="guest" then continue
+		if f.has_permission("r") and f.has_permission("w") and f.has_permission("x") then return f.name
+  	end for
+  	return "guest" 
+end function
+/////////////////////////////// IS ROOT //////////////////////
+Utils.is_root = function(object)
+	object = Utils.handle(object)
+	file = object.File("/root")
+	if not file then file = object.File("/")
+	return file.has_permission("r") and file.has_permission("w") and file.has_permission("x")
+end function
+///////////////////////////// CHANGE PW ////////////////////
+Utils.change_pw = function(object, user="root", password)
+	object = Utils.handle(object)
+	if typeof(object) == "shell" then object = object.host_computer
+	inputMsg = "Changing password for user " + user +".\nNew password:"
+	inputPass = user_input(inputMsg, true)
+	output = object.change_password(user, inputPass)
+	return output
+end function
+//////////////////////////////////////////////////////////////  
+///==================== FILESYSTEM =======================////
+////////////////////////////////////////////////////////////
+
+//////////////////////////////////// HAS FILE ///////////////////////////
+
+Utils.has_file = function(object, file_path)
+	object = Utils.handle(object)
+	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
+	if not object then return false
+	return object.File(file_path) != null
+end function
+//////////////////////////////////// HAS FOLDER ///////////////////////////
+
+Utils.has_folder = function(object, file_path)
+	object = Utils.handle(object)
+	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
+	return object.File(file_path).is_folder
+end function
+//////////////////////////////////// TOUCH ///////////////////////////
+Utils.make_file = function(object, file_path, file_name)
+	object = Utils.handle(object)
+	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
+	return object.touch(file_path, file_name)
+end function
+//////////////////////////////////// MKDIR ///////////////////////////
+Utils.make_folder = function(object, file_path, folder_name)
+	object = Utils.handle(object) 
+	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
+	return object.create_folder(file_path, folder_name)
+end function
+//////////////////////////////////// RM FILE ///////////////////////////
+Utils.rm = function(shell, file_path)
+	object = Utils.handle(object)
+	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
+	deletion = null
+	if object.File(file_path) != null then deletion = object.delete
+	return deletion
+end function
+//////////////////////////////////// DEHASH ///////////////////////////
+Utils.cipher = function(userPass)
+	password = cryptools.decipher(userPass)
+	return password
+end function
+//////////////////////////////////// FILE DEHASH ///////////////////////////
+Utils.decrypt = function(shell, file_path)
+	object = Utils.handle(shell)
+	if typeof(object) == "shell" then object = object.host_computer.File(file_path)
+	if typeof(object) == "computer" then object = object.File(file_path)
+	if not object then exit("decipher: can't find " + file_path)
+	if object.is_binary then exit("decipher: can't read " + file_path + ". Binary file")
+	if not object.has_permission("r") then exit("decipher: can't read file. Permission denied")
+	if object.get_content.len == 0 then exit("decipher: no users found")
+	lines = object.get_content.split("\n")
+	if lines.len == 1 then
+		userPass = lines[0].split(":")
+		password = GetPassword(userPass)
+	else
+		print("Multiple users found.")
+		numLine = 1
+		for line in lines
+			if line.len > 0 then
+				print(numLine + ": " + line)
+				numLine = numLine + 1
+			end if
+		end for
+		option = ""
+		inputOk = false
+		while( not inputOk )
+			option = user_input("Select user: ").to_int
+			if typeof(option) != "number" or (option < 1 or option > lines.len) then
+				print("Invalid input. Type a valid number")
+			else 
+				inputOk = true
+			end if
+		end while
+		userPass = lines[option - 1].split(":")
+		print("Selected user: " + userPass[0] + "\nDeciphering...")
+		password = GetPassword(userPass)
+		return password
+end if
+end function
+//////////////////////////////////// TOOL TRANSFER ///////////////////////////
+Utils.transfer_tools = function(obj, eel_only = null)
+	obj = Utils.handle(obj)
+    files = []
+    filenames = ["metaxploit.so", "crypto.so", "payload", "wipe", "eel", "ss"]
+    if eel_only != null then filenames = ["metaxploit.so","eel"]
+	dirs = ["/lib/", parent_path(launch_path) + "/", parent_path(program_path) + "/", "/lib/cheese/"]
+    for filename in filenames
+        for dir in dirs
+            if get_shell.host_computer.File(dir + filename) then
+                files = files + [dir + filename]
+                break
+            end if
+        end for
+    end for
+	if files.len == 0 then print(color.orange+"Error: Cannot get files for transfer.")
+    if files.len == 0 then return false
+    payload = user_input(color.green+"Confirm transfer of files\n1.) Confirm\n2.) Press any to skip\n--> ")
+    payload = payload.val
+    if payload != 1 then return
+    // Transfer files
+    for file in files
+        get_shell.scp(file, "/home/guest", obj)
+        wait(0.1)
+    end for
+    // Chown files
+    pc = obj.host_computer
+    for filename in filenames
+        file = pc.File("/home/guest/" + filename)
+        if not file then continue
+        file.set_owner("guest")
+    	file.set_group("guest")
+    	wait(0.1)
+	end for
+	return true
+end function
+//////////////////////////////////// LOG WIPE ///////////////////////////
+Utils.wipe_log = function(obj)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" then obj = obj.host_computer
+	
+	corrupt = obj.File(home_dir+"/anonymous.dat")
+	if corrupt == null then corrupt = obj.File("/home/guest/anonymous.dat")
+	if corrupt == null then 
+		res = obj.touch("/home/", "fish.txt")
+		wait(0.5)
+		file = null
+		copied = null
+		if res != 1 then 
+			file = obj.File("/home/fish.txt")
+			file.set_content("\n\n\n\n\n\n\n                             ><>")
+			wait(0.1)
+			copied = file.copy("/var/", "system.log")
+			status = color.yellow+"wiped"+color.cap
+		else 
+			corrupt = obj.File("/etc/fstab")
+			copied = corrupt.copy("/var/", "system.log")
+			corrupt.set_content("\n\n\n\n\n\n\n                          ><>")
+			status = color.green+"corrupted"+color.cap
+		end if
+	else 
+		corrupt.set_content("\n\n\n\n\n\n\n                          ><>")
+		wait(0.1)
+		copied = corrupt.move("/var/", "system.log")
+		status = color.green+"corrupted"+color.cap
+	end if
+	if copied != 1 then print(warning+" -- Unable to wipe the system logs --")
+	if copied == 1 then print(title+" system.log was [ "+status+" ] !")
+	return copied
+end function
+//////////////////////////////////////////////////////////////  
+///==================== CONNECTION =======================////
+////////////////////////////////////////////////////////////
+
+//////////////////////////////////// CONNECT ///////////////////////////
+Utils.connect = function(shell, username = "root", password, addr, port)
+	if not shell then shell = globals.Current_Object
+	choose_type = user_input(color.green+"[ SELECT ]"+color.white+" 1.) SSH  "+color.cap+color.grey+"2.) FTP"+color.cap+"  --> "); choose_type=choose_type.val
+	choose_port = user_input(color.grey+"[ ENTER ]"+color.white+" Port for connection"+color.cap+color.grey+" *use 0 for entry port*"+color.cap+" -->  ")
+	print("SHELL IP:"+ shell.host_computer.public_ip)
+	choose_port = choose_port.val
+	if choose_port != 0 then port = choose_port
+	if choose_type == 1 then 
+		connection = shell.connect_service(addr, port, username, password)
+		protocol = "ssh"
+	else 
+		connection = shell.connect_service(addr, port, username, password, "ftp")
+		protocol = "ftp"
+	end if
+	print(init+color.white+" attempting remote shell connection via: "+color.grey+protocol)
+	if typeof(connection) != "shell" and typeof(connection) != "ftpshell" then 
+		return print(warning+color.green+"[ "+protocol+" ] "+color.cap+color.grey+" connection failed at port: "+color.white+port)
+	else
+		print(color.blue+color.fill)
+		print(title+color.green+" [ "+color.white+typeof(connection)+color.cap+" ] ShellObject connection OK !")
+		print(color.blue+color.fill)
+	end if
+	print("CONNECTION IP:"+ connection.host_computer.public_ip)
+	return connection
+end function
+//////////////////////////////////// SSH ///////////////////////////
+Utils.ssh = function(shell, connect_string, ip, port = 22)
+	if (shell isa ShellObject) == true then shell = shell.shell
+	if not shell then get_shell
+	connect_string = connect_string.split("@")
+	connection = shell.connect_service(ip, port, connect_string[0], connect_string[1])
+	return connection
+end function
+//////////////////////////////////// FTP ///////////////////////////
+Utils.ftp = function(shell, connect_string, ip, port = 21)
+	if (shell isa ShellObject) == true then shell = shell.shell
+	if not shell then get_shell
+	connect_string = connect_string.split("@")
+	connection = shell.connect_service(ip, port, connect_string[0], connect_string[1], "ftp")
+	return connection
+end function
+
+//////////////////////////////////////////////////////////////  
+///====================== MISC =========================////
+////////////////////////////////////////////////////////////
+Utils.random_ip = function()
+    while true //loop
+        ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
+        if not is_valid_ip(ip) then continue //If the ip is invalid, try again
+        if is_lan_ip(ip) then continue //If the ip is a lan ip, try again
+		//if not get_router(ip) then continue //do not check for this cause most of the time there will be a router and this slows down the process A LOT
+        return ip //If the ip is valid, break out of the loop
+    end while
+end function
+
+welcome_msg = function()
+	print("       .               "+color.red+"               __..._")
+	print("      ':'              "+color.red+"           ..-'      o.")
+	print("    ___:____     |'\/'|"+color.red+"         .-'           :")
+	print("  ,'        `.    \  / "+color.red+"      _..'           .'__..--<")
+	print("  |  O        \___/  | "+color.red+"...--""              '-.")
+	print("~^~^~^~^~^~^~^~^~^~^~^~"+color.red+"^~^~^~^~^~^~^~^~^~^~^~^~")
+	print(color.blue+color.fill)
+	print(color.red+ ".                                            /\")
+	print(color.cyan+"   _____            </color><color=#AA0000> _____ _          _ _   {.-}")  
+	print(color.cyan+"  / ____|           </color><color=#AA0000>/ ____| |        | | | ;_.-'\") 
+	print(color.cyan+" | (___   ___  __ _</color><color=#AA0000>| (___ | |__   ___| | |{    _.}_") 
+	print(color.cyan+"  \___ \ / _ \/ _` |</color><color=#AA0000>\___ \| '_ \ / _ \ | | \.-' /  `,") 
+	print(color.cyan+"  ____) |  __/ (_| |</color><color=#AA0000>____) | | | |  __/ | |  \  |    /") 
+	print(color.cyan+" |_____/ \___|\__,_|</color><color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/")
+	print(color.red+".                                             \|_/")
+	print(title+" </color><color=#00ED03>- v0.0.0 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
+	print(color.blue+color.fill)
+end function
+
+Utils.got_rooted = function()
+	print(color.green+"                                   ____")
+	print(color.green+"                               /\|    ~~\")
+	print(color.green+"                             /'  |   ,-. `\")
+	print(color.green+"                            |       | X |  |")
+	print(color.green+"                           _|________`-'   |X")
+	print(color.green+"                         /'          ~~~~~~~~~,")
+	print(color.green+"                       /'             ,_____,/_")
+	print(color.green+"                    ,/'        ___,'~~         ;")
+	print(color.green+"~~~~~~~~|~~~~~~~|---          /  X,~~~~~~~~~~~~,")
+	print(color.green+"        |       |            |  XX'____________'")
+	print(color.green+"        |       |           /' XXX|            ;")
+	print(color.green+"        |       |        --x|  XXX,~~~~~~~~~~~~,")
+	print(color.green+"        |       |          X|     '____________'")
+	print(color.green+"        |   o   |---~~~~\__XX\             |XX")
+	print(color.green+"        |       |          XXX`\          /XXXX")
+	print(color.green+"~~~~~~~~'~~~~~~~'               `\xXXXXx/' \XXX")
+	print(color.green+"                                 /XXXXXX\")
+	print(color.green+"                               /XXXXXXXXXX\")
+	print(color.green+"                             /XXXXXX/^\X2NAXX\")
+	print(color.green+"                            ~~~~~~~~   ~~~~~~~")
+end function
+
+Utils.scuba_msg = function()
+	print(color.blue+"                                   __")
+	print(color.blue+"                                  |::|")
+	print(color.blue+"                                  |::|")
+	print(color.blue+"                 _..---.._        |::|")
+	print(color.blue+"               .' /     \ `.      |::|")
+	print(color.blue+"              /  /       \  \     |::|")
+	print(color.blue+"             /  /         \  \    |  |")
+	print(color.blue+"            /   |         |   \   |  |")
+	print(color.blue+"           |    |   ___   |    |  |  |")
+	print(color.blue+"  _`'..._-.|____|__|\\/|__|____|..|  | ___")
+	print(color.blue+"  ____...  | .- - - - - - - -. | .|  |_   `'")
+	print(color.blue+"    ____.  /.-----------------.\ .|  | ```..")
+	print(color.blue+"``..      //'  `-._     _.-`  '\\ |  | ..")
+	print(color.blue+"    ...-' ||'  /.-.\   /.-.\  '|| `..\...`'`")
+	print(color.blue+"   ---._` \\:_ \("+color.red+"o"+color.cap+color.blue+")/...\("+color.red+"o"+color.cap+color.blue+")/._:// .----..---")
+	print(color.blue+"    ___.._  __....   ._....._.....___")
+	print(color.blue+"'' ___.._  __....   ._....._.....___")
+
+end function
+Utils.fish_tank_msg = function()
+	print(color.blue+"|  \|/  *    .  .    . .. .      |")
+	print(color.blue+"|   \|*/*     ..     _ . .       |")
+	print(color.blue+"|   *|| |     ..   ><_> . _      |")
+	print(color.blue+"|   |`|/     _ .         <_><    |")
+	print(color.blue+"|    \|    ><_>              _   |")
+	print(color.blue+"`-----!---------!!!---!!!---/ \--'")
+end function
+Utils.paired_msg = function()
+	print(color.white+"   _______________                        |*\_/*|________")
+	print(color.white+"  |  ___________  |     "+color.red+".-.     .-."+color.cap+color.white+"      ||_/-\_|______  |")
+	print(color.white+"  | |           | |    "+color.red+".****. .****."+color.cap+color.white+"     | |           | |")
+	print(color.white+"  | |   "+color.green+"0   0"+color.cap+color.white+"   | |    "+color.red+".*****.*****."+color.cap+color.white+"     | |   "+color.red+"0   0"+color.cap+color.white+"   | |")
+	print(color.white+"  | |     -     | |     "+color.red+".*********."+color.cap+color.white+"      | |     -     | |")
+	print(color.white+"  | |   \___/   | |      "+color.red+".*******."+color.cap+color.white+"       | |   \___/   | |")
+	print(color.white+"  | |___     ___| |       "+color.red+".*****."+color.cap+color.white+"        | |___________| |")
+	print(color.white+"  |_____|\_/|_____|        "+color.red+".***."+color.cap+color.white+"         |_______________|")
+	print(color.white+"    _|__|/ \|_|_"+color.red+"............"+color.red+".*.............."+color.cap+color.white+"_|________|_")
+	print(color.white+"   / ********** \                          / ********** \")
+	print(color.white+" /  ************  \                      /  ************  \")
+	print(color.white+"--------------------                    --------------------")
+end function
