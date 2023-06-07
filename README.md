@@ -1,9 +1,9 @@
 # grey-hack-game-scripts
 grey hack - game scripts
-
-A collection of scripts written for use in the game grey hack https://store.steampowered.com/app/605230/Grey_Hack/
-// Thank you @github: WyattSL for the GreyHack Game documentation
-// Thank you @github: psimonson for https://github.com/psimonson/greyhack-scripts/tree/master/v0.8/scripts
+<b> Acknowledgments </b>
+A collection of scripts written for use in the game grey hack https://store.steampowered.com/app/605230/Grey_Hack/ <br>
+// Thank you @github: WyattSL for the GreyHack Game documentation<br>
+// Thank you @github: psimonson for https://github.com/psimonson/greyhack-scripts/tree/master/v0.8/scripts<br>
 
 ## INSTALL ##
 
