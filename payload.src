@@ -1,0 +1,216 @@
+// payload -- deploy to elevate to root --> new autolocal
+import_code("/home/2NA/source/utils.src")
+import_code("/home/2NA/source/binary")
+
+import_code("/home/2NA/source/getlib.src")
+import_code("/home/2NA/source/loadlib.src")
+import_code("/home/2NA/source/gethacks.src")
+import_code("/home/2NA/source/shelltype.src")
+
+import_code("/home/2NA/src/shellobj")
+import_code("/home/2NA/src/compobj")
+import_code("/home/2NA/src/fileobj")
+
+import_code("/home/2NA/source/exploitmenu.src")
+import_code("/home/2NA/source/send")
+
+print(init+color.red+"~~~~^~~^~~^~ Beginning Auto Local ~^~~^~~^~~~~")
+shells = []
+comps = []
+files = []
+others = []
+hacks = get_local_hacks()
+crypto = get_library("crypto.so")
+// we put the null switch here, and if we select a shell or etc we can go from there
+pass = "pass"
+
+if hacks.len == 0 then exit("Error: Could not get local hacks.")
+for hack in hacks
+	lib = load_library(hack["metalib"])
+	if not lib then continue
+	print("Trying Library: " + lib.lib_name + ":" + lib.version)
+	for value in hack["values"]
+		result = lib.overflow(hack["memory"], value, pass)
+		if not result then continue
+		if typeof(result) == "shell" then shells = shells + [get_shell_type(result)]
+		if typeof(result) == "computer" then comps = comps + [result]
+		if typeof(result) == "file" then files = files + [result]
+		if typeof(result) == "string" or typeof(result) == "number" then others = others + [result]
+	end for
+	if shells.len == 0 and comps.len == 0 and files.len == 0 and others.len == 0 then return print(warning+" no remote hacks found") 
+	choice_array = [shells, comps, files, others]
+	shell_objects = []
+	comp_objects = []
+	file_objects = []
+	other_objects = []
+	index = 0
+	// loop the exploit objects
+	for choice in choice_array
+		for exploit in choice
+			if index == 0 then 
+				a = new ShellObject
+				a.init(exploit["shell"], null, null, exploit["user"])
+				shell_objects = shell_objects + [ a ]
+			else if index == 1 then 
+				b = new CompObject
+				b.init(exploit)
+				comp_objects = comp_objects + [ b ]
+			else if index == 2 then
+				c = new FileObject
+				c.init(exploit, null)
+				file_objects = file_objects + [ c ]
+			else if index == 3 then  
+				//d = new OtherObject
+				//d.init(exploit)
+				other_objects = other_objects + [ exploit ]
+			end if
+		end for
+		index = index + 1
+	end for
+	shells = shell_objects
+	comps = comp_objects
+	files = file_objects
+	others = other_objects
+end for
+selected_menu = 0
+selected_option = 0
+selected_exploit = null
+selecting = true
+options = []
+
+print(init+" Beginning"+color.red+" local exploit"+color.cap+" menu @ "+color.white+get_shell.host_computer.public_ip+color.cap+":"+color.green+get_shell.host_computer.local_ip)
+/////// ATTACKS  
+////////////////////////////////////////////
+if shells.len == 0 and comps.len == 0 and files.len == 0 and others.len == 0 then return print("error: no exploits found")
+attack_result = exploit_menu(shells, comps, files, others)
+selected_menu = attack_result[0]
+selected_exploit = attack_result[1]
+
+root = null
+attacking = true 
+
+//print("SELECTED EXPLOIT"+ selected_exploit.shell)
+print("selected exploit type: "+ typeof(selected_exploit))
+
+while attacking == true 
+	if shells.len == 0 and files.len == 0 and comps.len == 0 then break
+	if attacking == false or typeof(root) == "shell" then break
+	// SHELL 
+	if selected_menu == 1 then 
+		default_color = color.white
+		default = selected_exploit["user"]
+		if default == "root" then default_color = color.green
+        input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user_check(selected_exploit["shell"])+color.cap+" ]\n1.) PW Read + Escalation \n2.) IDFK\n3.) Exploit Main Menu \n4.) Pass the shell \n0.) Relaunch Network Attack\n--> ")
+		input = input.val 
+		if input == 1 then 
+			root = selected_exploit.pw_attack()
+			if not root then attacking = true 
+			if root then attacking = false
+		else if input == 2 then
+			 print("needs more cheese ammi right?")
+		else if input == 3 then 
+			//attack_result = Attack
+			attack_result = exploit_menu(shells, comps, files, others)
+			selected_menu = attack_result[0]
+			selected_exploit = attack_result[1]
+		else if input == 4 then
+			// ok bud 
+			root = selected_exploit["shell"]
+			attacking = false 
+			//break
+			return root
+		else if input == 0 then 
+			root = selected_exploit.pw_attack()
+			if not root then attacking = true 
+			if root then attacking = false
+		end if
+	// COMPUTER 
+	else if selected_menu == 2 then 
+        input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user_check(selected_exploit.PC)+color.cap+" ]\n1.) Touch \n2.) PW Change \n0.) Main Menu\n--> ")
+		input = input.val 
+		if input == 1 then 
+			t_a = touch_attack
+			if t_a == true then print(color.green+"Touch attack OK !")
+			if t_a == false then print(color.yellow+"Touch attack failed !")
+		else if input == 2 then
+			root_attempt = selected.exploit.pw_attack()
+			wait(0.1)
+			if root_attempt == false then 
+				print(color.orange+"Password change failed")
+			end if
+			if typeof(root_attempt) == "shell" then 
+				root = root_attempt
+				return root
+			end if
+		else if input == 0 then 
+			//attack_result = Attack
+			attack_result = exploit_menu(shells, comps, files, others)
+			selected_menu = attack_result[0]
+			selected_exploit = attack_result[1]
+		end if 
+	else if selected_menu == 3 then
+		input = user_input("File Exploit:\n[ "+selected_exploit.name+" ]\n1.) Cat \n2.) Set Content ? \n3.) Chmod\n--> ") 
+		input = input.val 
+		if input == 1 then 
+			root = file_attack
+			if not root then attacking = true
+			if root then attacking = false
+		else if input == 2 then 
+		
+		else if input == 3 then 
+		
+		else 
+			//attack_result = Attack
+			attack_result = exploit_menu(shells, comps, files, others)
+			selected_menu = attack_result[0]
+			selected_exploit = attack_result[1]
+		end if 
+	else if selected_menu == 4 then
+	 	input = user_input("Other Exploit:\n[ "+selected_exploit+" ]\n1.) Cat 2.) Set Conent ? 3.) IDK man\n--> ") 
+		input = input.val 
+		if input == 1 then 
+			
+		else if input == 2 then 
+		
+		else if input == 3 then 
+		
+		else 
+		
+		end if
+	end if
+end while
+
+if (root isa ShellObject) == true then root = root.shell
+
+str = color.white+"[ SELECT OPTION ] \n"+color.white+"1.)"+color.cap+color.green+" Tran$fer Files\n"+color.white+"2.)"+color.cap+color.orange+" Plant eel (rshell)\n"+color.white+"3.)"+color.cap+color.yellow+" Trace Wipe (tools/logs)\n"+color.white+"4.)"+color.cap+color.red+" Launch Root Terminal\n"+color.white+"5.)"+color.cap+color.cyan+" Surf Mode"
+passing = false 
+eel_planted = null 
+while passing == false
+	if passing == true then break
+	print(str) 
+	input = user_input("--> ")
+	input = input.val
+	if input == 1 then 
+		remote_transfer(root)
+	end if
+	if input == 2 then
+		if eel_planted then return print("The eel's Already Planted!") 
+		root.launch("/home/guest/eel")
+		print("eel planted")
+		passing = false
+		eel_planted = true
+	end if
+	if input == 3 then
+		trace_choice = user_input("1.) Tools\n2.) Logs\n--> ")
+		trace_choice = trace_choice.val
+		if trace_choice == 1 then root.launch("/home/guest/autoclean") 
+		if trace_choice == 2 then Utils.wipe_log(root)
+		passing = false
+	end if
+	if input == 4 then 
+		return root.start_terminal
+	end if
+ 	if input == 5 then 
+		return root.launch("/home/guest/ss", "-s")
+	end if
+end while
