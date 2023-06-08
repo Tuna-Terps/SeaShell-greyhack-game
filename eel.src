@@ -1,0 +1,18 @@
+access = "6789998212"
+computer = get_shell.host_computer
+if not computer then exit("Failed to load key dependencies")
+meta = include_lib(home_dir+"/metaxploit.so")
+if not meta then meta = include_lib("/lib/metaexploit.so")
+if not meta then meta = include_lib(current_path+"/metaxploit.so")
+if not meta then exit("There was an issue loading key dependencies") 
+meta.rshell_client(access, 1222, "kernel_tasks")
+print("                     _____")
+print("       /\     _..--'`     `'-.")
+print("      {.-} _.'            _   '.")
+print("     ;_.-'\              (@)    \")
+print("    {    _.}_            _.---:-'")
+print("     \.-' /  `,         _\'._ \\")
+print("      \  |    /_..--''```'-.`' |")
+print("       \ |  ,/              `''`")
+print("        \|_//")
+exit()
