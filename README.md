@@ -31,3 +31,5 @@ send.src --> references binary.src, for your protection, do not keep src as thes
 
 
 One complete, the only required filed are ss, wipe, eel, and payload
+Hope you enjoy if you find useful;
+![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/a4d78694-04e6-4f16-8c8c-6b2f70cdbf34)
