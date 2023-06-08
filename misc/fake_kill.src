@@ -8,10 +8,7 @@ processes = get_shell.host_computer.show_procs
 process_list = processes.split("\n")
 for process in process_list
 	parsed = process.split(" ")
-	process_user = parsed[0]
 	process_pid = parsed[1]
-	process_cpu = parsed[2]
-	process_mem = parsed[3]
 	process_cmd = parsed[4]
 	if PID == process_pid.to_int and process_cmd == "kernel_tasks" then exit("Permission denied. Process protected.")
 end for 
