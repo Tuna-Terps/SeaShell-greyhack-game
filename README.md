@@ -29,3 +29,5 @@ binary.src --> contains obfuscated variables for root, users, and your FTP depot
 send.src --> references binary.src, for your protection, do not keep src as these can be easily compromised<br>
 
 
+
+One complete, the only required filed are ss, wipe, eel, and payload
