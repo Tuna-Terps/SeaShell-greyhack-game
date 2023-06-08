@@ -1,0 +1,66 @@
+// main --> compile as ss
+import_code("/home/2NA/src/shellobj")
+import_code("/home/2NA/src/compobj")
+import_code("/home/2NA/src/fileobj")
+
+import_code("/home/2NA/src/utils.src") 
+import_code("/home/2NA/src/core.src")
+import_code("/home/2NA/src/binary")
+
+import_code("/home/2NA/src/getlib.src")
+import_code("/home/2NA/src/loadlib.src")
+import_code("/home/2NA/src/gethacks.src")
+import_code("/home/2NA/src/shelltype.src")
+
+
+import_code("/home/2NA/source/exploitmenu.src")
+import_code("/home/2NA/source/send")
+
+import_code("/home/2NA/src/netsesh.src")
+// init
+
+
+// MAIN COMMAND LOOP
+Current_Object = globals.Current_Shell
+Current_Object = new ShellObject
+Current_Object.init
+Main = {}
+// object: ShellObject | CompObject 
+
+Main.eval = function(object, data)
+	print("Global Shells Detected: "+globals.Shells.len)
+	if (data isa ShellObject) == true or (data isa CompObject) == true then
+		print("New Object detected")
+		confirm = user_input(color.white+"1.) Add to Object Pool \n"+color.green+"2.) Surf Mode \n"+color.grey+"3.) Pass Object\n--> ")
+		confirm = confirm.val
+		if confirm == 1 then Utils.add(data)
+		if confirm == 2 and (data isa ShellObject) == true then Main.surf_mode(data)
+	end if
+
+end function
+
+Main.surf_mode = function(object)
+	surfing = true
+	print(title+color.blue+"<b>~^~^~^~~^~^~^~"+color.cyan+"SURF MODE"+color.cap+color.blue+"~"+color.cap+color.cyan+"[ "+color.green+"ENABLED"+color.cap+color.cyan+" ]"+color.cap+color.blue+"~^~^~^~~^~^~^~") 
+	while surfing == true 
+		if surfing == false then break
+		
+		obj =  object
+		pth = globals.Current_Path
+		anon = globals.anonymous
+	
+		prompt = Core.prompt(obj, pth, anon)
+		if prompt.len == 0 then continue
+		result = Core.cmd(obj, prompt)
+		if result == "EXIT" then 
+			surfing = false
+			continue// why doesnt break work in a single line idk
+		end if
+		if result then Main.eval(obj, result)
+		
+	end while
+	return print(title+color.blue+"~^~^~^~~^~^~^~"+color.cyan+"SURF MODE"+color.cap+color.blue+"~"+color.cap+color.cyan+"[ "+color.red+"DISABLED"+color.cap+color.cyan+" ]"+color.cap+color.blue+"~^~^~^~~^~^~^~")
+end function
+
+
+if params.len == 0 then Main.surf_mode(globals.Current_Object)
