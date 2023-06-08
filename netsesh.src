@@ -166,7 +166,7 @@ auto_hack = function(addr, port, data=null)
             input = input.val 
             if input == 1 then 
                 
-            else if input == 2 then 
+            else if input == 2 then  
             
             else if input == 3 then 
             
