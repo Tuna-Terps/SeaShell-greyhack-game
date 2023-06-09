@@ -1,15 +1,13 @@
-// payload -- deploy to elevate to root --> new autolocal
-import_code("/home/2NA/source/utils.src")
-import_code("/home/2NA/source/binary")
-
-import_code("/home/2NA/source/getlib.src")
-import_code("/home/2NA/source/loadlib.src")
-import_code("/home/2NA/source/gethacks.src")
-import_code("/home/2NA/source/shelltype.src")
-
 import_code("/home/2NA/src/shellobj")
 import_code("/home/2NA/src/compobj")
 import_code("/home/2NA/src/fileobj")
+
+import_code("/home/2NA/src/utils.src") 
+import_code("/home/2NA/src/binary")
+
+import_code("/home/2NA/src/getlib.src")
+import_code("/home/2NA/src/loadlib.src")
+import_code("/home/2NA/src/gethacks.src")
 
 import_code("/home/2NA/source/exploitmenu.src")
 import_code("/home/2NA/source/send")
@@ -32,46 +30,55 @@ for hack in hacks
 	for value in hack["values"]
 		result = lib.overflow(hack["memory"], value, pass)
 		if not result then continue
-		if typeof(result) == "shell" then shells = shells + [get_shell_type(result)]
+		if typeof(result) == "shell" then shells = shells + [result]
 		if typeof(result) == "computer" then comps = comps + [result]
 		if typeof(result) == "file" then files = files + [result]
 		if typeof(result) == "string" or typeof(result) == "number" then others = others + [result]
+		if typeof(result) == "string" then print(color.green+"result found of string: "+result) 
+		if typeof(result) == "number" then print(color.green+"result found of number: "+result)
+		if typeof(result) == "shell" then print(color.green+"result found of shell: "+result) 
+		if typeof(result) == "computer" then print(color.green+"result found of computer: "+result)
+			
 	end for
-	if shells.len == 0 and comps.len == 0 and files.len == 0 and others.len == 0 then return print(warning+" no remote hacks found") 
-	choice_array = [shells, comps, files, others]
-	shell_objects = []
-	comp_objects = []
-	file_objects = []
-	other_objects = []
-	index = 0
-	// loop the exploit objects
-	for choice in choice_array
-		for exploit in choice
-			if index == 0 then 
-				a = new ShellObject
-				a.init(exploit["shell"], null, null, exploit["user"])
-				shell_objects = shell_objects + [ a ]
-			else if index == 1 then 
-				b = new CompObject
-				b.init(exploit)
-				comp_objects = comp_objects + [ b ]
-			else if index == 2 then
-				c = new FileObject
-				c.init(exploit, null)
-				file_objects = file_objects + [ c ]
-			else if index == 3 then  
-				//d = new OtherObject
-				//d.init(exploit)
-				other_objects = other_objects + [ exploit ]
-			end if
-		end for
-		index = index + 1
-	end for
-	shells = shell_objects
-	comps = comp_objects
-	files = file_objects
-	others = other_objects
 end for
+if shells.len == 0 and comps.len == 0 and files.len == 0 and others.len == 0 then return print(warning+" no local hacks found") 
+choice_array = [shells, comps, files, others]
+choice_title = ["SHELLS: ", "PCS: ", "FILES: ", "OTHERS: ",]
+shell_objects = []
+comp_objects = []
+file_objects = []
+other_objects = []
+index = 0
+// loop the exploit objects
+for choice in choice_array
+	//print(color.white+choice_title[index])
+	for exploit in choice
+		//print(color.grey+choice_title[index]+" EXPLOIT: "+ typeof(exploit))
+		if index == 0 then
+		a = new ShellObject
+		a.init(exploit)
+		shell_objects = shell_objects + [ a ]
+	else if index == 1 then 
+		b = new CompObject
+		b.init(exploit)
+		comp_objects = comp_objects + [ b ]
+	else if index == 2 then
+		c = new FileObject
+		c.init(exploit, null)
+		file_objects = file_objects + [ c ]
+	else if index == 3 then  
+		//d = new OtherObject
+		//d.init(exploit)
+		other_objects = other_objects + [ exploit ]
+		end if
+	end for
+	index = index + 1
+end for
+shells = shell_objects
+comps = comp_objects
+files = file_objects
+others = other_objects
+
 selected_menu = 0
 selected_option = 0
 selected_exploit = null
@@ -98,9 +105,9 @@ while attacking == true
 	// SHELL 
 	if selected_menu == 1 then 
 		default_color = color.white
-		default = selected_exploit["user"]
+		default = selected_exploit.shell
 		if default == "root" then default_color = color.green
-        input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user_check(selected_exploit["shell"])+color.cap+" ]\n1.) PW Read + Escalation \n2.) IDFK\n3.) Exploit Main Menu \n4.) Pass the shell \n0.) Relaunch Network Attack\n--> ")
+        input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user(selected_exploit.shell)+color.cap+" ]\n1.) PW Read + Escalation \n2.) IDFK\n3.) Exploit Main Menu \n4.) Pass the shell \n0.) Relaunch Network Attack\n--> ")
 		input = input.val 
 		if input == 1 then 
 			root = selected_exploit.pw_attack()
@@ -115,7 +122,7 @@ while attacking == true
 			selected_exploit = attack_result[1]
 		else if input == 4 then
 			// ok bud 
-			root = selected_exploit["shell"]
+			root = selected_exploit
 			attacking = false 
 			//break
 			return root
