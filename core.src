@@ -514,7 +514,7 @@ end function
 // (lib) p2: string | null
 // (force) p3: boolean | null
 
-// i dont even want to look at this pos 
+
 // =======================  apt-get =======================
 Core.git = function(shell, cmd, param=null)
 	shell = Utils.handle(shell)
@@ -537,7 +537,7 @@ Core.git = function(shell, cmd, param=null)
 		end for
 		print(pkgs)
 		force = null
-		if paran != "-f" then 
+		if param != "-f" then 
 			option = user_input("\nDo you want to continue?(y/n): ")
 			if input != "y" or input != "yes" or input.val != 1 then return print("Exiting . . .")
 		end if
