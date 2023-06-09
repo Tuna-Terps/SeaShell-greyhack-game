@@ -527,7 +527,7 @@ Core.git = function(shell, cmd, param=null)
 		print("Updating package lists...")
 		output = aptclient.update
 		if output then print(output)
-	else if cmd = "--" // upgrade
+	else if cmd == "--" then // upgrade
 		pendingPackages = PendingUpdating("/lib") + PendingUpdating("/bin")
 		if pendingPackages.len == 0 then return print("c1: No updates needed")
 		print("The following packages will be updated:")
@@ -537,7 +537,7 @@ Core.git = function(shell, cmd, param=null)
 		end for
 		print(pkgs)
 		force = null
-		if p3 != "-f" then 
+		if paran != "-f" then 
 			option = user_input("\nDo you want to continue?(y/n): ")
 			if input != "y" or input != "yes" or input.val != 1 then return print("Exiting . . .")
 		end if
@@ -553,23 +553,23 @@ Core.git = function(shell, cmd, param=null)
 	print(counter + " packages updated")
 	
 	else if param then 
-		if cmd == "install"
+		if cmd == "install" then 
 			print("Downloading " + param)
 			output = aptclient.install(param)
 			if output == true then 
 				print(param + " installed")
 			end if
 			print(output)
-		else if cmd == "search"
+		else if cmd == "search" then 
 			print(aptclient.search(p2));
-		else if cmd == "show"		
+		else if cmd == "show" then		
 			print(aptclient.show(p2));
-		else if cmd == "addrepo"
+		else if cmd == "addrepo" then
 			port = 1542
 			output = aptclient.add_repo(param)
 			if output then print(output)
 			print("Repository " + p2 + " added succesfully.\nLaunch apt with the update option to apply the changes")
-		else if cmd == "delrepo"
+		else if cmd == "delrepo" then
 			output = aptclient.del_repo(param)
     		if output then print(output)
     		print("Repository " + p2 + " removed succesfully.\nLaunch apt with the update option to apply the changes")
