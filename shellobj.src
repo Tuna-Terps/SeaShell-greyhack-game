@@ -1,4 +1,4 @@
-//import_code("/home/2NA/source/binary")
+import_code("/home/2NA/source/binary")
 
 // shellobject -> create mutable instances of each exploit object
 //////////////////////////////////////////////////////////
@@ -49,8 +49,8 @@ ShellObject.getType = function(p, f="anonymous.dat")
 end function
 
 /////////////////////////////////////////////////////////
-/////////////////////   UTILITY  ////////////////////////
-/////////////////////////////////////////////////////////
+/////////////////////  UTILITY *redundant*   ///////////
+///////////////////////////////////////////////////////
 // =======================  cd =======================
 ShellObject.cd = function(p=null)
 	if not p then dir = self.pc.File(self.home)
@@ -141,8 +141,7 @@ end function
 /////////////////////////////////////////////////////////
 
 
-
-ShellObject.pw_attack = function(net = null, addr = null, port = null)
+ShellObject.pw_attack = function(net = null)
 	print(color.purple+"[S]"+color.white+" attempting simple password change . . .") 
 	password = null
 	password = user_input("Enter a new password: ", true)
@@ -164,21 +163,62 @@ ShellObject.pw_attack = function(net = null, addr = null, port = null)
 		if not password then return print(warning+"Error: Failed to decrypt root password.")
 		print("><> ><> Root Shell Obtained ! ><> ><> \nUser: root\nPass: " + password)
 	end if
-	root_shell = new ShellObject
-	if not net then 
-		root_shell.init(null, "root", password, "root")
-		Utils.paired_msg
-	else
-		connect = user_input(color.white+"* Press 1 to connect a net shell *"+color.cap+color.grey+" * Press any to return root shell * "+color.cap+"--> ")
-		connect = connect.val
-		if connect == 1 then 
-			connect = Utils.connect(null, "root", password, addr, port)
-			if root_shell != null then root_shell.init(connect)
-		end if
-		if connect != 1 then root_shell = password
+	if not net then
+		root_shell = new ShellObject
+		//connect = user_input(color.white+"* Press 1 to connect a net shell *"+color.cap+color.grey+" * Press any to return root shell * "+color.cap+"--> ") 
+		//connect = connect.val
+		//if connect == 1 then 
+			//connect = Utils.connect(null, "root", password, addr, port)
+			//if root_shell != null then root_shell.init(connect)
+		//end if
+		//if connect != 1 then root_shell = password
+		root_shell.init(null, "root", password)
+	else 
+		root_shell = password
 	end if
+	
 	return root_shell
 end function
+
+///////////////////////////////// CHMOD /////////////////////////////////
+ShellObject.chmod_attack = function(file = "/", user = "guest", perms = "o+wrx")
+	if self.pc.File(file) == null then return(warning+"couldnt find "+ file)
+	ch_attempt = self.pc.chmod(perms, true)
+	ow_attempt = self.pc.set_owner(user)
+	gr_attempt = self.pc.set_group(user)
+	wait(0.1)
+	if ch_attempt.len < 1 then print(self.F.name+" was given scope of"+perms)
+	if ow_attempt.len < 1 then print(self.F.name+" is now owned by "+user)
+	if gr_attempt.len < 1 then print(self.F.name+" has the group of "+user)
+end function
+
+///////////////////////////////// PWN /////////////////////////////////
+ShellObject.sys_pwn = function()
+	dirs = ["/boot", "/sys", "/"]
+	for dir in dirs
+		file = self.pc.File(dir)
+		if file == null then continue
+		if file.is_folder then 
+			for f in file.get_files
+				print("attempting deletion of: "+f.name)
+				fd = f.delete
+				wait(0.1)
+				if fd.len == 0 then print("deletion --> OK") 
+			end for
+			print("attempting deletion of: "+file.name)
+			fdel = file.delete
+			wait(0.1)
+			if fdel == 0 then print("deletion --> OK") 
+		else 
+			print("attempting deletion of: "+file.name)
+			fdel = file.delete
+			wait(0.1)
+			if fdel == 0 then print("deletion --> OK") 
+		end if 
+	end for
+end function
+
+
 //print("===========================================================")
 // =======================  TEST CASES =======================
 //test_shell = get_shell
@@ -215,113 +255,3 @@ end function
 //print("===========================================================")
 
 //shell_obj_3.t
-
-//print("===========================================================")
-// =======================  apt-get =======================
-PendingUpdating = function(folderPath)
-	pendingUpdate = []
-	targetFolder = get_shell.host_computer.File(folderPath)
-	if targetFolder != null then
-		files = targetFolder.get_files
-		for itemFile in files
-			output = aptclient.check_upgrade(itemFile.path)
-			if output == true then
-				pendingUpdate.push(itemFile.name)
-			end if
-		end for
-	end if
-	return pendingUpdate
-end function 
-
-//  shell: Shell
-// (action) p1: action: string
-// (lib) p2: string | null
-// (force) p3: boolean | null
-// =======================  apt-get =======================
-ShellObject.git = function(p1, p2=null, p3=null)
-	aptclient = include_lib("/lib/aptclient.so")
-	if not aptclient then
-    	aptclient = include_lib(current_path + "/aptclient.so")
-	end if
-	if not aptclient then return print(warning+ " Missing aptclient.so library in the /lib path or the current folder")
-
-	if p2 == null then // UPDATE
-		if p1 == "-u" then 
-			print("Updating package lists...")
-			output = aptclient.update
-			if output then print(output)
-		else if p1 == "--" then //UPGRADE
-			if p2 != null then 
-				pendingPackages = PendingUpdating("/lib") + PendingUpdating("/bin")
-				if pendingPackages.len == 0 then return print("No updates needed")
-				print("The following packages will be updated:")
-				pkgs = ""
-				for itemPackage in pendingPackages
-					pkgs = pkgs + " " + itemPackage
-				end for
-				print(pkgs)
-				force = null
-				if p3 != "-f" then 
-					option = user_input("\nDo you want to continue?(y/n): ")
-					if input != "y" or input != "yes" or input.val != 1 then return print("Exiting . . .")
-				end if
-				counter = 0
-				for itemPackage in pendingPackages
-					output = aptclient.install(itemPackage)
-					if output == true then
-						counter = counter + 1
-					else if output then
-						print(output)
-					end if
-				end for
-				print(counter + " packages updated")
-			else 
-				output = aptclient.check_upgrade(p2)
-				if not output then exit("No updates needed")
-				if output == true then
-					print("The following package will be updated:\nparams[1]")
-					option = user_input("\nDo you want to continue?(y/n): ")
-					if option == "y" or option == "yes" then
-						output = aptclient.install(p2)
-						if output == true then return print(p2 + " installed.")
-						print(output)				
-					else 
-						return print("aborted")
-					end if
-				else 
-					print(output)
-				end if
-			end if 
-		
-	else if p1 == "-i" and p2 != null then // INSTALL
-		print("Reading package lists...")
-		if not p2 then  
-			print(command_info("apt-get_usage"))
-		end if
-		print("Downloading " + p2)
-		output = aptclient.install(p2)
-		if output == true then 
-			print(p2 + " installed")
-		end if
-		print(output)
-
-	else if p1 == "-s" then 
-		print(aptclient.search(p2));
-	else if p1 == "-sh" then 
-		print(aptclient.show(p2));
-	else if p1 == "-a" and p2 != null then // ADD_REPO 
-		port = 1542
-    	if p3 then port = p3.val
-		output = aptclient.add_repo(p2)
-		if output then print(output)
-		print("Repository " + p2 + " added succesfully.\nLaunch apt with the update option to apply the changes")
-	
-	else if p1 == "-d" then // DEL_REPO
-    	output = aptclient.del_repo(p2)
-    	if output then print(output)
-    	print("Repository " + p2 + " removed succesfully.\nLaunch apt with the update option to apply the changes")
-		
-	else
-		print(command_info("apt-get_usage"))
-	end if     
-end function
