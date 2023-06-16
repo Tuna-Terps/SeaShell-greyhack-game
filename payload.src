@@ -1,18 +1,24 @@
+// payload -- deploy to elevate to root --> new autolocal
+//import_code("/home/2NA/source/utils.src")
+
 import_code("/home/2NA/src/shellobj")
 import_code("/home/2NA/src/compobj")
 import_code("/home/2NA/src/fileobj")
 
-import_code("/home/2NA/src/utils.src") 
-import_code("/home/2NA/src/binary")
+import_code("/home/2NA/modules/utils.src") 
+import_code("/home/2NA/source/binary")
 
-import_code("/home/2NA/src/getlib.src")
-import_code("/home/2NA/src/loadlib.src")
-import_code("/home/2NA/src/gethacks.src")
+import_code("/home/2NA/source/getlib.src")
+import_code("/home/2NA/source/loadlib.src")
+import_code("/home/2NA/source/gethacks.src")
+//import_code("/home/2NA/source/shelltype.src")
+
 
 import_code("/home/2NA/source/exploitmenu.src")
 import_code("/home/2NA/source/send")
 
 print(init+color.red+"~~~~^~~^~~^~ Beginning Auto Local ~^~~^~~^~~~~")
+data = get_custom_object()
 shells = []
 comps = []
 files = []
@@ -55,7 +61,7 @@ for choice in choice_array
 	for exploit in choice
 		//print(color.grey+choice_title[index]+" EXPLOIT: "+ typeof(exploit))
 		if index == 0 then
-		a = new ShellObject
+		a = new data.so
 		a.init(exploit)
 		shell_objects = shell_objects + [ a ]
 	else if index == 1 then 
@@ -97,7 +103,6 @@ root = null
 attacking = true 
 
 //print("SELECTED EXPLOIT"+ selected_exploit.shell)
-print("selected exploit type: "+ typeof(selected_exploit))
 
 while attacking == true 
 	if shells.len == 0 and files.len == 0 and comps.len == 0 then break
@@ -107,19 +112,23 @@ while attacking == true
 		default_color = color.white
 		default = selected_exploit.shell
 		if default == "root" then default_color = color.green
-        input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user(selected_exploit.shell)+color.cap+" ]\n1.) PW Read + Escalation \n2.) IDFK\n3.) Exploit Main Menu \n4.) Pass the shell \n0.) Relaunch Network Attack\n--> ")
+        input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user(selected_exploit.shell)+color.cap+" ]\n1.) PW Read + Escalation \n2.) CHMOD\n3.) KILL \n4.) Pass the shell \n0.) Exploit Main Menu\n--> ")
 		input = input.val 
 		if input == 1 then 
 			root = selected_exploit.pw_attack()
 			if not root then attacking = true 
 			if root then attacking = false
 		else if input == 2 then
-			 print("needs more cheese ammi right?")
+			p = user_input("[path]--* Enter for / *--> ")
+			if p.len == 0 then p = null
+			u = user_input("[user]--* Enter for guest *--> ")
+			if u.len == 0 then p = null
+			s = user_input("[scope]--* Enter for +wrx *--> ")
+			if s.len == 0 then p = null
+			selected_exploit.chmod_attack(p,u,s)
 		else if input == 3 then 
-			//attack_result = Attack
-			attack_result = exploit_menu(shells, comps, files, others)
-			selected_menu = attack_result[0]
-			selected_exploit = attack_result[1]
+			confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
+			if confirm == "pwn" then selected_exploit.sys_pwn
 		else if input == 4 then
 			// ok bud 
 			root = selected_exploit
@@ -127,19 +136,16 @@ while attacking == true
 			//break
 			return root
 		else if input == 0 then 
-			root = selected_exploit.pw_attack()
-			if not root then attacking = true 
-			if root then attacking = false
+			//attack_result = Attack
+			attack_result = exploit_menu(shells, comps, files, others)
+			selected_menu = attack_result[0]
+			selected_exploit = attack_result[1]
 		end if
 	// COMPUTER 
 	else if selected_menu == 2 then 
-        input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user_check(selected_exploit.PC)+color.cap+" ]\n1.) Touch \n2.) PW Change \n0.) Main Menu\n--> ")
+        input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user(selected_exploit.PC)+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n0.) Main Menu\n--> ")
 		input = input.val 
 		if input == 1 then 
-			t_a = touch_attack
-			if t_a == true then print(color.green+"Touch attack OK !")
-			if t_a == false then print(color.yellow+"Touch attack failed !")
-		else if input == 2 then
 			root_attempt = selected.exploit.pw_attack()
 			wait(0.1)
 			if root_attempt == false then 
@@ -149,6 +155,21 @@ while attacking == true
 				root = root_attempt
 				return root
 			end if
+		else if input == 2 then
+			p = user_input("[path]--* Enter for / *--> ")
+			if p.len == 0 then p = null
+			u = user_input("[user]--* Enter for guest *--> ")
+			if u.len == 0 then p = null
+			s = user_input("[scope]--* Enter for +wrx *--> ")
+			if s.len == 0 then p = null
+			selected_exploit.chmod_attack(p,u,s)
+		else if input == 3 then
+			p = user_input("cat: specify path -- *Enter for /* --> ")
+			if p.len == 0 then p = null
+			selected_exploit.cat_attack(p)
+		else if input == 4 then
+			confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.local_ip+color.cap+"}\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
+			if confirm == "pwn" then selected_exploit.sys_pwn
 		else if input == 0 then 
 			//attack_result = Attack
 			attack_result = exploit_menu(shells, comps, files, others)
@@ -156,16 +177,23 @@ while attacking == true
 			selected_exploit = attack_result[1]
 		end if 
 	else if selected_menu == 3 then
-		input = user_input("File Exploit:\n[ "+selected_exploit.name+" ]\n1.) Cat \n2.) Set Content ? \n3.) Chmod\n--> ") 
+		input = user_input("File Exploit:\n[ "+selected_exploit.F.name+" ]\n1.) Cattack \n2.) CHMOD \n3.) Content Set\n4.) PWN\n--> ") 
 		input = input.val 
-		if input == 1 then 
-			root = file_attack
-			if not root then attacking = true
-			if root then attacking = false
+		if input == 1 then
+			a = user_input("[args] [-a/*]")
+			if a.len = 0 then selected_exploit.file_attack
+			if a = "-a" then selected_exploit.file_attack(null, true)
 		else if input == 2 then 
-		
-		else if input == 3 then 
-		
+			u = user_input(color.green+"[User] *Enter For Guest* --> ")
+			if u.len == 0 then u = "guest"
+			p = user_input(color.green+"[o/g/u/+-wrx] *Enter For +wrx * --> ")
+			if p.len == 0 then p = "o+wrx" 
+			selected_exploit.chmod_attack(u, p)         
+		else if input == 3 then
+
+		else if input == 4 then 
+			confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.F.name+color.cap"}\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
+			if confirm == "pwn" then selected_exploit.sys_pwn
 		else 
 			//attack_result = Attack
 			attack_result = exploit_menu(shells, comps, files, others)
@@ -173,7 +201,7 @@ while attacking == true
 			selected_exploit = attack_result[1]
 		end if 
 	else if selected_menu == 4 then
-	 	input = user_input("Other Exploit:\n[ "+selected_exploit+" ]\n1.) Cat 2.) Set Conent ? 3.) IDK man\n--> ") 
+	 	input = user_input("Other Exploit:\n[ "+selected_exploit+" ]") 
 		input = input.val 
 		if input == 1 then 
 			
@@ -182,42 +210,54 @@ while attacking == true
 		else if input == 3 then 
 		
 		else 
-		
+			//attack_result = Attack
+			attack_result = exploit_menu(shells, comps, files, others)
+			selected_menu = attack_result[0]
+			selected_exploit = attack_result[1]
 		end if
 	end if
 end while
 
-if (root isa ShellObject) == true then root = root.shell
+if (root isa data.so) == true then 
+	data.root = root
+else
+	data.root = null
+end if
+return data
+// ill only use it via ss for now, however i may possibly add this menu back to keep it modular
 
-str = color.white+"[ SELECT OPTION ] \n"+color.white+"1.)"+color.cap+color.green+" Tran$fer Files\n"+color.white+"2.)"+color.cap+color.orange+" Plant eel (rshell)\n"+color.white+"3.)"+color.cap+color.yellow+" Trace Wipe (tools/logs)\n"+color.white+"4.)"+color.cap+color.red+" Launch Root Terminal\n"+color.white+"5.)"+color.cap+color.cyan+" Surf Mode"
-passing = false 
-eel_planted = null 
-while passing == false
-	if passing == true then break
-	print(str) 
-	input = user_input("--> ")
-	input = input.val
-	if input == 1 then 
-		remote_transfer(root)
-	end if
-	if input == 2 then
-		if eel_planted then return print("The eel's Already Planted!") 
-		root.launch("/home/guest/eel")
-		print("eel planted")
-		passing = false
-		eel_planted = true
-	end if
-	if input == 3 then
-		trace_choice = user_input("1.) Tools\n2.) Logs\n--> ")
-		trace_choice = trace_choice.val
-		if trace_choice == 1 then root.launch("/home/guest/autoclean") 
-		if trace_choice == 2 then Utils.wipe_log(root)
-		passing = false
-	end if
-	if input == 4 then 
-		return root.start_terminal
-	end if
- 	if input == 5 then 
-		return root.launch("/home/guest/ss", "-s")
-	end if
-end while
+
+//str = color.white+"[ SELECT OPTION ] \n"+color.white+"1.)"+color.cap+color.green+" Tran$fer Files\n"+color.white+"2.)"+color.cap+color.orange+" Plant eel (rshell)\n"+color.white+"3.)"+color.cap+color.yellow+" Trace Wipe (tools/logs)\n"+color.white+"4.)"+color.cap+color.red+" Launch Root Terminal\n"+color.white+"5.)"+color.cap+color.cyan+" Surf Mode"
+//passing = false 
+//eel_planted = null 
+//while passing == false
+	//if passing == true then break
+	//print(str) 
+	//input = user_input("--> ")
+	//input = input.val
+	//if input == 1 then 
+		//remote_transfer(root)
+	//end if
+	//if input == 2 then
+	//	if eel_planted then return print("The eel's Already Planted!") 
+	//	root.launch("/home/guest/eel", "tuna")
+	//	print("eel planted")
+	//	passing = false
+	//	eel_planted = true
+	//end if
+//	if input == 3 then
+	//	trace_choice = user_input("1.) Tools\n2.) Logs\n--> ")
+	//	trace_choice = trace_choice.val
+	//	if trace_choice == 1 then root.launch("/home/guest/autoclean") 
+	//	if trace_choice == 2 then Utils.wipe_log(root)
+	//	passing = false
+	//end if
+	//if input == 4 then 
+	//	passing = true
+	//	return root.start_terminal
+	//end if
+ 	//if input == 5 then
+	//	passing = true 
+	//	return root.launch("/home/guest/ss")
+	//end if
+//end while
