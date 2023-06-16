@@ -40,11 +40,16 @@ auto_hack = function(addr, port, data=null)
             print(" --> " + value)
             result = metax.overflow(hack["memory"], value, data)
             if not result then continue
-			if typeof(result) == "shell" then remote_shells = remote_shells + [get_shell_type(result)]
+			if typeof(result) == "shell" then remote_shells = remote_shells + [result]
             if typeof(result) == "computer" then remote_comps = remote_comps + [result]
             if typeof(result) == "file" then remote_files = remote_files + [result]
             if typeof(result) == "string" or typeof(result) == "number" then remote_others = remote_others + [result]
-        end for
+        	if typeof(result) == "string" then print(color.green+"result found of string: "+result) 
+			if typeof(result) == "number" then print(color.green+"result found of number: "+result)
+			if typeof(result) == "shell" then print(color.green+"result found of shell: "+result) 
+			if typeof(result) == "computer" then print(color.green+"result found of computer: "+result)
+			
+		end for
     end for
     if remote_shells.len == 0 and remote_comps.len == 0 and remote_files.len == 0 and remote_others.len == 0 then return print(warning+" no remote hacks found") 
 	choice_array = [remote_shells, remote_comps, remote_files, remote_others]
@@ -58,7 +63,7 @@ auto_hack = function(addr, port, data=null)
 		for exploit in choice
 			if index == 0 then 
 				a = new ShellObject
-				a.init(exploit["shell"], null, null, exploit["user"])
+				a.init(exploit)
 				shell_objects = shell_objects + [ a ]
 			else if index == 1 then 
 				b = new CompObject
@@ -97,27 +102,33 @@ auto_hack = function(addr, port, data=null)
 	// SHELL 
         if selected_menu == 1 then 
             default_color = color.white
-			default = selected_exploit["user"]
-			if default == "root" then default_color = color.green
-            input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user(selected_exploit["shell"])+color.cap+" ]\n1.) PW Read + Escalation \n2.) Drop Payload\n3.) *** \n4.) Pass the shell \n0.) Exploit Main Menu\n--> ")
+			if Utils.user(selected_exploit.shell) == "root" then default_color = color.green
+            input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user(selected_exploit.shell)+color.cap+" ]\n1.) PW Read + Escalation \n2.) Drop Payload\n3.) CHMOD \n4.) PWN \n5.) Pass Shell\n0.) Exploit Main Menu\n--> ")
             input = input.val 
             if input == 1 then 
-                root = selected_exploit.pw_attack(true, addr, port)
+                root = selected_exploit.pw_attack(true)
                 if not root then attacking = true 
                 if typeof(root) == "shell" or typeof(root) == "string" then 
-					root = selected_exploit
-					return root
+					//root = selected_exploit
+					return selected_exploit
 				end if
             else if input == 2 then
-                Utils.transfer_tools(selected_exploit["shell"])
+                Utils.transfer_tools(selected_exploit.shell)
             else if input == 3 then 
-                
+                p = user_input("[path]--* Enter for / *--> ")
+				if p.len == 0 then p = null
+				u = user_input("[user]--* Enter for guest *--> ")
+				if u.len == 0 then p = null
+				s = user_input("[scope]--* Enter for +wrx *--> ")
+				if s.len == 0 then p = null
+				selected_exploit.chmod_attack(p,u,s)
             else if input == 4 then
-                // ok bud 
-                root = selected_exploit
-                attacking = false 
-                //break
-                return root
+                confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
+				if confirm == "pwn" then selected_exploit.sys_pwn
+				
+			else if input == 5 then 
+				attacking = false 
+                return selected_exploit
             else if input == 0 then 
                 //attack_result = Attack
                 attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
@@ -128,16 +139,29 @@ auto_hack = function(addr, port, data=null)
         else if selected_menu == 2 then
 			//print("result?"+ typeof(selected_exploit))
 			//print(selected_exploit isa CompObject) 
-            input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user(selected_exploit.PC)+color.cap+" ]\n1.) Touch \n2.) PW Change \n0.) Main Menu\n--> ")
+        	input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user(selected_exploit.PC)+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n0.) Main Menu\n--> ")
             input = input.val 
             if input == 1 then
-				//continue 
-                //t_a = touch_attack
-                //if t_a == true then print(color.green+"Touch attack OK !")
-                //if t_a == false then print(color.yellow+"Touch attack failed !")
+				root = selected_exploit.pw_attack(true, addr, port)
+				if (root isa ShellObject) == true then 
+					attacking = false
+					return root
+				end if
             else if input == 2 then
-                root = selected_exploit.pw_attack(true, addr, port)
-				if root then attacking = false
+                p = user_input("[path]--* Enter for / *--> ")
+				if p.len == 0 then p = null
+				u = user_input("[user]--* Enter for guest *--> ")
+				if u.len == 0 then p = null
+				s = user_input("[scope]--* Enter for +wrx *--> ")
+				if s.len == 0 then p = null
+				selected_exploit.chmod_attack(p,u,s)
+			else if input == 3 then
+				p = user_input("cat: specify path -- *Enter for /* --> ")
+				if p.len == 0 then p = null
+				selected_exploit.cat_attack(p)
+			else if input == 4 then
+				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.local_ip+color.cap+"}\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
+				if confirm == "pwn" then selected_exploit.sys_pwn
             else if input == 0 then 
                 //attack_result = Attack
                 attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
@@ -145,16 +169,20 @@ auto_hack = function(addr, port, data=null)
                 selected_exploit = attack_result[1]
             end if 
         else if selected_menu == 3 then
-            input = user_input(color.green+"File Object:\n[ "+selected_exploit.fname+" ]\n1.) Cattack \n2.) Set Content ? \n3.) Chmod\n--> ") 
+		input = user_input("File Exploit:\n[ "+selected_exploit.F.name+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cattack\n4.) PWN \n0.) Main Menu\n--> ") 
             input = input.val 
             if input == 1 then 
-                root = selected_exploit.file_attack
-                if not root then attacking = true
-                if root then attacking = false
+                selected_exploit.file_attack
             else if input == 2 then 
-            
-            else if input == 3 then 
-            
+            	//content_choices = user_input("1.) Binary?\n2.) Corruption\n3.) SwAIpe\n--> ")
+				u = user_input(color.green+"[User] *Enter For Guest* --> ")
+				if u.len == 0 then u = "guest"
+				s = user_input("[scope]--* Enter for +wrx *--> ")
+				if s.len == 0 then s = "o+wrx" 
+				selected_exploit.chmod_attack(u, s)
+			else if input == 3 then 
+
+				selected_exploit.cat_attack(p)	
             else 
                 //attack_result = Attack
                 attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
@@ -162,14 +190,14 @@ auto_hack = function(addr, port, data=null)
                 selected_exploit = attack_result[1]
             end if 
         else if selected_menu == 4 then
-            input = user_input("Other Exploit:\n[ "+selected_exploit+" ]\n1.) Cat 2.) Set Conent ? 3.) IDK man\n--> ") 
+            input = user_input("Other Exploit:\n[ "+selected_exploit+" ]\n1.) Cat 2.) Set Conent ? 3.) PROBE\n--> ") 
             input = input.val 
             if input == 1 then 
                 
-            else if input == 2 then  
+            else if input == 2 then 
             
             else if input == 3 then 
-            
+            	return Core.Probe(addr)
             else 
             
             end if
