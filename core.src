@@ -17,7 +17,6 @@ Core.prompt = function(object, p, anonymous)
 	else 
 		return print(warning+ " Invalid prompt type")
 	end if
-	// core relies on utils and is invoked first, we cannot use our objects /:
 	user = Utils.user(object)
 	if @user == "root" or "2NA" then user_color = color.green
 	if @user == "guest" then user_color = color.orange
@@ -25,7 +24,10 @@ Core.prompt = function(object, p, anonymous)
   	ip = object.public_ip
 	lan = object.local_ip
 	if anonymous == true then ip = "HIDDEN"
-  	str =  "\n<s>• </s>{<b>"+user_color+user+color.cap+"</b>}<s> </s>{<b>"+color.white + ip + color.cap+ "</b>}<s> </s>{<b>"+color.grey + lan + color.cap+ "</b>}<s> </s>{<b>"+color.white+p+color.cap+"</b>}<s> </s>{<b>"+type+"</b>}<s> •</s>\n" +"<s>•   	•</s>:~"+color.white+"$"+color.cap+" " 	
+  	// 	
+	//str =  "\n<voffset=-0.5em><pos=0>|</voffset></pos><s> </s>{<b>"+user_color+user+color.cap+"</b>}<s> </s>{<b>"+color.white + ip + color.cap+ "</b>}<s> </s>{<b>"+color.grey + lan + color.cap+ "</b>}<s> </s>{<b>"+color.white+p+color.cap+"</b>}<s> </s>{<b>"+type+"</b>}<s> •</s>\n|<pos=05><s>   	   •</s>:~"+color.white+"$"+color.cap+" " 			
+	//str =  "\n<voffset=-0.5em><pos=0>|</voffset><pos=03.8><s> </s>{<b>"+user_color+user+color.cap+"</b>}<s> </s>{<b>"+color.white + ip + color.cap+ "</b>}<s> </s>{<b>"+color.grey + lan + color.cap+ "</b>}<s> </s>{<b>"+color.white+p+color.cap+"</b>}<s> </s>{<b>"+type+"</b>}<s> •</s>\n<voffset=0.5em>|</voffset><pos=05><s>   	   •</s>:~"+color.white+"$"+color.cap+" " 			
+	str =  "\n<voffset=-1.0em><pos=0>|</voffset><voffset=-0.5em><pos=04><pos=03.8><s> </s>{<b>"+user_color+user+color.cap+"</b>}<s> </s>{<b>"+color.white + ip + color.cap+ "</b>}<s> </s>{<b>"+color.grey + lan + color.cap+ "</b>}<s> </s>{<b>"+color.white+p+color.cap+"</b>}<s> </s>{<b>"+type+"</b>}<s> •</s>\n <voffset=0.5em><pos=00>|</pos></voffset><pos=04><s>   	   •</s>:~"+color.white+"$"+color.cap+" " 				
 	response = user_input(str)
 	return response
 end function
@@ -74,8 +76,9 @@ Core.cmd = function(object, params)
 		else if p == "||" and (object isa ShellObject) == true then
 			data = get_custom_object()
 			data.so = @ShellObject
-			object.shell.launch("/home/guest/payload")
-			result = data.root
+			data.root = null
+			object.shell.launch("/home/guest/autolocal")
+			if data.root != null then result = data.root
 		else if p == "sf" then
 			Core.sniff
 		else if p == "bf" then
@@ -99,6 +102,12 @@ Core.cmd = function(object, params)
 			Core.sudo(object, p2)
 		else if p1 == "cat" then
 			Core.cat(object, p2)
+		else if p1 == "crack" then
+			Utils.decrypt(object, p2)
+		else if p1 == "dc" then
+			Utils.cipher(object, p2)
+		else if p1 == "rm" then 
+			Core.rm(p2)
 		else if p1 == "pw" then 
 			Core.pw(object, p2)
 		else if p1 == "kill" then 
@@ -109,14 +118,13 @@ Core.cmd = function(object, params)
 			result = Core.Probe(p2)
 		else if p1 == "-w" then
 			result = Core.Probe(nslookup(p2))
+		else if p == "mount" then
+			if p2 == "-e" then Utils.transfer_tools(object, true)
+			if p2 == "-a" then Utils.transfer_tools(object)
 		else if p1 == "eel" then
-			if p2 == "-l" then 
-				Eel.get
-			else if p2 == "-p" then
-				Eel.plant
-			else if p2 == "--" then 
-				Eel.capture
-			end if   
+			if p2 == "-l" then Eel.get
+			if p2 == "-p" then Eel.plant(object)
+			if p2 == "--" then Eel.capture(object)
 		else 
 			error = true
 		end if
@@ -201,12 +209,25 @@ Core.cat = function(obj, pathFile)
 	if not file.has_permission("r") then return print("cat: permission denied")
 	print(file.get_content)
 end function
+
 // =======================  touch =======================
 Core.tch = function(obj, pathFile, fileName)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" then obj = obj.host_computer
 	file = obj.touch(pathFile, fileName)
 	if file == false then return print("touch: failed")
+	print(fileName+" created at path "+ pathFile)
+end function
+// =======================  rm =======================
+Core.rm = function(obj, pathFile)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" then obj = obj.host_computer
+	file = obj.File(pathFile)
+	if file == null then return print("rm: cant find file")
+	if file.has_permission("w") == false then return print("rm: cant write to file")
+	del = file.delete
+	wait(0.1)
+	if del.len < 1 then print("deleted "+file.name)
 	print(fileName+" created at path "+ pathFile)
 end function
 
@@ -261,10 +282,10 @@ Core.sudo = function(s = get_shell, arg, arg2=null, arg3=null)
 		if not arg3 then s.launch(arg2)
 		if arg3	then s.launch(arg2, arg3)
 	end if
-	confirm = user_input("[SELECT] "+color.white+"1.) Terminal"+color.grey+" 2.) Pass Shell"+color.cap+" --> ")
+	confirm = user_input("[SELECT] \n"+color.white+"1.) Terminal\n"+color.grey+"2.) Pass Shell"+color.cap+"\n3.) Surf Mode"+"\n--> ")
 	if confirm.val == 1 then return s.start_terminal
 	if confirm.val == 2 then return s
-	if confirm.val == 3 then return Main.surf(o)
+	if confirm.val == 3 then return Main.surf_mode(o)
 end function
 // =======================  chmod =======================
 Core.ch = function(obj, recursive, perms, path_to_file)
@@ -288,6 +309,7 @@ Core.p = function(shell, ip)
 		print("ip unreachable");
 	end if
 end function
+
 // ======================= SERVICES =========================
 // ======================= SCP =========================
 Core.ssp = function(remote_shell, type, origPath, destPath=null)
@@ -374,9 +396,9 @@ Core.lan = function(dump)
 		ports = null
 		is_switch = get_switch(device)
 		if get_switch(device) == null then
-			deviceInfo = "<color=green>* router *</color> type: "+typeof(is_switch)
+			deviceInfo = "<color=green>* router *</color>"// type: "+typeof(is_switch)
 		else
-			deviceInfo = "<color=yellow>| switch |</color> type: "+typeof(is_switch)
+			deviceInfo = "<color=yellow>| switch |</color>"// type: "+typeof(is_switch)
 	end if
 	lanDevice = get_router(device)
 	if lanDevice then
@@ -400,7 +422,7 @@ Core.lan = function(dump)
 							else
 								port_status = color.green
 							end if
-							portPrint = portPrint + ("      { " +  port_status + " " + port.port_number + " " + info +color.cap+ " }" + "\n")
+							portPrint = portPrint + format_columns(port_status + " " + port.port_number + " " + info +color.cap+"\n")
 						end if
 					end for
 					if portPrint != "<i>~^~^~~[" then print(portPrint)
@@ -410,7 +432,8 @@ Core.lan = function(dump)
 	end if
 end for
 end function
-// =======================  crack =======================
+
+
 
 // =======================  BRUTE =======================
 Core.brute = function(shell)
@@ -495,6 +518,10 @@ end function
 
 // =======================  apt-get =======================
 PendingUpdating = function(folderPath)
+	aptclient = include_lib("/lib/aptclient.so")
+	if not aptclient then
+    	aptclient = include_lib(current_path + "/aptclient.so")
+	end if
 	pendingUpdate = []
 	targetFolder = get_shell.host_computer.File(folderPath)
 	if targetFolder != null then
@@ -502,6 +529,7 @@ PendingUpdating = function(folderPath)
 		for itemFile in files
 			output = aptclient.check_upgrade(itemFile.path)
 			if output == true then
+				print(itemFile.name+" was found and needs an update")
 				pendingUpdate.push(itemFile.name)
 			end if
 		end for
@@ -514,7 +542,7 @@ end function
 // (lib) p2: string | null
 // (force) p3: boolean | null
 
-
+// i dont even want to look at this pos 
 // =======================  apt-get =======================
 Core.git = function(shell, cmd, param=null)
 	shell = Utils.handle(shell)
@@ -539,7 +567,7 @@ Core.git = function(shell, cmd, param=null)
 		force = null
 		if param != "-f" then 
 			option = user_input("\nDo you want to continue?(y/n): ")
-			if input != "y" or input != "yes" or input.val != 1 then return print("Exiting . . .")
+			if option != "y" or option != "yes" then return print("Exiting . . .")
 		end if
 		counter = 0
 		for itemPackage in pendingPackages
@@ -568,11 +596,11 @@ Core.git = function(shell, cmd, param=null)
 			port = 1542
 			output = aptclient.add_repo(param)
 			if output then print(output)
-			print("Repository " + p2 + " added succesfully.\nLaunch apt with the update option to apply the changes")
+			print("Repository " + param + " added succesfully.\nLaunch apt with the update option to apply the changes")
 		else if cmd == "delrepo" then
 			output = aptclient.del_repo(param)
     		if output then print(output)
-    		print("Repository " + p2 + " removed succesfully.\nLaunch apt with the update option to apply the changes")
+    		print("Repository " + param + " removed succesfully.\nLaunch apt with the update option to apply the changes")
 		
 		end if
 	end if
@@ -594,14 +622,15 @@ Core.Probe = function(addr)
         router = get_router(addr); 
 		if not router then exit(error+" An error occured")
 		ports = router.used_ports
-	end if 
+	end if
+ 	devices = router.devices_lan_ip 	// any machine on the network reachable by ping on this address 
     //optional router attack
-    if ports.len == 0 then 
+    if not ports or ports.len == 0 then 
         input = user_input(title+color.orange+"[Alert] No forward ports found\n"+color.yellow+"[SELECT]\n1.) Exploit the router \n0.) Exit\n--> ")
-        if input.val == 1 then return Core.RouterEntry(addr)
+        if input.val == 1 then return Core.RouterEntry(addr, devices)
         if input.val != 1 then return print(title+" exiting . . .")
     end if 
-    devices = router.devices_lan_ip 	// any machine on the network reachable by ping on this address 
+
     local_machines = devices // assign this list to a refernce of machine if we have 
     print(color.blue+"><> ><>"+color.cap+color.grey+" Machines reachable by ping: "+color.cap+"[ <b>"+color.white+devices.len+color.cap+"</B> ]"+color.blue+" ><> ")
     print(color.blue+color.fill); print(color.blue+"><> ><>"+color.cap+color.grey+" Machines with fowarded ports"+color.cap+color.blue+" ><> ><>")
@@ -635,32 +664,51 @@ Core.Probe = function(addr)
     print(color.green+"><> "+color.cap+format_columns("LIB STATE VERSION LAN PORT")+color.green+" ><>")
     print(format_columns(info))
     print(color.blue+color.fill); print(format_columns(choices)); print(color.blue+color.fill)
-    response = user_input(title+color.green+"-- "+color.white+"SelectEntry"+color.cap+" --> "+color.cap+color.white)
-    response = response.val
+    response = user_input(title+color.green+"-- "+color.white+"Select Entry"+color.cap+color.grey+" * Enter to Return *"+color.cap+color.green+" --> "+color.cap+color.white)
+    if response.len == 0 then return
+	response = response.val
     if response == 0 then return Core.RouterEntry(addr)
 	lan = fwd_machines[response - 1][0]
 	port = fwd_machines[response - 1][1]
 	return Core.NetEntry(addr, lan, port)
 end function
 
-Core.RouterEntry = function(addr)
+Core.RouterEntry = function(addr, devices)
     // begin a task to begin a net session hack
     print(init+" Beginning Router Entry @ "+addr)
-    test = user_input(title+"\n1.) Test Bounce \n2.) Attempt net router\n-->  ")
-    v = test.val 
-    if v == 1 then
-        value = user_input(color.yellow+"Enter a LAN: \n-->") 
-        hacked_object = auto_hack(addr, 0, value)
-    else 
-        hacked_object = auto_hack(addr, 0)
-    end if
-    if not hacked_object then 
-        return print(addr +" Router couldnt be penetrated" )
-    end if
+	if devices.len > 0 then
+		options = ""; count = 1; 
+		for device in devices 
+			options = options+"\n"+count+".) "+color.white+device
+		end for
+		options = options + "\n0.) Net Router Entry\n|| Return to Main\n"+color.green+"[Select] --> "+color.cap
+		choice = user_input(options)
+		if choice == "||" then return print("Returning . . .")
+		choice = choice.val
+		if choice == 0 then 
+			hacked_object = auto_hack(addr, 0)
+		else 
+			hack_object = auto_hack(addr, 0, devices[choice-1])
+		end if
+		return hacked_object
+	end if 
+	
+	//return print("No local devices found")
+    //test = user_input(title+"\n1.) Test Bounce \n2.) Attempt net router\n-->  ")
+    //v = test.val 
+    //if v == 1 then
+        //value = user_input(color.yellow+"Enter a LAN: \n-->") 
+        //hacked_object = auto_hack(addr, 0, value)
+    //else 
+   //     hacked_object = auto_hack(addr, 0)
+    //end if
+    //if not hacked_object then 
+    //    return print(addr +" Router couldnt be penetrated" )
+    //end if
     //hacked_machines.push([hacked, addr])	// push the shell objects into memory
     //VerifyHack(hacked, addr, 0)
     //print("exiting router entry . . .")
-    return hacked_object
+    //return hacked_object
 end function
 
 Core.NetEntry = function(ip, lan, port)
