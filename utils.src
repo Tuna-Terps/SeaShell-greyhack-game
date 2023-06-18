@@ -11,7 +11,6 @@ crypto = include_lib("/lib/crypto.so")
 if not crypto then crypto = include_lib("/lib/cheese/crypto.so")
 if not crypto then crypto = include_lib("/bin/crypto.so")
 if not crypto then crypto = include_lib("/home/guest/crypto.so")
-if not crypto then print(warning+" crypto was not found")
 // ><> ><> ><> ><> VARIABLES ><> ><> ><> ><>
 // ><> CORE ><>
 globals.anonymous = false
@@ -25,7 +24,7 @@ base_pc.init(get_shell.host_computer)
 base_file = new FileObject
 base_file.init(get_shell.host_computer.File("/"))
 
-globals.Shells = [ [base_shell, base_shell.user, "MAIN"] ] // our collection of global shell objects
+globals.Shells = [ [base_shell, "MAIN"] ] // our collection of global shell objects
 globals.Computers = [ [base_pc, "MAIN"] ] // our collection of global computer objects
 globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects
 globals.Exploits = [] // our collection of global exploit objects
@@ -54,7 +53,7 @@ warning = "<color=#FF8701>[SeaShell] <b>Warning: </b></color>"
 
 cmd = {}
 cmd.usage = "'Invalid Arguments' Use command -"+color.blue+" seashell"+color.cap+color.green+" [ip]\n"+color.green+" For more info - use argument -h or -d"
-cmd_list = "[CMD] [args] [DESCRIPTION]\n-h * Display_a_list_of_commands\n-d * Tool_&_Author_Info\n-s -a Enter_Surf_Mode(-a=anon)\n-- ip target_ip_for_Net_Session_Entry\n-w domain target_domain_for_Net_Session_Entry\n-r * target_random_ip\n-rp * fish_for_player_ip_(rshell/chat)"
+cmd_list = "[CMD] [args] [DESCRIPTION]\n-h * Display_a_list_of_commands\n-d * Tool_&_Author_Info\n-s -a Enter_Surf_Mode(-a=anon)\n-- ip target_ip_for_Net_Session_Entry\n-w domain target_domain_for_Net_Session_Entry\n-r * target_random_ip\n-rp * fish_for_player_ip_(rshell/chat) eel -l|-p|-- extended_rshell_interface | * launches_eel || launches_wipe"
 cmd.options = format_columns(cmd_list)
 cmd.description = color.grey+"A tool to discretely probe and penetrate networks \n1.) Finds all machines with open processes\n2.) Exploits net sessions \n3.) Local Elevate + rShell Insertion\n4.) Info Collection (Mail, Bank, .log)"//+color.white+"-> Returns a list of machines with closed ports for deeper penetration";
 
@@ -67,18 +66,6 @@ Utils.handle = function(object)
 	return object
 end function
 
-Utils.add = function(object)
-	if (object isa ShellObject) == true then 
-		globals.Shells = globals.Shells + [ object.shell, object.user, "CAPTURED"]
-	else if (object isa CompObject) == true then 
-		globals.Computers = globals.Computers + [object, "CAPTURED"]
-	else if (object isa FileObject) == true then 
-		globals.Files = globals.Files + [object, "CAPTURED"]
-	else 
-		return
-	end if
-	
-end function
 
 //////////////////////////////////////////////////////////////  
 ///==================== USERS =======================////
@@ -149,12 +136,13 @@ Utils.rm = function(shell, file_path)
 	object = Utils.handle(object)
 	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
 	deletion = null
-	if object.File(file_path) != null then deletion = object.delete
+	if object.File(file_path) != null then deletion = object.File(file_path).delete
 	return deletion
 end function
 //////////////////////////////////// DEHASH ///////////////////////////
 Utils.cipher = function(userPass)
-	password = cryptools.decipher(userPass)
+	password = crypto.decipher(userPass)
+	print(password)
 	return password
 end function
 //////////////////////////////////// FILE DEHASH ///////////////////////////
@@ -192,6 +180,7 @@ Utils.decrypt = function(shell, file_path)
 		userPass = lines[option - 1].split(":")
 		print("Selected user: " + userPass[0] + "\nDeciphering...")
 		password = GetPassword(userPass)
+		print(password)
 		return password
 end if
 end function
@@ -199,7 +188,7 @@ end function
 Utils.transfer_tools = function(obj, eel_only = null)
 	obj = Utils.handle(obj)
     files = []
-    filenames = ["metaxploit.so", "crypto.so", "payload", "wipe", "eel", "ss"]
+    filenames = ["metaxploit.so", "crypto.so", "autolocal", "autoclean", "eel", "ss"]
     if eel_only != null then filenames = ["metaxploit.so","eel"]
 	dirs = ["/lib/", parent_path(launch_path) + "/", parent_path(program_path) + "/", "/lib/cheese/"]
     for filename in filenames
@@ -245,12 +234,14 @@ Utils.wipe_log = function(obj)
 		copied = null
 		if res != 1 then 
 			file = obj.File("/home/fish.txt")
+			if file == null then return print(warning+" b8 file wasnt found")
 			file.set_content("\n\n\n\n\n\n\n                             ><>")
 			wait(0.1)
 			copied = file.copy("/var/", "system.log")
 			status = color.yellow+"wiped"+color.cap
 		else 
 			corrupt = obj.File("/etc/fstab")
+			if corrupt == null then return print(warning+" fstab wasnt found")
 			copied = corrupt.copy("/var/", "system.log")
 			corrupt.set_content("\n\n\n\n\n\n\n                          ><>")
 			status = color.green+"corrupted"+color.cap
@@ -270,18 +261,20 @@ end function
 ////////////////////////////////////////////////////////////
 
 //////////////////////////////////// CONNECT ///////////////////////////
-Utils.connect = function(shell, username = "root", password, addr, port)
-	if not shell then shell = globals.Current_Object
+Utils.connect = function(object, username = "root", password, addr, port)
+	if not object then object = globals.Current_Object
+	if typeof(object) == "computer" then object = get_shell
+	
+	object = Utils.handle(object)
 	choose_type = user_input(color.green+"[ SELECT ]"+color.white+" 1.) SSH  "+color.cap+color.grey+"2.) FTP"+color.cap+"  --> "); choose_type=choose_type.val
-	choose_port = user_input(color.grey+"[ ENTER ]"+color.white+" Port for connection"+color.cap+color.grey+" *use 0 for entry port*"+color.cap+" -->  ")
-	print("SHELL IP:"+ shell.host_computer.public_ip)
-	choose_port = choose_port.val
+	choose_port = user_input(color.grey+"[ ENTER ]"+color.white+" Port for connection"+color.cap+color.grey+" *use 0 for entry port*"+color.cap+" -->  ").to_int
+	//choose_port = choose_port.val
 	if choose_port != 0 then port = choose_port
-	if choose_type == 1 then 
-		connection = shell.connect_service(addr, port, username, password)
+	if choose_type == 1 then
+		connection = object.connect_service(addr, port, username, password)
 		protocol = "ssh"
 	else 
-		connection = shell.connect_service(addr, port, username, password, "ftp")
+		connection = object.connect_service(addr, port, username, password, "ftp")
 		protocol = "ftp"
 	end if
 	print(init+color.white+" attempting remote shell connection via: "+color.grey+protocol)
@@ -291,8 +284,9 @@ Utils.connect = function(shell, username = "root", password, addr, port)
 		print(color.blue+color.fill)
 		print(title+color.green+" [ "+color.white+typeof(connection)+color.cap+" ] ShellObject connection OK !")
 		print(color.blue+color.fill)
+		print("CONNECTION IP:"+ connection.host_computer.public_ip)
 	end if
-	print("CONNECTION IP:"+ connection.host_computer.public_ip)
+
 	return connection
 end function
 //////////////////////////////////// SSH ///////////////////////////
@@ -301,6 +295,10 @@ Utils.ssh = function(shell, connect_string, ip, port = 22)
 	if not shell then get_shell
 	connect_string = connect_string.split("@")
 	connection = shell.connect_service(ip, port, connect_string[0], connect_string[1])
+	if typeof(connection) == "shell" then 
+		ftpo = new ShellObject
+		ftpo.init(connection)
+	end if
 	return connection
 end function
 //////////////////////////////////// FTP ///////////////////////////
@@ -309,6 +307,10 @@ Utils.ftp = function(shell, connect_string, ip, port = 21)
 	if not shell then get_shell
 	connect_string = connect_string.split("@")
 	connection = shell.connect_service(ip, port, connect_string[0], connect_string[1], "ftp")
+	if typeof(connection) == "ftpshell" then 
+		ftpo = new ShellObject
+		ftpo.init(connection)
+	end if
 	return connection
 end function
 
@@ -324,7 +326,20 @@ Utils.random_ip = function()
         return ip //If the ip is valid, break out of the loop
     end while
 end function
-
+//////////////////////////////////// RANDOM PLAYER IP ///////////////////////////
+Utils.player_ip = function()
+	print("Fishing for Player IP: . . . ><> . . . ><> . . . ><>")
+    while true //loop
+        ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
+        if not is_valid_ip(ip) or is_lan_ip(ip) then continue //If the ip is invalid, try again
+		r = get_router(ip);if not r then continue;ports = r.used_ports
+		if ports.len == 0 then continue;
+			for port in ports
+				if port.port_number == 1222 then return ip
+			end for
+		//end for 
+    end while
+end function 
 welcome_msg = function()
 	print("       .               "+color.red+"               __..._")
 	print("      ':'              "+color.red+"           ..-'      o.")
@@ -341,7 +356,7 @@ welcome_msg = function()
 	print(color.cyan+"  ____) |  __/ (_| |</color><color=#AA0000>____) | | | |  __/ | |  \  |    /") 
 	print(color.cyan+" |_____/ \___|\__,_|</color><color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/")
 	print(color.red+".                                             \|_/")
-	print(title+" </color><color=#00ED03>- v0.0.0 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
+	print(title+" </color><color=#00ED03>- v1.0 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
 	print(color.blue+color.fill)
 end function
 
