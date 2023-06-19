@@ -7,15 +7,15 @@ Core = {}
 ///======================= PROMPT =========================////
 Core.prompt = function(o, p, anonymous)
 	user_color = color.white
-	type = color.purple+"Shell"+color.cap 
+	type = color.purple+"S"+color.cap 
 	if (o isa ShellObject) == true then
 		if typeof(o.shell) == "ftpshell" then type = color.green+"FTP"+color.cap
 		o = o.shell.host_computer
 	else if (o isa CompObject) == true then
 		o = o.PC 
-		type = color.blue+"Computer"+color.cap
+		type = color.blue+"C"+color.cap
 	else if (o isa CompObject) == true then 
-		type = color.green+"File"+color.cap
+		type = color.green+"F"+color.cap
 	else 
 		return print(warning+ " Invalid prompt type")
 	end if
@@ -26,10 +26,10 @@ Core.prompt = function(o, p, anonymous)
   	ip = o.public_ip
 	lan = o.local_ip
 	if anonymous == true then ip = "HIDDEN"
-  	// 	
-	//str =  "\n<voffset=-0.5em><pos=0>|</voffset></pos><s> </s>{<b>"+user_color+user+color.cap+"</b>}<s> </s>{<b>"+color.white + ip + color.cap+ "</b>}<s> </s>{<b>"+color.grey + lan + color.cap+ "</b>}<s> </s>{<b>"+color.white+p+color.cap+"</b>}<s> </s>{<b>"+type+"</b>}<s> •</s>\n|<pos=05><s>   	   •</s>:~"+color.white+"$"+color.cap+" " 			
-	//str =  "\n<voffset=-0.5em><pos=0>|</voffset><pos=03.8><s> </s>{<b>"+user_color+user+color.cap+"</b>}<s> </s>{<b>"+color.white + ip + color.cap+ "</b>}<s> </s>{<b>"+color.grey + lan + color.cap+ "</b>}<s> </s>{<b>"+color.white+p+color.cap+"</b>}<s> </s>{<b>"+type+"</b>}<s> •</s>\n<voffset=0.5em>|</voffset><pos=05><s>   	   •</s>:~"+color.white+"$"+color.cap+" " 			
-	str =  "\n<voffset=-1.0em><pos=0>|</voffset><voffset=-0.5em><pos=04><pos=03.8><s> </s>{<b>"+user_color+user+color.cap+"</b>}<s> </s>{<b>"+color.white + ip + color.cap+ "</b>}<s> </s>{<b>"+color.grey + lan + color.cap+ "</b>}<s> </s>{<b>"+color.white+p+color.cap+"</b>}<s> </s>{<b>"+type+"</b>}<s> •</s>\n <voffset=0.5em><pos=00>|</pos></voffset><pos=04><s>   	   •</s>:~"+color.white+"$"+color.cap+" " 				
+ 	spacing = 3.9
+	pc = "fish"
+	spacing = spacing+(user.len+pc.len)*0.6
+	str =  "\n<pos=04>—{<b>"+user_color+user+color.cap+"</b>}—[<b>"+type+"</b>]—{"+color.white + ip + color.cap+":"+color.grey + lan + color.cap+"}—[<b>"+color.white+p+color.cap+"</b>]<voffset=-0.5em><space=-"+spacing+"em><pos=00>|<voffset=-1em><space=-0.6em>|<voffset=-1.5em><pos=04>——:~"+color.white+"$"+color.cap+" " 				
 	response = user_input(str)
 	return response
 end function
@@ -81,7 +81,7 @@ Core.cmd = function(object, params)
 			data = get_custom_object()
 			data.so = @ShellObject
 			data.root = null
-			object.shell.launch("/home/guest/autolocal")
+			object.shell.launch("/home/guest/payload")
 			if data.root != null then result = data.root
 		else if p == "sf" then
 			Core.sniff
@@ -405,6 +405,7 @@ Core.tch = function(obj, pathFile, fileName)
 	print(fileName+" created at path "+ pathFile)
 end function
 // =======================  edit =======================
+// this is really, really bad
 Core.edit_file = function(obj, pathFile)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
@@ -415,24 +416,49 @@ Core.edit_file = function(obj, pathFile)
 		f = obj.File(pathFile)
 	end if
 
-	if  f == null then
+	if f == null then
 		return print("no file found")
-	else if f.has_permission("r") == false or f.has_permission("w") then 
+	else if f.has_permission("r") == false or f.has_permission("w") == false then 
 		return print("edit: error with file")
 	end if
+	if f.is_binary then return print("cat error: binary file")
 	content = f.get_content
-	lines = content.split("/n")
-	c = 1
+	lines = content.split("\n")
+	c = 0
+	con = null
 	info = color.yellow+f.name
+	print(info)
 	for l in lines 
-		//if lines.len == 0 then break
-		info = info + "\n( "+c + " ) : "+l
+		print("( "+color.white+ c +color.cap+ " ) : "+l)
 		c = c +1
 	end for
-	print(info)
+	tail = ""
+	content = null
 	input = user_input("select line: ").to_int
-	
-	
+	replace = user_input("enter content: ")
+	for l in lines
+		if l == char(10) or l == "" then 
+			content = content+l 
+		else
+			content = content + char(10) + l
+		end if
+	end for
+	if lines.len-1 < input then
+		print("c1")
+		//lines = lines.split(char(10))
+		print(lines.len)
+		for i in range(lines.len-1, lines.len+input)
+			if lines.len+input == input then 
+				content = content+replace
+			else 
+				content = content + ""+char(10)
+			end if
+		end for
+	else 
+		lines[input-1] = replace
+	end if
+	r = f.set_content(content)
+	if r == 1 then print(color.white+f.name+color.green+" edit --> OK")
 end function
 // =======================  rm =======================
 Core.rm = function(obj, pathFile)
@@ -651,87 +677,6 @@ end function
 
 
 
-// =======================  BRUTE =======================
-Core.brute = function(shell)
-  print("Beginning tsunami (simple brute force)")
-	upperCaseLetters = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z "
-  	lowerCaseLetters = "a b c d e f g h i j k l m n o p q r s t u v w x y z "
-  	numberCaseLetters = "1 2 3 4 5 6 7 8 9 0"
-	str = upperCaseLetters+lowerCaseLetters+numberCaseLetters
-  	starting_point = user_input("What length should we begin attempting?")
-  	starting_point = starting_point.val
-  	attempted_range = 0 
-  	maximum_len = 6
-  	attempts_per_length = user_input("How many attempts per length?")
-	attempts_per_length = attempts_per_length.val
-	tries = 1
-	// length of pw
-  	for i in range(starting_point, maximum_len) 
-    	combinations = {};
-		chars = lowerCaseLetters + upperCaseLetters + numberCaseLetters;total = chars.len + i
-		// attempts for pw
-    	for attempt in range(1, attempts_per_length) 
-      		password = "";
-			index = attempt;
-			j = 0
-			while j < i
-				chars = shuffle_chars(str, i)  //Shuffle the characters before each iteration
-        		remainder = index % chars.len
-        		//password = chars[remainder + 1] + password
-        		index = floor(index / chars.len)
-        		j = j + 1
-			end while
-			print("[tsunami] attempting login with pw: "+chars+ " #"+tries);result = get_shell("root", chars)
-			if result != null then
-				print(chars) 
-				return Utils.got_rooted()
-			end if
-			tries = tries +1;wait(0.1)
-    	end for
-  end for
-end function
-
-shuffle_chars = function(str, length)
-   chars = str.split(" ")
-   shuffled = ""
-
-  for i in range(1, length) 
-     randomIndex = floor(rnd * chars.len-1) + 1
-     char = chars[randomIndex]
-
-    while shuffled.indexOf(char) != null 
-      randomIndex = floor(rnd * chars.len-1) + 1
-      char = chars[randomIndex]
-    end while
-
-    shuffled = shuffled + char
-  end for
-  return shuffled
-end function
-
-Core.brute_v2 = function(object)
-	object = Utils.handle(object)
-	if typeof(object) == "shell" then object = object.host_computer 
-	dict = null
-	dict = object.File(current_path+"/dictionary.txt")
-	if dict == null then 
-		p = user_input("no path found, specify it here\n--> ")
-		dict = object.File(p)
-		if dict == null then return print("Path incorrect; Not saying its a you thing, but . . . ")
-	end if
- 	pass_list = dict.get_content.split("\n")
-	tries = 1
-	for pass in pass_list
-		print("[tsunamiV2] attempting login with pw: "+pass+ " #"+tries);result = get_shell("root", pass)
-		if result != null then
-			print(pass) 
-			return Utils.got_rooted()
-		end if
-		tries = tries +1;wait(0.1)
-	end for
-	dict = null 
-end function
-
 // =======================  apt-get =======================
 PendingUpdating = function(folderPath)
 	aptclient = include_lib("/lib/aptclient.so")
@@ -826,6 +771,7 @@ end function
 //////////////////////////////////////////////////////////////////////////////  
 ///============================ ATTACKS / FUNCTIONS =====================///
 //////////////////////////////////////////////////////////////////////////
+///============================ PROBE =====================///
 Core.Probe = function(addr)
     print(init+"Net Session: searching: "+addr)
     router = null;ports = null;isLanIp = is_lan_ip(addr);fwd_machines = [];closed_machines = [];
@@ -888,46 +834,29 @@ Core.Probe = function(addr)
 	port = fwd_machines[response - 1][1]
 	return Core.NetEntry(addr, lan, port)
 end function
-
+///============================ ROUTER ENTRY =====================///
 Core.RouterEntry = function(addr, devices)
     // begin a task to begin a net session hack
-    print(init+" Beginning Router Entry @ "+addr)
-	if devices.len > 0 then
-		options = "[ Computers ]"; count = 1; 
-		for device in devices 
-			options = options+"\n"+count+".) "+color.white+device
-			count = count+1
-		end for
-		options = options + "\n0.)"+color.purple+" Net Router Entry\n|| Return to Main\n"+color.green+"[Select] --> "+color.cap
-		choice = user_input(options)
-		if choice == "||" then return print("Returning . . .")
-		choice = choice.val
-		if choice == 0 then 
-			hacked_object = auto_hack(addr, 0)
-		else 
-			hack_object = auto_hack(addr, 0, devices[choice-1])
-		end if
-		return hacked_object
-	end if 
-	
-	//return print("No local devices found")
-    //test = user_input(title+"\n1.) Test Bounce \n2.) Attempt net router\n-->  ")
-    //v = test.val 
-    //if v == 1 then
-        //value = user_input(color.yellow+"Enter a LAN: \n-->") 
-        //hacked_object = auto_hack(addr, 0, value)
-    //else 
-   //     hacked_object = auto_hack(addr, 0)
-    //end if
-    //if not hacked_object then 
-    //    return print(addr +" Router couldnt be penetrated" )
-    //end if
-    //hacked_machines.push([hacked, addr])	// push the shell objects into memory
-    //VerifyHack(hacked, addr, 0)
-    //print("exiting router entry . . .")
-    //return hacked_object
+	hacked_object = null
+	print(init+" Beginning Router Entry @ "+addr)
+	if devices.len == 0 then return print(warning+" no devices found")
+	options = "[ Computers ]"; count = 1; 
+	for device in devices 
+		options = options+"\n"+count+".) "+color.white+device
+		count = count+1
+	end for
+	options = options + "\n0.)"+color.purple+" Net Router Entry\n|| Return to Main\n"+color.green+"[Select] --> "+color.cap
+	choice = user_input(options)
+	if choice == "||" then return print("Returning . . .")
+	choice = choice.val
+	if choice == 0 then 
+		hacked_object = auto_hack(addr, 0)
+	else 
+		hack_object = auto_hack(addr, 0, devices[choice-1])
+	end if
+	return hacked_object
 end function
-
+///============================ NET ENTRY =====================///
 Core.NetEntry = function(ip, lan, port)
 	print(init+color.white+" Beginning Net Entry!"+color.cap+" --> "+color.grey+ip+color.cap+"/"+color.purple+lan+color.cap+":"+color.blue+port)
 	hacked_object = null
@@ -952,7 +881,7 @@ Core.NetEntry = function(ip, lan, port)
 	print("exiting net entry . . .")
 	return hacked_object
 end function
-
+///============================ LOCAL ELEVATION wip =====================///
 Core.LocalElevation = function(object)
 	obj = Utils.handle(object)
 	if typeof(obj) == "shell" then file = obj.host_computer.File("/home/guest/autolocal")
@@ -962,6 +891,39 @@ Core.LocalElevation = function(object)
 	// returns null on success, 0 on failure
 	return attempt
 end function
+
+
+
+
+///============================ BRUTE =====================///
+Core.brute_v2 = function(object, type = 0)
+	choice_arr = ["/home/2NA/src/dict/dictionary.txt", ]
+	choice_sel = choice_arr[type]
+	
+	object = Utils.handle(object)
+	if typeof(object) == "shell" then object = object.host_computer 
+	dict = null
+	dict = object.File(choice_sel)
+	if dict == null then 
+		p = user_input("no path found, specify it here\n--> ")
+		dict = object.File(p)
+		if dict == null then return print("Path incorrect; Not saying its a you thing, but . . . ")
+	end if
+ 	pass_list = dict.get_content.split("\n")
+	tries = 1
+	for pass in pass_list
+		print("[tsunamiV2] attempting login with pw: "+pass+ " #"+tries);
+		result = get_shell("root", pass)
+		if result != null then
+			print(pass) 
+			return Utils.got_rooted()
+		end if
+		tries = tries +1;wait(0.1)
+	end for
+	dict = null 
+end function
+
+
 
 //////////////////////////////////////////////////////////////  
 ///======================= EEL ===========================///
