@@ -188,7 +188,7 @@ end function
 Utils.transfer_tools = function(obj, eel_only = null)
 	obj = Utils.handle(obj)
     files = []
-    filenames = ["metaxploit.so", "crypto.so", "autolocal", "autoclean", "eel", "ss"]
+    filenames = ["metaxploit.so", "crypto.so", "payload", "eel", "ss"]
     if eel_only != null then filenames = ["metaxploit.so","eel"]
 	dirs = ["/lib/", parent_path(launch_path) + "/", parent_path(program_path) + "/", "/lib/cheese/"]
     for filename in filenames
