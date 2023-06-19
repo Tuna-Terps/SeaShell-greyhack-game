@@ -35,10 +35,12 @@ Hope you enjoy if you find useful;<br>
 <br>
 <h1>Some commands available in surf mode</h1><br>
 ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/544b0be0-0532-4e5b-9cf3-cd3bb4cf7b0b)
+<br>
 <small>port entry</small><br>
  ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/5cda8245-88db-447b-9bd2-257a7f247a34)
+<br>
 <small>exploit menu - modular functions before using surf mode</small><br>
 ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/f6c00f90-0542-46a0-aa86-9513150677bb)
-
+<br>
 <small>global objects <br> </small>
 ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/244a98e5-bd64-4911-9383-a8cd5578e942)
