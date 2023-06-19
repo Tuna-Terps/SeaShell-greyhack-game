@@ -21,8 +21,7 @@ ex: import_code("/home/USER/src/utils.src")
 5.) send.src --> ** MUST ALLOW IMPORTS ** --> SENSITIVE FILE, DELETE THE SRC<br>
 6.) eel.src --> SENSITIVE FILE, DELETE THE SRC<br>
 7.) payload.src <br>
-8.) wipe.src  <br>
-9.) main.src --> RENAME TO ss 
+8.) main.src --> RENAME TO ss 
 
 eel.src --> rshell payload, must define your rshell's IP <br>
 binary.src --> contains obfuscated variables for root, users, and your FTP depot server info <br> 
@@ -30,6 +29,14 @@ send.src --> references binary.src, for your protection, do not keep src as thes
 
 
 
-Once complete, the only required filed are ss, wipe, eel, and payload<br>
-Hope you enjoy if you find useful;
-![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/a4d78694-04e6-4f16-8c8c-6b2f70cdbf34)
+Once complete, the only required filed are ss, eel, and payload<br>
+Hope you enjoy if you find useful;<br>
+![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/0ac8a1f3-e4e1-4c42-8c60-8d3d429b74a2)
+<br>
+<h1>Some commands available in surf mode/h1><br>
+![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/544b0be0-0532-4e5b-9cf3-cd3bb4cf7b0b)
+
+ ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/5cda8245-88db-447b-9bd2-257a7f247a34)
+
+<h3>global objects <br> </h3>
+![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/244a98e5-bd64-4911-9383-a8cd5578e942)
