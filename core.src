@@ -2,6 +2,127 @@
 ///======================= CORE =========================////
 ////////////////////////////////////////////////////////////
 Core = {}
+CMD = {}
+
+///======================= CMD isValid =========================////
+Core.isValid = function(param)
+	pos = 0
+	for p in Core.list
+		pos = pos+1
+		if p["name"] == param then return p
+		if p["name"] == "--" and (is_valid_ip(param) or is_valid_ip(nslookup(param))) then 
+			if globals.debug then print(color.green+"FOUND COMMAND: "+ p["name"])
+			return p
+		end if
+	end for
+	return null
+end function
+// format command
+fcmd = function(string)
+	if string.indexOf("|") == null then return print("not a parsable command") 
+	rep = string.replace("|", " ")
+	parse = rep.split(" ")
+	return parse
+end function
+///======================= CMD hasRequiredArgs =========================////
+Core.hasRequiredArgs = function(cmd, p)
+	if globals.debug then print(color.red+"CMD: "+cmd["name"])
+	if globals.debug then print(color.yellow+"REQUIRED: "+cmd["params"].len)
+	if globals.debug then print(color.orange+"PASSED ARGS: "+color.cap+color.grey+p)
+	passed = 0
+	for cmdIndex in cmd["params"]
+		if cmdIndex == "*" then
+			if globals.debug then print("args: c1") 
+			passed = passed+1
+			continue
+		end if
+		if globals.debug then print(color.purple+"POSSIBLE ARG: "+cmdIndex)
+        if cmdIndex.indexOf("|") then
+			if globals.debug then print("args: c2")
+			parse = fcmd(cmdIndex)
+			if globals.debug then print(parse)
+			for parsed in parse
+				if globals.debug then print("parsed: "+parsed)
+				if globals.debug then print("p.indexOf(parsed): "+p.indexOf(parsed)+" TYPE: "+typeof(p.indexOf(parsed)))
+				if globals.debug then print("cmdIndex == * "+(parsed == "*"))
+				if typeof(p.indexOf(parsed)) == "number" or (parsed == "*") then 
+					passed = passed+1
+					break
+				end if
+			end for
+        else 
+			if globals.debug then print("args: c3")
+            for argIndex in p
+				if globals.debug then print(color.white+"argIndex: "+argIndex)
+				if globals.debug then print("cmdIndex.indexOf(argIndex): "+cmdIndex.indexOf(argIndex)+" TYPE: "+typeof(cmdIndex.indexOf(argIndex)))
+				if globals.debug then print("cmdIndex == * "+(cmdIndex == "*"))
+				if typeof(p.indexOf(argIndex)) == "number" or (cmdIndex == "*") then 
+					passed = passed+1
+				end if
+            end for
+        end if
+		
+	end for
+	if globals.debug then print("total: "+passed)
+	if passed == cmd["params"].len then return true
+	if globals.debug then print("c6")
+	return null
+end function
+
+Core["cmd"] = function(object, params)
+	error = null
+	result = null
+	cmd = params.split(" ")
+	if globals.debug then print(color.white+"recieved cmd: <b>"+color.cap+color.grey+cmd)
+	valid = Core.isValid(cmd[0])
+	if not valid then return print(warning+color.yellow+"Invalid Command\n"+color.white+"Use command 'help' for list of valid commands")
+	if globals.debug then print(color.green+"running CMD: <b>"+color.cap+color.white+valid["name"])
+	run = valid["run"]
+	if cmd.len == 1 then
+		if globals.debug then print("cmd: c1") 
+		if valid["cb"] == "result" then  
+			result = run(object, cmd[0])
+		else if valid["cb"] == "custom" then
+			data = get_custom_object()
+			data.so = @ShellObject
+			data.root = null
+			run(object, "-p")
+			if data.root != null then result = data.root
+		else if valid["cb"] == "Current_Path" then  
+			Current_Path = run(object)
+		else if valid["cb"] == "anon" then  
+			anonymous == run
+		else if valid["cb"] == "general" then 
+			run
+		else if valid["cb"] == "EXIT" then
+			result = "EXIT" 
+		else
+			run(object)
+		end if
+	else if cmd.len > 1 then
+		cmd.pull // remove the main param, and leave arguments
+		if globals.debug then print("cmd: c2") 
+		args = Core.hasRequiredArgs(valid, cmd) 
+		if args == null then return print("lacking required args c2")
+		run = valid["run"]
+		if cmd.len == 1 then
+			if valid["cb"] == "result" then
+				result = run(object, cmd[0])
+			else
+				run(object, cmd[0])
+			end if
+		else if cmd.len == 2 then 
+			// etc etc
+			run(object, cmd[0], cmd[1])
+		else if cmd.len == 3 then
+			// etc etc 
+			run(object, cmd[1], cmd[2], cmd[3])
+		end if
+	end if
+	return result
+end function
+
+
 // object: ShellObject: Map | CompObject: Map | FileObject: Map
 // global_path = out global path fool
 ///======================= PROMPT =========================////
@@ -9,23 +130,24 @@ Core.prompt = function(o, p, anonymous)
 	user_color = color.white
 	type = color.purple+"S"+color.cap 
 	if (o isa ShellObject) == true then
-		if typeof(o.shell) == "ftpshell" then type = color.green+"FTP"+color.cap
+		if typeof(o.shell) == "ftpshell" then type = color.cyan+"FTP"+color.cap
 		o = o.shell.host_computer
 	else if (o isa CompObject) == true then
 		o = o.PC 
 		type = color.blue+"C"+color.cap
-	else if (o isa CompObject) == true then 
+	else if (o isa FileObject) == true then 
 		type = color.green+"F"+color.cap
 	else 
 		return print(warning+ " Invalid prompt type")
 	end if
 	user = Utils.user(o)
-	if @user == "root" or "2NA" then user_color = color.green
-	if @user == "guest" then user_color = color.orange
-	if @user == "unknown" then user_color = color.red
+	if user == "root" or "2NA" then user_color = color.green
+	if user == "guest" then user_color = color.orange
+	if user == "unknown" then user_color = color.red
   	ip = o.public_ip
 	lan = o.local_ip
 	if anonymous == true then ip = "HIDDEN"
+	if anonymous == true then lan = "HIDDEN"
  	spacing = 3.9
 	pc = "fish"
 	spacing = spacing+(user.len+pc.len)*0.6
@@ -33,143 +155,31 @@ Core.prompt = function(o, p, anonymous)
 	response = user_input(str)
 	return response
 end function
-///======================= CMD =========================////
-// object: ShellObject: Map | CompObject: Map | FileObject: Map
-// params: List
-// the most boiler plated i could think of :^)
-Core.cmd = function(object, params)
-	error = null
-	result = null
-	parse = params.split(" ")
-	
-	if parse.len == 1 then
-		p = parse[0] 
-		if is_valid_ip(p) then 
-			result = Core.Probe(p)
-		else if p == "-h" or p == "help" then 
-			Core.cmd_list
-		else if p == "-t" and (object isa ShellObject ) == true then 
-			object.shell.start_terminal
-		else if p == "-c" then 
-			clear_screen
-		else if p == "-a" then 
-			if anonymous == true then globals.anonymous = false else globals.anonymous = true
-		else if p == "-g" then 
-			result = Core.objects
-		else if p == "iam" then 
-			Core.me(object)
-		else if p == "ls" then 
-			Core.ls(object)
-		else if p == "ps" then 
-			Core.ps(object)
-		else if p == "cd" then
-			Current_Path = Core.cd(object, null)
-		else if p == "lan" then
-			Core.lan
-		else if p == "depot" then 
-			remote_transfer(object)
-		else if p == "wipe" then
-			confirm = user_input(warning+"~~^~ WIPE ~~^~ \n1.) Logs\n2.) Tools\n--> ")
-			confirm = confirm.val
-			if confirm == 1 then Utils.wipe_log(object)
-			if confirm == 2 then object.shell.launch("/home/guest/autoclean")
-		else if p == "+" and (object isa ShellObject) == true then
-			object.shell.launch("/home/guest/ss")
-		else if p == "|" and (object isa ShellObject) == true then
-			object.shell.launch("/home/guest/eel", "auth")
-		else if p == "||" and (object isa ShellObject) == true then
-			data = get_custom_object()
-			data.so = @ShellObject
-			data.root = null
-			object.shell.launch("/home/guest/payload")
-			if data.root != null then result = data.root
-		else if p == "sf" then
-			Core.sniff
-		else if p == "bf" then
-			Core.brute(object)
-		else if p == "-r" then
-			rando = Utils.random_ip
-			result = Core.Probe(rando)
-		else if p == "-rp" then
-			rando = Utils.player_ip
-			result = Core.Probe(rando)
-		else if p == "exit" or p == "-e" then 
-			result = "EXIT"
-		else 
-			error = true
-		end if
-	else if parse.len == 2 then 
-		p1 = parse[0]; p2 = parse[1]
-		if p1 == "cd" then
-			Current_Path = Core.cd(object, p2)
-		else if p1 == "-s" then 
-			Core.sudo(object, p2)
-		else if p1 == "cat" then
-			Core.cat(object, p2)
-		else if p1 == "edit" then
-			Core.edit_file(object, p2)
-		else if p1 == "crack" then
-			Utils.decrypt(object, p2)
-		else if p1 == "dc" then
-			Utils.cipher(p2)
-		else if p1 == "rm" then 
-			Core.rm(p2)
-		else if p1 == "pw" then 
-			Core.pw(object, p2)
-		else if p1 == "kill" then 
-			Core.kill(object, p2.val)
-		else if p1 == "git" then 
-			Core.git(object, p2)
-		else if p1 == "--" then
-			result = Core.Probe(p2)
-		else if p1 == "-w" then
-			result = Core.Probe(nslookup(p2))
-		else if p1 == "mount" then
-			if p2 == "-e" then Utils.transfer_tools(object, true)
-			if p2 == "-a" then Utils.transfer_tools(object)
-		else if p1 == "eel" then
-			if p2 == "-l" then Eel.get
-			if p2 == "-p" then Eel.plant(object)
-			if p2 == "--" then Eel.capture(object)
-		else 
-			error = true
-		end if
-	else if parse.len == 3 then 
-		p1 = parse[0]; p2 = parse[1]; p3 = parse[2]
-		if p1 == "-s" then 
-			Core.sudo(object, p2, p3)
-		else if p1 == "chmod" then 
-			Core.ch(object, false, p2, p3)
-		else if p1 == "touch" then 
-			Core.tch(object, p2, p3)
-		else if p1 == "git" then 
-			Core.git(object, p2, p3) 
-		else if p1 == "scp" then
-			Surf.ssp(object, p1, p2, p3)
-		else 
-			error = true
-		end if
-	else if parse.len == 4 then
-		p1 = parse[0]; p2 = parse[1]; p3 = parse[2]; p4 = parse[3]
-		 if p1 == "-s" then 
-			Core.sudo(object, p2, p3, p4)
-		else if p1 == "chmod" then 
-			Core.ch(object, true, p3, p4)
-		else if p1 == "scp" then
-			Surf.ssp(object, p1, p2, p3)
-		else 
-			error = true
-		end if
-	else
-		return print(error+" too many arguments")
-	end if
-	return result
+
+///======================= CMD  LIST =========================////
+Core["cmd_list"] = function()
+	tData = []
+	tData.push({color.blue+"/": [0,0,0,0]})
+	tData.push({"<u>[ NAME ]": [0.5,0,0,0]})
+	tData.push({"[ ARGS ]": [10,0,0,0]})
+	tData.push({"[ DESC ]          /\n": [35,0,0,0]})
+	for c in Core.list
+		tData.push({color.white+c["name"]+color.cap: [1,0,0,0]})
+		tData.push({c["params"]: [8,0,0,0]})
+		tData.push({color.grey+c["desc"]+"\n": [30,0,0,0]})
+	end for
+ 	print f(tData)
+	print(color.white+"<b>-->"+color.cap+ " *</b><i>"+color.grey+" Represents a dynamic, or optional parameter.")
 end function
-Core.cmd_list = function()
-	return print(format_columns("[CMD] [arg1] [arg2] [DESCRIPTION]\n-h * * Display_a_list_of_commands\n-a * * Toggle_Anonymous_Mode\n-p * * Print_Global_Path\n-c * * Clear_The_Screen\ncd path * Change_Directory(global_path)\nls * * List_Directory_Contents(+permissions)\nps * * List_All_Processes\n-s */-s/-u */user Sudo_[launch/root/user+username]\niam * * I_Am\nkill PID * Kill_Process\nchmod perms path Change_File_Permissions\npw user * Change_User_PW(requires_root)\nsf * * Sniff_Local_Machine\nrouter ip * Scan_Router_Info\nlan * * Poor_Man_Scan_Lan\ngit -u/-- */package Update_Packages\n-- ip * target_ip_for_Net_Session_Entry\n-w domain * Target_Domain_Net_Session\nbf * * Brute_Force_Attacks(dict/Hail_Mary)\nwipe * * Wipe_Tools_From_Machine"))
+///======================= ANON MODE =========================////
+Core["anon"] = function()
+	g = true
+	if globals.anonymous == 1 then g = false
+	globals.anonymous = g
+	return globals.anonymous
 end function
 ///======================= OBJECT POOL =========================////
-Core.objects = function()
+Core["objects"] = function()
 	objects = [globals.Shells, globals.Computers, globals.Files]
 	if objects.len == 0 or objects[0].len == 0 or objects[1].len == 0 or objects[2].len == 0 then return print(warning+" no object options found")
 	selected_obj = null
@@ -261,14 +271,13 @@ Core.objects = function()
 				selecting = false
 				return selected_obj
 			else if attack_choice == 2 then 
-				Core.remove(sm, choice_response)
+				Core["remove(sm, choice_response)"]
 			end if
 		end if
 	end while
 
 end function
-
-/////////////////// ADD 
+///======================= OBJ ADD =========================////
 Core.add = function(object) // : map
 	if (object isa ShellObject) == true then 
 		globals.Shells = globals.Shells.push([object, "captured"])
@@ -281,7 +290,7 @@ Core.add = function(object) // : map
 	end if
 
 end function
-/////////////////// REMOVE 
+///======================= OBJ REMOVE  =========================////
 Core.remove = function(type, index) // : number, : number
 	t = "unknown"
 	if type == 1 then 
@@ -298,68 +307,186 @@ Core.remove = function(type, index) // : number, : number
 	end if
 	
 end function
-/////////////////// REMOVE 
-Core.list = function(type, index) // : number, : number
-	t = "unknown"
-	if type == 1 then 
-		t = "Shells:"
-		o = globals.Shells
-	else if type == 2 then
-		t = "Computers:" 
-		o = globals.Computers
-	else if type == 3 then 
-		t = "Files:"
-		o = globals.Files
-	else if type == null then
-		t = "Objects:"
-		o = [globals.Shells, globals.Computers, globals.Files]
-	end if
-	print("<b><ul>"+t+"</b>          </ul>")
-	count = 1
-	for i in o 
-		if sm == 0 then
-			info = info+o 
-			in_main = true
-		else if sm == 1 then 
-			c = color.white
-			u = Utils.user(o.shell)
-			if @u == "root" then c = color.green
-			if @u == "guest" then c = color.orange
-			if @u == "unknown" then c = color.red
-			info = "[ " +c+ u +color.cap+ " ] "
-			in_main = false
-		else if selected_menu == 2 then		// computer exploit
-			c = color.white
-			u = Utils.user(o.PC)
-			if @u == "root" then c = color.green
-			if @u == "guest" then c = color.orange
-			if @u == "unknown" then c = color.red
-			info = "[ " +c+ u +color.cap+ " ]<s>   </s>{" +color.white+o.ip+color.cap+":"+color.grey+o.lan+color.cap+"}"
-		else if sm == 3 then 
-			lvl=""
-			if o.F.has_permission("r") then lvl = lvl+"r"
-			if o.F.has_permission("w") then lvl = lvl+"w"
-			if o.F.has_permission("x") then lvl = lvl+"x"
-			info = format_columns(o.F.name+" "+o.F.owner+" "+o.F.group+" "+lvl+" "+o.F.permissions)
-
-		end if
-		print(format_columns(count+".) "+info))
-	end for
-	
-end function
-
-// =======================  cd =======================
-
-Core.cd = function(obj, p = home_dir)
+///======================= cd  =========================////
+Core["cd"] = function(obj, p)
+	if not p then p = home_dir
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	dir = obj.File(p)
+	dir = null
+	if p == "./" then 
+		dir = obj.File(globals.Current_Path).parent
+	else
+		dir = obj.File(p)
+	end if
 	if dir == null then return print("No directory found")
-	globals.Current_Path = p
+	globals.Current_Path = dir.path
 	return globals.Current_Path
 end function
+///======================= cd  =========================////
+Core["me"] = function(obj)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then me = obj.host_computer.File(home_dir).owner
+	if typeof(obj) == "computer" then me = obj.File(home_dir).owner
+	if typeof(obj) == "file" then me = obj(home_dir).owner
+	return me
+end function
+
+///=====================================================////
+////////////////////////// SHELL ///////////////////////
+///====================================================////
+
+// =======================  terminal =======================
+Core["terminal"] = function(obj, _)
+	obj = Utils.handle(obj)
+	if typeof(obj) != "shell" then return print("cant launch")
+	return obj.start_terminal
+end function
+// =======================  sudo =======================
+Core["sudo"] = function(s = get_shell, arg, arg2=null, arg3=null)
+	o = s
+	if typeof(s) == "map" then s = Utils.handle(s)
+	computer = s.host_computer
+	inputPass = user_input("Password: ", true)
+	if arg == "-u" then s = get_shell(arg2, inputPass)
+	if arg == "-s" or arg == "-l" then s = get_shell("root", inputPass)
+	if not s then return print(color.orange+"AUTH FAIL")
+	if arg == "-l" then 
+		program = computer.File(arg2)
+		if not program then return print(arg2 + " not found.")
+		if not arg3 then s.launch(arg2)
+		if arg3	then s.launch(arg2, arg3)
+	end if
+	confirm = user_input("[SELECT] \n"+color.white+"1.)"+color.cap+" Terminal\n"+color.white+"2.)"+color.cap+" Surf Mode\n"+color.white+"3.)"+color.cap+" Return\n--> ")
+	if confirm.val == 1 then return s.start_terminal
+	if confirm.val == 2 then return Main.surf_mode(o)
+	if confirm.val == 3 then return s
+
+end function
+// =======================  launch =======================
+Core[".exe"] = function(obj, p, data = null)
+	obj = Utils.handle(obj)
+	if typeof(obj) != "shell" then return print(color.yellow+"exe: cant launch")
+	dirs = ["/home/guest", "/bin",]
+	if p == "-e" then 
+		file = null
+		for file in dirs 
+			f = obj.host_computer.File(file+"/eel")
+			if f then 
+				file = f
+				break
+			end if
+		end for
+		if file then obj.launch(file.path, "-a")
+	else if p == "-p" then 
+		file = null
+		for file in dirs 
+			f = obj.host_computer.File(file+"/payload")
+			if f then 
+				file = f
+				break
+			end if
+		end for
+		if file then obj.launch(file.path, "-a")
+	else if p == "-s" then 
+		file = null
+		for file in dirs 
+			f = obj.host_computer.File(file+"/ss")
+			if f then 
+				file = f
+				break
+			end if
+		end for
+		if file then obj.launch(file.path, "-a")
+	else 
+		if p[0] != "/" and Current_Path != "/" then p = Current_Path+"/"+p
+		obj.launch(p)
+	end if
+	return data
+end function
+///=====================================================////
+////////////////////////// COMPUTER ///////////////////////
+///====================================================////
+
+// =======================  ps =======================
+Core["ps"] = function(obj)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	output = obj.show_procs
+	return print(format_columns(output))
+end function
+// =======================  kill =======================
+Core["kill"] = function(obj, pid)
+	obj = Utils.handle(obj)
+	pid = pid.to_int
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if typeof(pid) != "number" then return print(warning+" The PID must be a number\n")
+	output = obj.close_program(pid)
+	if output == true then return print("Process " + pid + " closed");
+	if output then return print(output)
+	print("Process " + pid + " not found")
+end function
+// =======================  pw =======================
+Core["pw"] = function(obj, user)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	inputMsg = "Changing password for user " + user +".\nNew password:"
+	inputPass = user_input(inputMsg, true)
+	output = obj.change_password(user, inputPass)
+	if output == true then return print(user+" password modified OK")
+	if output then return print(output)
+	print(warning+" password not modified, are you root?")
+end function
+// =======================  touch =======================
+Core["touch"] = function(obj, pathFile, fileName)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	file = obj.touch(pathFile, fileName)
+	if file == false then return print("touch: failed")
+	print(fileName+" created at path "+ pathFile)
+end function
+// =======================  mkdir =======================
+Core["mkdir"] = function(obj, pathFile, fileName)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	file = obj.create_folder(pathFile, fileName)
+	if file == false then return print("mkdir: failed")
+	print(fileName+" created at path "+ pathFile)
+end function
+// ======================= SCP =========================
+Core["scp"] = function(remote_shell, type, origPath, destPath=null)
+	if type == "-u" then 
+		remote_shell.scp(origPath, global_path, home_shell)
+	else if type == "-d" then 
+		home_shell.scp(origPath, destPath, remote_shell)
+	else 
+		return print("an error occured")
+	end if
+
+end function 
+// ======================= SSH =========================
+Core["ssh"] = function(shell, connect_string, ip, port = 22)
+	object = Utils.handle(shell)
+	if typeof(object) != "shell" then return print(" no shell detected")
+	connect_string = connect_string.split("@")
+	service = object.connect_service(ip, port, connect_string[0], connect_string[1])
+	return service
+end function
+// ======================= FTP =========================
+Core["ftp"] = function(object, connect_string, ip, port = 21)
+	object = Utils.handle(object)
+	if typeof(object) != "shell" or typeof(obj) == "ftpshell" then return print(" no shell detected")
+	if not object then object = Global_Shells[0][0]
+	connect_string = connect_string.split("@")
+	service = object.connect_service(ip, port, connect_string[0], connect_string[1], "ftp")
+	return service
+end function
+
+///=====================================================////
+///////////////////////////// FILE /////////////////////////
+///====================================================////
+
 // =======================  ls =======================
-Core.ls = function(obj)
+Core["ls"] = function(obj)
 	p = globals.Current_Path
 	if not p then p = current_path
 	print(init+" fs: "+color.yellow+p)
@@ -374,18 +501,52 @@ Core.ls = function(obj)
 	folder_path = p
 	sub_files = folder.get_folders + folder.get_files
 	output = ""
+	if sub_files.len > 0 then output = color.grey+"NAME"+color.cap+" "+color.white+"TYPE"+color.cap+" "+color.grey+"OWNER"+color.cap+" "+color.white+"GROUP"+color.cap+" "+color.grey+"SIZE"+color.cap+" "+color.white+"PERMISSIONS"+color.cap
 	for f in sub_files
 		if output.len > 0 then 
 			output = output + "\n"
 		end if
+		file_type = color.cyan+"txt"+color.cap
+		if f.is_folder then file_type = color.purple+"dir"+color.cap
+		if f.is_binary and not f.is_folder then file_type = color.grey+"bin"+color.cap
 		file_name = f.name
 		permission = f.permissions
-		output = output + permission + " " + f.owner + " " + f.group + " " + f.size + " 00:00 " + file_name
+		output = output +color.white+ file_name+color.cap+ " "+file_type+" " +color.orange+ f.owner +color.cap+ " " +color.green+ f.group +color.cap+ " "+ color.cyan+ f.size +color.cap +" "+ color.white+permission+color.cap
 	end for
 	print(format_columns(output))
 end function
+
+// =======================  chmod =======================
+Core["chmod"] = function(obj, recursive, perms, path_to_file)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	file = obj.File(path_to_file)
+	if file == null then return print("cannot find file "+path_to_file)
+	output = file.chmod(perms, recursive)
+	if output.len > 1 then print(output)
+end function
+// =======================  chgrp =======================
+Core["chgrp"] = function(obj, recursive, perms, path_to_file)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	file = obj.File(path_to_file)
+	if file == null then return print("cannot find file "+path_to_file)
+	output = file.set_group(perms, recursive)
+	if output.len > 1 then print(output)
+end function
+// =======================  chown =======================
+Core["chown"] = function(obj, recursive, perms, path_to_file)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	file = obj.File(path_to_file)
+	if file == null then return print("cannot find file "+path_to_file)
+	output = file.set_owner(perms, recursive)
+	wait(0.1)
+	if output then print(output)
+end function
+
 // =======================  cat =======================
-Core.cat = function(obj, pathFile)
+Core["cat"] = function(obj, pathFile)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	file = obj.File(pathFile)
@@ -395,18 +556,41 @@ Core.cat = function(obj, pathFile)
 	if not file.has_permission("r") then return print("cat: permission denied")
 	print(file.get_content)
 end function
-
-// =======================  touch =======================
-Core.tch = function(obj, pathFile, fileName)
+// =======================  mvdir =======================
+Core["move"] = function(obj, targFilePath, pathFile, fileName)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	file = obj.touch(pathFile, fileName)
-	if file == false then return print("touch: failed")
+	targ = obj.File(targFilePath)
+	if targ == null then return print("mv: no file found")
+	file = targ.move(pathFile, fileName)
+	if file == false then return print("mv: failed to move")
 	print(fileName+" created at path "+ pathFile)
+end function
+// =======================  copy =======================
+Core["copy"] = function(obj, targFilePath, pathFile, fileName)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	targ = obj.File(targFilePath)
+	if targ == null then return print("mv: no file found")
+	file = targ.copy(pathFile, fileName)
+	if file == false then return print("mv: failed to move")
+	print(fileName+" created at path "+ pathFile)
+end function
+// =======================  rm =======================
+Core["rm"] = function(obj, pathFile)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	file = obj.File(pathFile)
+	if file == null then return print("rm: cant find file")
+	if file.has_permission("w") == false then return print("rm: cant write to file")
+	n = file.name
+	del = file.delete
+	wait(0.1)
+	if del.len < 1 then print("deleted "+n)
 end function
 // =======================  edit =======================
 // this is really, really bad
-Core.edit_file = function(obj, pathFile)
+Core["edit"] = function(obj, pathFile)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	if typeof(obj) == "computer" then obj = obj.File(pathFile)
@@ -460,86 +644,11 @@ Core.edit_file = function(obj, pathFile)
 	r = f.set_content(content)
 	if r == 1 then print(color.white+f.name+color.green+" edit --> OK")
 end function
-// =======================  rm =======================
-Core.rm = function(obj, pathFile)
-	obj = Utils.handle(obj)
-	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	file = obj.File(pathFile)
-	if file == null then return print("rm: cant find file")
-	if file.has_permission("w") == false then return print("rm: cant write to file")
-	del = file.delete
-	wait(0.1)
-	if del.len < 1 then print("deleted "+file.name)
-	print(fileName+" created at path "+ pathFile)
-end function
+// =======================  move =======================
 
-// =======================  iam =======================
-Core.me = function(obj)
-	obj = Utils.handle(obj)
-	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then me = obj.host_computer.File(home_dir).owner
-	if typeof(obj) == "computer" then me = obj.File(home_dir).owner
-	if typeof(obj) == "file" then me = obj(home_dir).owner
-	return me
-end function
-// =======================  pw =======================
-Core.pw = function(obj, user)
-	obj = Utils.handle(obj)
-	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	inputMsg = "Changing password for user " + user +".\nNew password:"
-	inputPass = user_input(inputMsg, true)
-	output = obj.change_password(user, inputPass)
-	if output == true then return print(user+" password modified OK")
-	if output then return print(output)
-	print(warning+" password not modified, are you root?")
-end function
-// =======================  ps =======================
-Core.ps = function(obj)
-	obj = Utils.handle(obj)
-	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	output = obj.show_procs
-	return print(format_columns(output))
-end function
-// =======================  kill =======================
-Core.kill = function(obj, pid)
-	obj = Utils.handle(obj)
-	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	if typeof(pid) != "number" then return print(warning+" The PID must be a number\n")
-	output = obj.close_program(pid)
-	if output == true then return print("Process " + pid + " closed");
-	if output then return print(output)
-	print("Process " + pid + " not found")
-end function
-// =======================  sudo =======================
-Core.sudo = function(s = get_shell, arg, arg2=null, arg3=null)
-	o = s
-	if typeof(s) == "map" then s = Utils.handle(s)
-	computer = s.host_computer
-	inputPass = user_input("Password: ", true)
-	if arg == "-u" then s = get_shell(arg2, inputPass)
-	if arg == "-s" or arg == "-l" then s = get_shell("root", inputPass)
-	if not s then return print(color.orange+"AUTH FAIL")
-	if arg == "-l" then 
-		program = computer.File(arg2)
-		if not program then return print(arg2 + " not found.")
-		if not arg3 then s.launch(arg2)
-		if arg3	then s.launch(arg2, arg3)
-	end if
-	confirm = user_input("[SELECT] \n"+color.white+"1.) Terminal\n"+color.grey+"2.) Pass Shell"+color.cap+"\n3.) Surf Mode"+"\n--> ")
-	if confirm.val == 1 then return s.start_terminal
-	if confirm.val == 2 then return s
-	if confirm.val == 3 then return Main.surf_mode(o)
-end function
-// =======================  chmod =======================
-Core.ch = function(obj, recursive, perms, path_to_file)
-	obj = Utils.handle(obj)
-	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	file = obj.File(path_to_file)
-	if file == null then return print("cannot find file "+path_to_file)
-	output = file.chmod(perms, recursive)
-	if output then print(output)
-end function
 // =======================  ping =======================
-Core.p = function(shell, ip)
+Core["ping"] = function(shell, ip)
+	obj = Utils.handle(shell)
 	result = shell.ping(ip)
 	if result then
     	if typeof(result) == "string" then
@@ -553,36 +662,9 @@ Core.p = function(shell, ip)
 end function
 
 // ======================= SERVICES =========================
-// ======================= SCP =========================
-Core.ssp = function(remote_shell, type, origPath, destPath=null)
-	if type == "-u" then 
-		remote_shell.scp(origPath, global_path, home_shell)
-	else if type == "-d" then 
-		home_shell.scp(origPath, destPath, remote_shell)
-	else 
-		return print("an error occured")
-	end if
 
-end function 
-// ======================= SSH =========================
-Core.ssh = function(shell, connect_string, ip, port = 22)
-	object = Utils.handle(object)
-	if typeof(object) != "shell" then return print(" no shell detected")
-	connect_string = connect_string.split("@")
-	service = object.connect_service(ip, port, connect_string[0], connect_string[1])
-	return service
-end function
-// ======================= FTP =========================
-Core.ftp = function(object, connect_string, ip, port = 21)
-	object = Utils.handle(object)
-	if typeof(object) != "shell" or typeof(obj) == "ftpshell" then return print(" no shell detected")
-	if not object then object = Global_Shells[0][0]
-	connect_string = connect_string.split("@")
-	service = object.connect_service(ip, port, connect_string[0], connect_string[1], "ftp")
-	return service
-end function
 // ======================= sniff =========================
-Core.sniff = function()
+Core["sniff"] = function()
 	print(init+" Listening for connections . . .")
 	metaxploit = include_lib("/lib/cheese/metaxploit.so")
 	if not metaxploit then metaxploit = include_lib("/lib/metaxploit.so")
@@ -591,90 +673,6 @@ Core.sniff = function()
 	output = metaxploit.sniffer
 	print(output)
 end function
-// ======================= router ========================= 
-Core.router = function(p1)
-	router = get_router( p1 )
-	if router == null then 
-		print("scanrouter: ip address not found")
-		return
-	end if
-	print("Connecting to router at address: " + p1 + "\nScanning kernel library...")
-	version = router.kernel_version
-	if not version then
-		print("Warning: kernel_router.so not found")
-	else 
-		print("kernel_router.so : v" + version)
-	end if
-	
-	firewall_rules = router.firewall_rules
-	if typeof(firewall_rules) == "string" then exit(firewall_rules)
-	print("\nScanning firewall rules...")
-	if firewall_rules.len == 0 then exit("No rules found.")
-	info = "ACTION PORT SOURCE_IP DESTINATION_IP"
-	for rules in firewall_rules
-		info = info + "\n" + rules
-	end for
-	print(format_columns(info) + "\n")
-end function
-
-
-// ======================= lan =========================
-Core.lan = function(dump)
-	c = get_shell.host_computer
-	if c.is_network_active == false then return print("Computer is operating on 0.0.0.0")
-	r = get_router
-	devices = r.devices_lan_ip
-	deviceList = []
-	//print("\n")
-	for device in devices
-		lanDevice = get_router(device)
-		if lanDevice then
-			if deviceList.indexOf(lanDevice.local_ip) == null then deviceList.push(lanDevice.local_ip)
-		end if
-	end for
-	r = get_router
-	devices = r.devices_lan_ip
-	for device in devices
-		ports = null
-		is_switch = get_switch(device)
-		if get_switch(device) == null then
-			deviceInfo = "<color=green>* router *</color>"// type: "+typeof(is_switch)
-		else
-			deviceInfo = "<color=yellow>| switch |</color>"// type: "+typeof(is_switch)
-	end if
-	lanDevice = get_router(device)
-	if lanDevice then
-		if device == c.local_ip then device = "<color=green>" + device + "</color>"
-		firewall_rules = lanDevice.firewall_rules
-		if firewall_rules and firewall_rules.len > 0 then firewall = color.orange+"(firewall)" else firewall = ""
-		print(color.blue+"~^~^~^~^~^~^~^~^~^~"+color.cap+"<b>[<color=white>" + device + "</color>]</b> " + deviceInfo + " " + firewall)
-		for subDevice in lanDevice.devices_lan_ip
-			if deviceList.indexOf(subDevice) == null then
-				ports = lanDevice.device_ports(subDevice)
-				if not ports then continue
-				if ports.len > 0 then
-					if subDevice == c.local_ip then subDevice = "<color=green>" + subDevice + "</color>"
-					print("<b>   [" + subDevice + "]")
-					portPrint = ""
-					for port in ports
-						if lanDevice.port_info(port) != null then info = lanDevice.port_info(port).split(" ")[0] else info = null
-						if info != null then
-							if port.is_closed then
-								port_status = color.orange
-							else
-								port_status = color.green
-							end if
-							portPrint = portPrint + format_columns(port_status + " " + port.port_number + " " + info +color.cap+"\n")
-						end if
-					end for
-					if portPrint != "<i>~^~^~~[" then print(portPrint)
-				end if
-			end if
-		end for
-	end if
-end for
-end function
-
 
 
 // =======================  apt-get =======================
@@ -705,7 +703,7 @@ end function
 
 // i dont even want to look at this pos 
 // =======================  apt-get =======================
-Core.git = function(shell, cmd, param=null)
+Core["git"] = function(shell, cmd, param=null)
 	shell = Utils.handle(shell)
 	aptclient = include_lib("/lib/aptclient.so")
 	if not aptclient then
@@ -772,8 +770,15 @@ end function
 ///============================ ATTACKS / FUNCTIONS =====================///
 //////////////////////////////////////////////////////////////////////////
 ///============================ PROBE =====================///
-Core.Probe = function(addr)
-    print(init+"Net Session: searching: "+addr)
+Core["Probe"] = function(object, addr)
+	print("probe: "+addr)
+	isDomain = nslookup(addr)
+	print("isDomain: "+isDomain)
+	if not is_valid_ip(addr) and not isDomain then return print(warning+" not a valid IP")
+	if is_valid_ip(isDomain) then addr = isDomain
+	addr_label = "HIDDEN"
+	if globals.anonymous == false then addr_label = addr
+	print(init+"Net Session: searching: "+addr_label)
     router = null;ports = null;isLanIp = is_lan_ip(addr);fwd_machines = [];closed_machines = [];
     if isLanIp then 
 		print("lan detected")
@@ -819,10 +824,11 @@ Core.Probe = function(addr)
     end for
     if fwd_machines.len == 0 then 
         input = user_input(title+color.orange+"[Alert] No open ports found\n"+color.yellow+"[SELECT]\n1.) Exploit the router \n0.) Exit\n--> ")
-        if input.val == 1 then return Core.RouterEntry(addr)
+        if input.val == 1 then return Core["RouterEntry(addr, devices)"]
 		if input.val != 1 then return print(title+" exiting . . .")
     end if 
-    print(color.blue+"><>"+color.cap+" "+addr+color.cap+"::"+color.grey+number+color.cap)
+    print(color.blue+"><>"+color.cap+" "+addr_label+color.cap+"::"+color.grey+number+color.cap)
+	if globals.anonymous == false then Utils.who(addr)
     print(color.green+"><> "+color.cap+format_columns("LIB STATE VERSION LAN PORT")+color.green+" ><>")
     print(format_columns(info))
     print(color.blue+color.fill); print(format_columns(choices)); print(color.blue+color.fill)
@@ -837,66 +843,64 @@ end function
 ///============================ ROUTER ENTRY =====================///
 Core.RouterEntry = function(addr, devices)
     // begin a task to begin a net session hack
+	addr_label = "HIDDEN"
+	if globals.anonymous == false then addr_label = addr
 	hacked_object = null
-	print(init+" Beginning Router Entry @ "+addr)
+	print(init+" Beginning Router Entry @ "+addr_label)
 	if devices.len == 0 then return print(warning+" no devices found")
 	options = "[ Computers ]"; count = 1; 
 	for device in devices 
 		options = options+"\n"+count+".) "+color.white+device
 		count = count+1
 	end for
-	options = options + "\n0.)"+color.purple+" Net Router Entry\n|| Return to Main\n"+color.green+"[Select] --> "+color.cap
+	options = options + "\n0.)"+color.purple+" Net Router Entry\n"+color.yellow+"LAN"+color.cap+" Bounce Other Machine\n|| Return to Main\n"+color.green+"[Select] --> "+color.cap
 	choice = user_input(options)
 	if choice == "||" then return print("Returning . . .")
-	choice = choice.val
-	if choice == 0 then 
-		hacked_object = auto_hack(addr, 0)
+	if is_lan_ip(choice) then 
+		hacked_object = auto_hack(addr, 0, choice)
 	else 
-		hack_object = auto_hack(addr, 0, devices[choice-1])
+		choice = choice.val
+		if choice == 0 then 
+			hacked_object = auto_hack(addr, 0)
+		else 
+			hack_object = auto_hack(addr, 0, devices[choice-1])
+		end if
 	end if
+	
 	return hacked_object
 end function
 ///============================ NET ENTRY =====================///
 Core.NetEntry = function(ip, lan, port)
-	print(init+color.white+" Beginning Net Entry!"+color.cap+" --> "+color.grey+ip+color.cap+"/"+color.purple+lan+color.cap+":"+color.blue+port)
+	ip_label = "HIDDEN"
+	if globals.anonymous == false then ip_label = ip
+	print(init+color.white+" Beginning Net Entry!"+color.cap+" --> "+color.grey+ip_label+color.cap+"/"+color.purple+lan+color.cap+":"+color.blue+port)
 	hacked_object = null
 	//obj = Utils.handle(object)
 	if not is_valid_ip(ip) then return print(warning+ "invalid IP")
 	hacked_object = auto_hack(ip, port)
 	if not hacked_object then 
-		print(warning+" "+color.white+ip +color.cap+" @ "+color.grey+lan+color.cap+" : "+color.orange+port+color.red+" Net Session FAILED" )
+		print(warning+" "+color.white+ip_label+color.cap+" @ "+color.grey+lan+color.cap+" : "+color.orange+port+color.red+" Net Session FAILED" )
         input = user_input("1.) Router Attack\n2.) New Net Attack \n3.) Bounce Test \n4.) Exit\nSELECT ->  ")
         input = input.val
 		if input == 1 then
             hacked_object = auto_hack(ip, 0)
             if not hacked_object then return print(warning+ip+" couldnt be penetrated via router")
 		end if
-		if input == 2 then return Core.Probe(ip)
+		if input == 2 then
+			run = Core["Probe"] 
+			return run(ip)
 		if input == 3 then 
 			value = user_input(color.yellow+"Enter a LAN: \n-->") 
-        	hacked_object = auto_hack(addr, 0, value)
+        	hacked_object = auto_hack(ip, 0, value)
 		end if
 		if input == 4 then exit("You chose to exit")
 	end if
 	print("exiting net entry . . .")
 	return hacked_object
 end function
-///============================ LOCAL ELEVATION wip =====================///
-Core.LocalElevation = function(object)
-	obj = Utils.handle(object)
-	if typeof(obj) == "shell" then file = obj.host_computer.File("/home/guest/autolocal")
-	if typeof(obj) == "computer" then file = obj.File("/home/guest/autolocal")
-	if typeof(obj) == "file" then file = obj("/home/guest/autolocal")
-	attempt = obj.launch("/home/guest/autolocal")	
-	// returns null on success, 0 on failure
-	return attempt
-end function
-
-
-
 
 ///============================ BRUTE =====================///
-Core.brute_v2 = function(object, type = 0)
+Core["brute_v2"] = function(object, type = 0)
 	choice_arr = ["/home/2NA/src/dict/dictionary.txt", ]
 	choice_sel = choice_arr[type]
 	
@@ -922,106 +926,3 @@ Core.brute_v2 = function(object, type = 0)
 	end for
 	dict = null 
 end function
-
-
-
-//////////////////////////////////////////////////////////////  
-///======================= EEL ===========================///
-////////////////////////////////////////////////////////////
-
-Eel = {}
-
-Eel.get = function()
-	print(title+"Listening for upcoming connections...")
-	metaxploit = meta
-	shells = []
-	while shells.len == 0	
-		shells = metaxploit.rshell_server
-		if(typeof(shells) == "string") then exit(shells)	
-		if(shells.len == 0) then wait(2)
-	end while
-
-	option = 0
-	while typeof(option) != "number" or (option < 1 or option > shells.len)
-		print(shells.len + " shell(s) connected!\n<b>Select a shell to start a terminal:</b>")
-		for i in range(0, shells.len - 1)
-			print("\n<b>"+color.purple+"Shell"+color.cap+" [ " +color.white+ (i + 1) +color.cap+ " ]</b>\n"+color.white+"Public IP: " +color.cap+ shells[i].host_computer.public_ip + "\n"+color.grey+"Local IP: " +color.cap+ shells[i].host_computer.local_ip)
-		end for
-		print("-----------")
-		option = user_input("Select shell>").to_int
-	end while
-
-	choice = user_input("Select Choice>\n"+color.white+"1.)"+color.cap+color.green+" Surf Mode\n"+color.white+"2.)"+color.yellow+" Terminal"+color.cap+" [this will leave a "+color.orange+"trace"+color.white+"]\n--> ").to_int
-	if choice == 1 then 
-		so = new ShellObject 
-		so.init(shells[option-1])
-		print("Surfing on shell # " +color.green+ option)
-		Main.surf_mode(so)
-	else if choice == 2 then 
-		print("Starting terminal on shell # " +color.green+ option)
-		shells[option - 1].start_terminal
-	end if
-
-end function
-
-Eel.capture = function()
-	confirm = user_input("*"+color.white+" Press 1 to extend eel"+color.cap+" * "+color.grey+"Press Any to Return"+color.cap+" * -->").to_int
-	if confirm != 1 then return
-	metaxploit = meta
-	shells = []
-	while shells.len == 0	
-		shells = metaxploit.rshell_server
-		if(typeof(shells) == "string") then exit(shells)	
-		if(shells.len == 0) then wait(2)
-	end while
-	option = 0
-	while typeof(option) != "number" or (option < 1 or option > shells.len)
-		print("<b>"+color.purple+shells.len + " shell(s) connected!")
-		for i in range(0, shells.len - 1)
-			
-			print("\n<b>"+color.yellow+"Capturing Shell"+color.cap+" [ " +color.white+ (i + 1) +color.cap+ " ]</b> "+color.purple+"Public IP: " +color.cap+ shells[i].host_computer.public_ip + color.white+"Local IP: " +color.cap+ shells[i].host_computer.local_ip)
-			transfer = Utils.transfer_tools(shells[i])
-			if not transfer then print(color.orange + "eel transfer --> FAILED")
-			if transfer == true then capture = shells[i].launch("/home/guest/eel", "auth")
-			if transfer == true and capture != 0 then print(color.green+"eel --> LAUNCHED")
-		end for
-		print("-----------")
-		option = user_input("Select shell>").to_int
-	end while
-	
-end function
-
-Eel.collect_info = function()
-	metaxploit = meta
-	shells = []
-	while shells.len == 0	
-		shells = metaxploit.rshell_server
-		if(typeof(shells) == "string") then exit(shells)	
-		if(shells.len == 0) then wait(2)
-	end while
-	option = 0
-	while typeof(option) != "number" or (option < 1 or option > shells.len)
-		print(shells.len + " shell(s) connected!\n<b>Select a shell to start a terminal:</b>")
-		for i in range(0, shells.len - 1)
-			
-			print("\n<b>"+color.yellow+"Phishing Shell"+color.cap+" [ " +color.white+ (i + 1) +color.cap+ " ]</b> "+color.purple+"Public IP: " +color.cap+ shells[i].host_computer.public_ip + color.white+"Local IP: " +color.cap+ shells[i].host_computer.local_ip)
-			remote_transfer(shells[i])
-			if not transfer then print(color.orange + "eel transfer --> FAILED")
-			if transfer == true then capture = shells[i].launch("/home/guest/eel", "auth")
-			if transfer == true and capture != 0 then print(color.green+"eel --> LAUNCHED")
-		end for
-	end while
-	
-end function
-
-Eel.plant = function(object)
-	object = Utils.handle(object)
-	eel = object.host_computer.File("/home/guest/eel")
-	if eel == null then eel = Utils.transfer_tools(object, true)
-	wait(0.1)
-	l = 0
-	if eel == true then l = object.launch("/home/guest/eel", "auth")
-	if l == 0 then print(warning+" failed to launch eel")
-end function
-
-
