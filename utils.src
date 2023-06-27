@@ -1,16 +1,18 @@
-//////////////////////// NEW CORE ////////////////////////
 // ><> ><> ><> ><> LIBRARIES ><> ><> ><> ><>
-meta = include_lib("/lib/metaxploit.so")
-if not meta then meta = include_lib("/lib/cheese/metaxploit.so")
-if not meta then meta = include_lib(current_path+"/metaxploit.so")
-if not meta then meta = include_lib(launch_path+"/metaxploit.so")
-if not meta then meta = include_lib(home_dir+"/metaxploit.so")
-if not meta then meta = include_lib("/home/guest/metaxploit.so")
-if not meta then exit("metaxploit.so was not found in /home or /lib")
-crypto = include_lib("/lib/crypto.so")
-if not crypto then crypto = include_lib("/lib/cheese/crypto.so")
-if not crypto then crypto = include_lib("/bin/crypto.so")
-if not crypto then crypto = include_lib("/home/guest/crypto.so")
+meta = null
+dirs = ["/lib/metaxploit.so", "/lib/cheese/metaxploit.so",current_path+"/metaxploit.so",launch_path+"/metaxploit.so",home_dir+"/metaxploit.so","/home/guest/metaxploit.so"]
+for d in dirs
+	meta = include_lib(d)
+	if meta then break
+end for
+if not meta then exit(warning+color.red+"<b> metaxploit.so was not found")
+dirs = ["/lib/crypto.so", "/lib/cheese/crypto.so",current_path+"/crypto.so",launch_path+"/crypto.so",home_dir+"/crypto.so","/home/guest/crypto.so"]
+crypto = null
+for d in dirs
+	crypto = include_lib(d)
+	if meta then break
+end for
+if not crypto then print(warning+color.orange+" crypto was not found")
 // ><> ><> ><> ><> VARIABLES ><> ><> ><> ><>
 // ><> CORE ><>
 globals.anonymous = false
@@ -27,7 +29,7 @@ base_file.init(get_shell.host_computer.File("/"))
 globals.Shells = [ [base_shell, "MAIN"] ] // our collection of global shell objects
 globals.Computers = [ [base_pc, "MAIN"] ] // our collection of global computer objects
 globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects
-globals.Exploits = [] // our collection of global exploit objects
+//globals.Exploits = [] // our collection of global exploit objects
 globals.Global_Path = "/home" // our mutable path for 1 or more? objects
 
 Current_Shell = get_shell // mutable shell
@@ -53,8 +55,8 @@ warning = "<color=#FF8701>[SeaShell] <b>Warning: </b></color>"
 
 cmd = {}
 cmd.usage = "'Invalid Arguments' Use command -"+color.blue+" seashell"+color.cap+color.green+" [ip]\n"+color.green+" For more info - use argument -h or -d"
-cmd_list = "[CMD] [args] [DESCRIPTION]\n-h * Display_a_list_of_commands\n-d * Tool_&_Author_Info\n-s -a Enter_Surf_Mode(-a=anon)\n-- ip target_ip_for_Net_Session_Entry\n-w domain target_domain_for_Net_Session_Entry\n-r * target_random_ip\n-rp * fish_for_player_ip_(rshell/chat) eel -l|-p|-- extended_rshell_interface | * launches_eel || launches_wipe"
-cmd.options = format_columns(cmd_list)
+//cmd_list = "[CMD] [args] [DESCRIPTION]\n-h * Display_a_list_of_commands\n-d * Tool_&_Author_Info\n-s -a Enter_Surf_Mode(-a=anon)\n-- ip target_ip_for_Net_Session_Entry\n-w domain target_domain_for_Net_Session_Entry\n-r * target_random_ip\n-rp * fish_for_player_ip_(rshell/chat) eel -l|-p|-- extended_rshell_interface | * launches_eel || * launch_payload"
+//cmd.options = format_columns(cmd_list)
 cmd.description = color.grey+"A tool to discretely probe and penetrate networks \n1.) Finds all machines with open processes\n2.) Exploits net sessions \n3.) Local Elevate + rShell Insertion\n4.) Info Collection (Mail, Bank, .log)"//+color.white+"-> Returns a list of machines with closed ports for deeper penetration";
 
 Utils = {}
@@ -74,7 +76,7 @@ end function
 ////////////////////////////// USER /////////////////////
 Utils.user = function(object)
 	object = Utils.handle(object)
-	if typeof(object) == "shell" then object = object.host_computer
+	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
 	if not object then return print("User check error, no object found")
 	if object.File("/root").has_permission("r") and object.File("/root").has_permission("w") and object.File("/root").has_permission("x") then return object.File("/root").name
 	if object.File("/home") == null then return "unknown"
@@ -103,50 +105,26 @@ end function
 //////////////////////////////////////////////////////////////  
 ///==================== FILESYSTEM =======================////
 ////////////////////////////////////////////////////////////
-
-//////////////////////////////////// HAS FILE ///////////////////////////
-
-Utils.has_file = function(object, file_path)
-	object = Utils.handle(object)
-	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
-	if not object then return false
-	return object.File(file_path) != null
-end function
-//////////////////////////////////// HAS FOLDER ///////////////////////////
-
-Utils.has_folder = function(object, file_path)
-	object = Utils.handle(object)
-	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
-	return object.File(file_path).is_folder
-end function
-//////////////////////////////////// TOUCH ///////////////////////////
-Utils.make_file = function(object, file_path, file_name)
-	object = Utils.handle(object)
-	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
-	return object.touch(file_path, file_name)
-end function
-//////////////////////////////////// MKDIR ///////////////////////////
-Utils.make_folder = function(object, file_path, folder_name)
-	object = Utils.handle(object) 
-	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
-	return object.create_folder(file_path, folder_name)
-end function
-//////////////////////////////////// RM FILE ///////////////////////////
-Utils.rm = function(shell, file_path)
-	object = Utils.handle(object)
-	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
-	deletion = null
-	if object.File(file_path) != null then deletion = object.File(file_path).delete
-	return deletion
+Utils.pth = function(p, obj = Current_Shell)
+	print(p)
+	if p[0] != "/" and Current_Path != "/" then p = Current_Path+"/"+p
+	if p[0] != "/" and Current_Path == "/" then p = Current_Path+p
+	if p == "./" and Current_Path != "/" then 
+		parse = p.split("/")
+		print(parse)
+		p = parse[0]+"/"
+	end if
+	print(p)
+	return p
 end function
 //////////////////////////////////// DEHASH ///////////////////////////
-Utils.cipher = function(userPass)
+Utils["cipher"] = function(_, userPass)
 	password = crypto.decipher(userPass)
 	print(password)
 	return password
 end function
 //////////////////////////////////// FILE DEHASH ///////////////////////////
-Utils.decrypt = function(shell, file_path)
+Utils["decrypt"] = function(shell, file_path)
 	object = Utils.handle(shell)
 	if typeof(object) == "shell" then object = object.host_computer.File(file_path)
 	if typeof(object) == "computer" then object = object.File(file_path)
@@ -184,8 +162,20 @@ Utils.decrypt = function(shell, file_path)
 		return password
 end if
 end function
+//////////////////////////////////// WIPE (handler) ///////////////////////////
+Utils["wipe"] = function(obj, param)
+	if param == "-l" then 
+		Utils.wipe_logs(obj)
+	else if param == "-t" then 
+		Utils.clean_sys(obj)
+	else if param == "-s" then 
+		//Utils.wipe_sys(obj)
+	else 
+		return 
+	end if
+end function
 //////////////////////////////////// TOOL TRANSFER ///////////////////////////
-Utils.transfer_tools = function(obj, eel_only = null)
+Utils["transfer_tools"] = function(obj, eel_only = null)
 	obj = Utils.handle(obj)
     files = []
     filenames = ["metaxploit.so", "crypto.so", "payload", "eel", "ss"]
@@ -201,9 +191,9 @@ Utils.transfer_tools = function(obj, eel_only = null)
     end for
 	if files.len == 0 then print(color.orange+"Error: Cannot get files for transfer.")
     if files.len == 0 then return false
-    payload = user_input(color.green+"Confirm transfer of files\n1.) Confirm\n2.) Press any to skip\n--> ")
-    payload = payload.val
-    if payload != 1 then return
+    //payload = user_input(color.green+"Confirm transfer of files\n1.) Confirm\n2.) Press any to skip\n--> ")
+    //payload = payload.val
+    //if payload != 1 then return
     // Transfer files
     for file in files
         get_shell.scp(file, "/home/guest", obj)
@@ -220,10 +210,32 @@ Utils.transfer_tools = function(obj, eel_only = null)
 	end for
 	return true
 end function
+
+//////////////////////////////////// TOOL WIPE ///////////////////////////
+Utils.clean_sys = function(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	files = ["ss", "eel", "payload", "metaxploit.so", "crypto.so"]
+	dirs = ["/home/guest", "/bin"]
+	home_folders = null
+	if home and home.is_folder then home_folders = home.get_folders
+	if home_folders and not meta then 
+	for dir in dirs
+		for file in files
+			f = obj.File(dir+"/"+f)
+			if f then
+				n = f.name 
+				print(color.green+"Deleting: "+f.path)
+				del = f.delete
+				wait(0.1)
+				if del.len > 1 then print("Deleted <b>"+n)
+			end if
+		end for
+	end for
+end function
 //////////////////////////////////// LOG WIPE ///////////////////////////
-Utils.wipe_log = function(obj)
+Utils.wipe_logs = function(obj)
 	obj = Utils.handle(obj)
-	if typeof(obj) == "shell" then obj = obj.host_computer
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	
 	corrupt = obj.File(home_dir+"/anonymous.dat")
 	if corrupt == null then corrupt = obj.File("/home/guest/anonymous.dat")
@@ -235,15 +247,15 @@ Utils.wipe_log = function(obj)
 		if res != 1 then 
 			file = obj.File("/home/fish.txt")
 			if file == null then return print(warning+" b8 file wasnt found")
-			file.set_content("\n\n\n\n\n\n\n                             ><>")
+			file.set_content(char(10)+char(10)+char(10)+char(10)+char(10)+char(10)+"><>")
 			wait(0.1)
-			copied = file.copy("/var/", "system.log")
+			copied = file.move("/var/", "system.log")
 			status = color.yellow+"wiped"+color.cap
 		else 
 			corrupt = obj.File("/etc/fstab")
 			if corrupt == null then return print(warning+" fstab wasnt found")
 			copied = corrupt.copy("/var/", "system.log")
-			corrupt.set_content("\n\n\n\n\n\n\n                          ><>")
+			corrupt.set_content(char(10)+char(10)+char(10)+char(10)+char(10)+char(10)+"><>")
 			status = color.green+"corrupted"+color.cap
 		end if
 	else 
@@ -256,16 +268,68 @@ Utils.wipe_log = function(obj)
 	if copied == 1 then print(title+" system.log was [ "+status+" ] !")
 	return copied
 end function
+
+Utils.wipe_sys = function(object)
+	obj = Utils.handle(obj)
+	if Utils.user(obj) != "root" then return print("You must run as root.")
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+obj.public_ip+color.cap+":"+color.yellow+obj.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
+	if confirm != "2na" then return
+	pc = get_shell.host_computer
+	logfile = pc.File("/var/system.log")
+	if not logfile then exit("Log file not found.")
+	logfile.copy("/home/guest", "system.log")
+
+	filenames = ["System.map", "initrd.img", "kernel.img"]
+	for filename in filenames
+		file = pc.File("/boot/" + filename)
+		if not file then continue
+		file.delete
+		wait(0.1)
+	end for
+	filenames = ["xorg.sys", "config.sys", "network.cfg"]
+	for filename in filenames
+		file = pc.File("/sys/" + filename)
+		if not file then continue
+		file.delete
+		wait(0.1)
+	end for
+
+	file = pc.File("/home/guest/ss")
+	if file == null then print(file.name+" doesn't exist.")
+	file.delete
+	logfile = pc.File("/etc/fstab")
+	if logfile != null then
+		logfile.set_content(char(10)+char(10)+char(10)+char(10)+"><>")
+		wait(0.1)
+		logfile.move("/var", "system.log")
+		print("Log file replaced.")
+	else
+		exit("Log doesn't exist. Clear logs...")
+	end if
+	print("Please reboot the machine now.")
+
+end function
+
 //////////////////////////////////////////////////////////////  
 ///==================== CONNECTION =======================////
 ////////////////////////////////////////////////////////////
-
+//////////////////////////////////// WHOIS ///////////////////////////
+Utils.who = function(ip)
+	if is_lan_ip(ip) then return
+	info = whois(ip)
+	parse = info.split("\n")
+	domain = parse[0].split(":")[1]
+	admin = parse[1].split(":")[1]
+	email = parse[2].split(":")[1]
+	phone = parse[3].split(":")[1]
+	print(color.blue+color.fill+"\nDomain: "+color.white+domain+color.cap+"\n"+"Admin: "+color.red+admin+color.cap+"\n"+"Email: "+color.white+email+color.cap+"\n"+"Phone: "+color.white+phone+color.cap+"\n"+color.blue+color.fill)
+end function
 //////////////////////////////////// CONNECT ///////////////////////////
 Utils.connect = function(object, username = "root", password, addr, port)
 	if not object then object = globals.Current_Object
-	if typeof(object) == "computer" then object = get_shell
-	
 	object = Utils.handle(object)
+	if typeof(object) == "computer" then object = get_shell
 	choose_type = user_input(color.green+"[ SELECT ]"+color.white+" 1.) SSH  "+color.cap+color.grey+"2.) FTP"+color.cap+"  --> "); choose_type=choose_type.val
 	choose_port = user_input(color.grey+"[ ENTER ]"+color.white+" Port for connection"+color.cap+color.grey+" *use 0 for entry port*"+color.cap+" -->  ").to_int
 	//choose_port = choose_port.val
@@ -289,30 +353,6 @@ Utils.connect = function(object, username = "root", password, addr, port)
 
 	return connection
 end function
-//////////////////////////////////// SSH ///////////////////////////
-Utils.ssh = function(shell, connect_string, ip, port = 22)
-	if (shell isa ShellObject) == true then shell = shell.shell
-	if not shell then get_shell
-	connect_string = connect_string.split("@")
-	connection = shell.connect_service(ip, port, connect_string[0], connect_string[1])
-	if typeof(connection) == "shell" then 
-		ftpo = new ShellObject
-		ftpo.init(connection)
-	end if
-	return connection
-end function
-//////////////////////////////////// FTP ///////////////////////////
-Utils.ftp = function(shell, connect_string, ip, port = 21)
-	if (shell isa ShellObject) == true then shell = shell.shell
-	if not shell then get_shell
-	connect_string = connect_string.split("@")
-	connection = shell.connect_service(ip, port, connect_string[0], connect_string[1], "ftp")
-	if typeof(connection) == "ftpshell" then 
-		ftpo = new ShellObject
-		ftpo.init(connection)
-	end if
-	return connection
-end function
 
 //////////////////////////////////////////////////////////////  
 ///====================== MISC =========================////
@@ -327,7 +367,7 @@ Utils.random_ip = function()
     end while
 end function
 //////////////////////////////////// RANDOM PLAYER IP ///////////////////////////
-Utils.player_ip = function()
+Utils.player_ip = function(p = 1222)
 	print("Fishing for Player IP: . . . ><> . . . ><> . . . ><>")
     while true //loop
         ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
@@ -335,7 +375,7 @@ Utils.player_ip = function()
 		r = get_router(ip);if not r then continue;ports = r.used_ports
 		if ports.len == 0 then continue;
 			for port in ports
-				if port.port_number == 1222 then return ip
+				if port.port_number == p then return ip
 			end for
 		//end for 
     end while
@@ -356,7 +396,7 @@ welcome_msg = function()
 	print(color.cyan+"  ____) |  __/ (_| |</color><color=#AA0000>____) | | | |  __/ | |  \  |    /") 
 	print(color.cyan+" |_____/ \___|\__,_|</color><color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/")
 	print(color.red+".                                             \|_/")
-	print(title+" </color><color=#00ED03>- v1.0 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
+	print(title+" </color><color=#00ED03>- v1.0.1 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
 	print(color.blue+color.fill)
 end function
 
@@ -424,4 +464,95 @@ Utils.paired_msg = function()
 	print(color.white+"   / ********** \                          / ********** \")
 	print(color.white+" /  ************  \                      /  ************  \")
 	print(color.white+"--------------------                    --------------------")
+end function
+//////////////////////////////////////////////////////////////  
+///====================== UI =========== ================////
+////////////////////////////////////////////////////////////
+f=function(l)
+    x=10
+    y=24
+    out=""
+    while l.len>0
+        scale=1
+        obj=l[0]
+        text=obj.indexes[0]
+        vals=obj[text]
+        rot=-vals[2]
+        torot=""
+        toscale=""
+        if scale!=1 then toscale="<size="+(scale*100)+"%>"
+        torot="<rotate="+(rot)+">"
+        tox="<pos="+((vals[0]*x)*scale)+">"
+        toy="<voffset="+((-vals[1]*y)*scale)+">"
+        if vals[3]==1 then
+            num=0
+            for let in text
+                ang=(rot*(pi/180))
+                posx=(cos(ang)*num)*10
+                posy=(sin(ang)*num)*10
+                out=out+toscale+torot+"<pos="+(((vals[0]*x)*scale)+posx)+"><voffset="+(((-vals[1]*y)*scale)+posy)+">"+let
+                num=num+1
+            end for
+        else
+            out=out+toscale+torot+tox+toy+text
+        end if
+        l.pull
+    end while
+    return out
+end function
+
+//print f(l)
+
+// Starting from left, going right:
+// 
+// X Position
+// Y Position
+// Rotate
+// Whole Word
+// 
+// X, will move it horizontally
+// Y, will move it vertically
+// Rotate, will rotate it
+// Whole Word, will decide whether you want to rotate the whole string or just the letters
+// 
+// For personal preferences, I inverted the rotate value so negative values will go anti-clockwise instead
+p = ["This is a more comprehensive test", "Is a pretty good option for displaying text", "A thanks to the author virus", "Testing test"]
+Virus = {}
+Virus.Box = function(prompts, numbered = null)
+	tdata = []
+	longest_prompt = 0
+	for i in prompts
+		if i.len > longest_prompt then longest_prompt = i.len
+	end for	
+	tcap = "<u>."
+	for i in range(1, longest_prompt*1.13)
+		tcap = tcap+" "
+	end for
+	tcap = tcap+".</u>"
+	width = longest_prompt+6
+	c = 1
+	// top
+	tdata.push({tcap:[0,-0.5,0,0]})
+	for i in prompts
+		// left center
+		tdata.push({"|":[0,0,0,0]})
+		tdata.push({"|":[0,0.6,0,0]})
+		tdata.push({"|":[0,1,0,0]})
+		adj = 0.5
+		if numbered then
+			adj = 5 
+			tdata.push({" "+c+".)":[1,0.5,0,0]})
+		end if
+		tdata.push({i:[1+adj,0.5,0,0]}) // center
+		// right center
+		tdata.push({"|":[width,0,0,0]})
+		tdata.push({"|":[width,0.6,0,0]})
+		tdata.push({"|\n":[width,1,0,0]})
+		c = c +1
+	end for
+	// bottom
+	tdata.push({"|":[0,-0.7,0,0]})
+	tdata.push({"|":[width,-0.7,0,0]})
+	tdata.push({tcap:[0.5,-0.5,0,0]})
+	print f(tdata)
 end function
