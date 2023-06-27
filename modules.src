@@ -1,0 +1,310 @@
+//////////////////////////////////////////////////////////////  
+///======================= Modules =======================///
+////////////////////////////////////////////////////////////
+CMD = {}
+Eel = {}
+Router = {}
+//Wifi = {}
+Brute = {}
+//////////////////////////////////////////////////////////////  
+///======================= EEL ===========================///
+////////////////////////////////////////////////////////////
+Eel["get"] = function()
+	print(title+"Listening for upcoming connections...")
+	metaxploit = meta
+	shells = []
+	while shells.len == 0	
+		shells = metaxploit.rshell_server
+		if(typeof(shells) == "string") then exit(shells)	
+		if(shells.len == 0) then wait(2)
+	end while
+
+	option = 0
+	while typeof(option) != "number" or (option < 1 or option > shells.len)
+		print(shells.len + " shell(s) connected!\n<b>Select a shell to start a terminal:</b>")
+		for i in range(0, shells.len - 1)
+			u = Utils.user(shells[i])
+			ucol = color.white
+			if @u == "root" then ucol = color.green
+			if @u == "guest" then ucol = color.orange
+			if @u == "unknown" then ucol = color.red
+									
+			print("\n<b>"+color.purple+"Shell"+color.cap+" [ " +color.white+ (i + 1) +color.cap+ " ] {user: "+ucol+u+color.cap+"}</b>\n"+color.white+"Public IP: " +color.cap+ shells[i].host_computer.public_ip + "\n"+color.grey+"Local IP: " +color.cap+ shells[i].host_computer.local_ip)
+		end for
+		print("-----------")
+		option = user_input("Select shell>").to_int
+	end while
+
+	choice = user_input("Select Choice>\n"+color.white+"1.)"+color.cap+color.green+" Surf Mode\n"+color.white+"2.)"+color.yellow+" Terminal"+color.cap+" [this will leave a "+color.orange+"trace"+color.white+"]\n--> ").to_int
+	if choice == 1 then 
+		so = new ShellObject 
+		so.init(shells[option-1])
+		print("Surfing on shell # " +color.green+ option)
+		Main.surf_mode(so)
+	else if choice == 2 then 
+		print("Starting terminal on shell # " +color.green+ option)
+		shells[option - 1].start_terminal
+	end if
+
+end function
+
+Eel["capture"] = function(root)
+	confirm = user_input("*"+color.white+" Press 1 to extend eel"+color.cap+" * "+color.grey+"Press Any to Return"+color.cap+" * -->").to_int
+	if confirm != 1 then return
+	metaxploit = meta
+	shells = []
+	while shells.len == 0	
+		shells = metaxploit.rshell_server
+		if(typeof(shells) == "string") then exit(shells)	
+		if(shells.len == 0) then wait(2)
+	end while
+	option = 0
+	while typeof(option) != "number" or (option < 1 or option > shells.len)
+		print("<b>"+color.purple+shells.len + " shell(s) connected!")
+		for i in range(0, shells.len - 1)
+			if root and Utils.user(shells[i]) != "root" then continue
+			print("\n<b>"+color.yellow+"Capturing Shell"+color.cap+" [ " +color.white+ (i + 1) +color.cap+ " ]</b> "+color.purple+"Public IP: " +color.cap+ shells[i].host_computer.public_ip + color.white+"Local IP: " +color.cap+ shells[i].host_computer.local_ip)
+			transfer = Utils.transfer_tools(shells[i], true)
+			wait(0.1)
+			if not transfer then print(color.orange + "eel transfer --> FAILED")
+			if transfer == true then capture = shells[i].launch("/home/guest/eel", "auth")
+			if transfer == true and capture != 0 then print(color.green+"eel --> LAUNCHED")
+		end for
+		print("-----------")
+	end while
+	
+end function
+
+Eel["collect_info"] = function()
+	metaxploit = meta
+	shells = []
+	while shells.len == 0	
+		shells = metaxploit.rshell_server
+		if(typeof(shells) == "string") then exit(shells)	
+		if(shells.len == 0) then wait(2)
+	end while
+	option = 0
+	while typeof(option) != "number" or (option < 1 or option > shells.len)
+		print(shells.len + " shell(s) connected!\n<b>Select a shell to start a terminal:</b>")
+		for i in range(0, shells.len - 1)
+			
+			print("\n<b>"+color.yellow+"Phishing Shell"+color.cap+" [ " +color.white+ (i + 1) +color.cap+ " ]</b> "+color.purple+"Public IP: " +color.cap+ shells[i].host_computer.public_ip + color.white+"Local IP: " +color.cap+ shells[i].host_computer.local_ip)
+			remote_transfer(shells[i])
+			if not transfer then print(color.orange + "eel transfer --> FAILED")
+			if transfer == true then capture = shells[i].launch("/home/guest/eel", "auth")
+			if transfer == true and capture != 0 then print(color.green+"eel --> LAUNCHED")
+		end for
+	end while
+	
+end function
+
+Eel["plant"] = function(object)
+	object = Utils.handle(object)
+	eel = object.host_computer.File("/home/guest/eel")
+	if eel == null then eel = Utils.transfer_tools(object, true)
+	wait(0.1)
+	l = 0
+	if eel == true then l = object.launch("/home/guest/eel", "auth")
+	if l == 0 then print(warning+" failed to launch eel")
+end function
+
+
+//////////////////////////////////////////////////////////////  
+///======================= ROUTER ========================///
+////////////////////////////////////////////////////////////
+// ======================= get ========================= 
+Router["get"] = function(p1)
+	router = get_router( p1 )
+	if router == null then 
+		print("scanrouter: ip address not found")
+		return
+	end if
+	print("Connecting to router at address: " + p1 + "\nScanning kernel library...")
+	version = router.kernel_version
+	if not version then
+		print("Warning: kernel_router.so not found")
+	else 
+		print("kernel_router.so : v" + version)
+	end if
+	
+	firewall_rules = router.firewall_rules
+	if typeof(firewall_rules) == "string" then exit(firewall_rules)
+	print("\nScanning firewall rules...")
+	if firewall_rules.len == 0 then exit("No rules found.")
+	info = "ACTION PORT SOURCE_IP DESTINATION_IP"
+	for rules in firewall_rules
+		info = info + "\n" + rules
+	end for
+	print(format_columns(info) + "\n")
+end function
+
+// ======================= scan GRID BOX ========================= 
+Router["scan_lan"] = function(obj, showPorts = null)
+	portPrint = null
+ 	if showPorts == "-p" then 
+		portPrint = true
+	end if
+	deviceList = [];
+	subDevices = []
+	router = null;
+	ports = null;
+	c = Utils.handle(obj)
+	if typeof(c) == "shell" or typeof(c) == "ftpshell" then 
+		c = c.host_computer
+		ip = c.local_ip
+	end if 
+	if c.is_network_active == false then return print("Computer is operating on 0.0.0.0")
+	
+	isLanIp = is_lan_ip(ip);
+    if isLanIp then 
+        router = get_router;
+		if not router then return print(error+" An error occured")
+		//Takes a LAN IP address and returns a list with open ports accessible in the network
+		//If used from outside the network, it will return null on any IP that doesn't connect directly to the main router.
+		ports = router.device_ports(ip) // these appear to be forwarded ports ?
+	else 
+        router = get_router(ip); 
+		if not router then return print(error+" An error occured")
+		ports = router.used_ports
+	end if
+	if globals.anonymous == false then Utils.who(ip)
+ 	devices = router.devices_lan_ip 	
+	for device in devices
+		lanDevice = get_router(device)
+		if lanDevice then
+			// device check
+			if deviceList.indexOf(lanDevice.local_ip) == null then deviceList.push(lanDevice.local_ip)
+			// router info
+			col = color.grey
+			deviceVersion = lanDevice.kernel_version
+			deviceInfo = "SWITCH" // type: "+typeof(is_switch)
+			if get_switch(device) == null then deviceInfo = "ROUTER"// type: "+typeof(is_switch)			
+			// firewall info
+			rules = lanDevice.firewall_rules
+			rule_label = null
+			if rules and rules.len > 0 then
+				col = color.yellow
+				rule_label = color.grey+"ACTION PORT SOURCE DEST" 
+				for rule in rules
+					rule = rule.split(" ")
+					act = rule[0];prt = rule[1];src = rule[2];dst = rule[3];
+					line_col = color.white
+					if act == "DENY" then 
+						line_col = color.red
+						col = color.orange
+					end if
+					if act == "ALLOW" then line_col = color.green
+					rule_label = rule_label+"\n"+line_col+act+" "+prt+" "+src+" "+dst					
+				end for
+				rule_label = format_columns(rule_label)
+			end if
+			// print the router device
+			print(color.blue+color.fill+"\n"+color.purple+"~^~~~^~"+color.cap+"[<b>" +color.white+ device +color.cap +"</b>]"+color.purple+" ~^~~~^~"+color.cap+" ( " +col+ deviceInfo +color.cap+ " )"+color.purple+" ~^~ <b>"+color.cap+color.white+deviceVersion+color.cap+"\n" + rule_label)
+			for subDevice in lanDevice.devices_lan_ip
+				if deviceList.indexOf(subDevice) then continue
+				if subDevice == c.local_ip and globals.anonymous == false then subDevice = color.purple+subDevice+color.cap
+				if subDevices.indexOf(subDevice) then continue
+				subDevices.push(subDevice)
+				print("{" +color.white+ subDevice +color.cap+ "}")
+				
+				ports = null
+				if portPrint then
+					ports = lanDevice.device_ports(subDevice)
+					portInfo = "" 
+					if not ports or ports.len == 0 then continue
+					for port in ports
+						info = null
+						if lanDevice.port_info(port) != null then info = lanDevice.port_info(port).split(" ")[0] else info = null
+						if info == null then continue
+
+						port_status = color.green
+						if port.is_closed then port_status = color.red
+						if port.port_number == 8080 and port.is_closed then continue
+						portInfo = portInfo +format_columns(port_status + " " + port.port_number + " " + info +color.cap+" |\n")
+						print("( "+port_status + " " + port.port_number + " " + info +color.cap+" )")
+					end for
+					//print(portInfo)
+				end if
+			end for	
+		end if
+	end for 
+	print(color.blue+color.fill+"\nRouter Pings ["+color.white+"<b>"+deviceList.len+color.cap+"</b>]\nDevice Pings ["+color.grey+"<b>"+subDevices.len+color.cap+"</b>]\n"+color.blue+color.fill)
+end function
+
+//////////////////////////////////////////////////////////////  
+///======================= WIFI ===========================///
+////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////  
+///======================= BRUTE =========================///
+////////////////////////////////////////////////////////////
+
+
+
+
+
+///======================= CMD LIST =========================////
+Core.list = [
+//////////////////////////////////    // BASE
+	{ "name": "-h", "desc": "Displays all SeaShell commands", "params": [], "run": @Core["cmd_list"], "cb": "general", },
+    { "name": "-a", "desc": "Toggle anonymous mode", "params": [], "run": @Core["anon"], "cb": "anon", },
+    { "name": "-g", "desc": "Global Object Menu", "params": [], "run": @Core["objects"], "cb": "result", },
+    { "name": "cd", "desc": "Change Working Directory", "params": ["*|./"], "run": @Core["cd"], "cb": "Current_Path", 	},	
+
+//////////////////////////////////    // GENERAL
+    { "name": "-c", "desc": "Clear the screen", "params": [], "run": @clear_screen, "cb": "general", },
+    { "name": "-u", "desc": "Clear the screen", "params": [], "run": @active_user, "cb": "general", },
+    { "name": "-i", "desc": "Prints the current user", "params": [], "run": @Core["me"], "cb": null, },
+    { "name": "git", "desc": "APT Client Update tool", "params": ["*|-u|--", "*"], "run": @Core["git"], "cb": null, },
+
+
+//////////////////////////////////    // SHELL    
+    { "name": "-t", "desc": "Start a Terminal", "params": [], "run": @Core["terminal"], "cb": null },
+    { "name": "-s", "desc": "Sudo Commands", "params": ["-s|-u", ], "run": @Core["sudo"], "cb": "result", },
+
+    { "name": "!", "desc": "Launch a Binary file", "params": ["-e|-s|*"], "run": @Core[".exe"], "cb": null, }, // eel | payload | path
+	{ "name": "!!", "desc": "Launch Payload", "params": [], "run": @Core[".exe"], "cb": "custom", }, // eel | payload | path
+//////////////////////////////////    // COMPUTER
+    { "name": "ps", "desc": "Computer Process List", "params": [], "run": @Core["ps"], "cb": null, },
+    { "name": "kill", "desc": "Kill a specified process", "params": ["*"], "run": @Core["kill"], "cb": null, },
+    { "name": "pw", "desc": "Change a user's password [requires root]", "params": ["*"], "run": @Core["pw"], "cb": null, },
+    { "name": "touch", "desc": "Creates a file", "params": ["*", "*"], "run": @Core["touch"], "cb": null, },
+    { "name": "mkdir", "desc": "Creates a folder", "params": ["*"], "run": @Core["mkdir"], "cb": null, },
+    { "name": "scp", "desc": "Copy file remotely", "params": ["-d|-u", "*", "*"], "run": @Core["scp"], "cb": null, },
+    { "name": "ssh", "desc": "Create SSH connection [requires ssh]", "params": ["*", "*", "*"], "run": @Core["ssh"], "cb": null, },
+    { "name": "ftp", "desc": "Create FTP connection [requires ftp]", "params": ["*", "*", "*"], "run": @Core["ftp"], "cb": null, },
+//////////////////////////////////    // FILE
+	{ "name": "ls", "desc": "List Directory Contents", "params": [], "run": @Core["ls"], "cb": null, },
+
+    { "name": "chmod", "desc": "Changes file Permissions", "params": ["*", "*", "*"], "run": @Core["chmod"], "cb": null, },
+    { "name": "chgrp", "desc": "Changes file Group", "params": ["*", "*", "*"], "run": @Core["chgrp"], "cb": null, },
+    { "name": "chown", "desc": "Changes file Owner", "params": ["*", "*", "*"], "run": @Core["chown"], "cb": null, },
+    
+	{ "name": "cat", "desc": "Show contents of a file", "params": ["*"], "run": @Core["cat"], "cb": null, },
+    { "name": "move", "desc": "Moves file to the specified directory", "params": ["*", "*"], "run": @Core["move"], "cb": null, },
+	{ "name": "copy", "desc": "Copies content of the specified file", "params": ["*", "*"], "run": @Core["copy"], "cb": null, },
+    { "name": "rm", "desc": "Deletes the specified file", "params": ["*"], "run": @Core["rm"], "cb": null, },
+    { "name": "rmdir", "desc": "Deletes the specified directory", "params": ["*", "*"], "run": @Core["rm"], "cb": null, },
+	{ "name": "edit", "desc": "Edit contents of a file", "params": ["*"], "run": @Core["edit"], "cb": null, },
+    { "name": "crack", "desc": "Use decipher on a specified file", "params": ["*"], "run": @Utils["decrypt"], "cb": null, },
+//////////////////////////////////	// NETWORK    
+    { "name": "router", "desc": "Simple router scan", "params": [ "*" ], "run": @Router["get"], "cb": null, },
+    { "name": "lan", "desc": "Scans local area network", "params": [ "-a|-p|*" ], "run": @Router["scan_lan"], "cb": null, },
+    { "name": "sf", "desc": "Sniff device for incoming connections", "params": [], "run": @Core["sniff"], "cb": null, },
+    { "name": "-p", "desc": "Ping a specified device", "params": ["*"], "run": @Core["ping"], "cb": null, },
+
+    ///////////////////////////////  // TOOLS & OTHER
+    { "name": "dc", "desc": "Decipher a hash", "params": ["*"], "run": @Utils["cipher"], "cb": null, },
+    { "name": "mount", "desc": "Mount binaries to shell objects", "params": ["-a|-e"], "run": @Utils["transfer_tools"], "cb": null, },
+	{ "name": "depot", "desc": "Remote deposit of files", "params": [], "run": @remote_transfer, "cb": null, },
+	{ "name": "wipe", "desc": "Wipe the system", "params": ["-t|-l|-s"], "run": @Utils["wipe"], "cb": null, },
+    { "name": "bf", "desc": "Brute force attacks", "params": [], "run": @Core["brute_v2"], "cb": null, },
+    // offense
+	 
+	{ "name": "--", "desc": "Net session via IP, !!IPs & Domains can be used as the cmd name!!", "params": ["*|-r|-rp", "*"], "run": @Core["Probe"], "cb": "result", },
+
+	// eel 
+    { "name": "eel", "desc": "Extended Rshell - Interface", "params": ["-l|-p|--"], "run": @Eel["get"], "cb": "result", },
+
+	{ "name": "exit", "desc": "Exit Surf Mode", "params": [], "run": null, "cb": "EXIT", },
+]
