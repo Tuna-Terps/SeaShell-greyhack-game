@@ -8,7 +8,7 @@
 <br>
 ## INSTALL ##
 
--- create a folder named src, and place all scripts inside of it via the game code editor
+-- create a folder named src, and place all scripts inside of it via the game code editor ** These paths have changed, please refer to main.src
 
 -- adjust the paths for the refernce code in main.src and autolocal.src <br>
 ex: import_code("/home/USER/src/utils.src")
