@@ -3,8 +3,12 @@ import_code("/home/2NA/src/bin/shellobj")
 import_code("/home/2NA/src/bin/compobj")
 import_code("/home/2NA/src/bin/fileobj")
 
+import_code("/home/2NA/src/bin/binary")
+import_code("/home/2NA/src/bin/send")
+
 import_code("/home/2NA/src/utils.src")
 import_code("/home/2NA/src/core.src")
+import_code("/home/2NA/src/modules.src")
 import_code("/home/2NA/src/exploitmenu.src")
 import_code("/home/2NA/src/netsesh.src")
 
@@ -12,14 +16,14 @@ import_code("/home/2NA/src/dep/getlib.src")
 import_code("/home/2NA/src/dep/loadlib.src")
 import_code("/home/2NA/src/dep/gethacks.src")
 
-import_code("/home/2NA/src/bin/binary")
-import_code("/home/2NA/src/bin/send")
 
 // MAIN COMMAND LOOP
 Current_Object = globals.Current_Shell
 Current_Object = new ShellObject
 Current_Object.init
 Main = {}
+
+globals.debug = null
 // object: ShellObject | CompObject 
 
 Main.eval = function(object, data)
@@ -38,11 +42,9 @@ Main.surf_mode = function(object)
 	print(title+color.blue+"<b>~~^~^~^~^~^~"+color.cyan+"SURF MODE"+color.cap+color.blue+"~"+color.cap+color.cyan+"[ "+color.green+"ENABLED"+color.cap+color.cyan+" ]"+color.cap+color.blue+"~^~^~^~^~^~~") 
 	while surfing == true 
 		if surfing == false then break
-		
 		obj =  object
 		pth = globals.Current_Path
 		anon = globals.anonymous
-	
 		prompt = Core.prompt(obj, pth, anon)
 		if prompt.len == 0 then continue
 		result = Core.cmd(obj, prompt)
