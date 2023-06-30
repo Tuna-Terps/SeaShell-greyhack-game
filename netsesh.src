@@ -123,12 +123,13 @@ auto_hack = function(addr, port, data=null)
 				if s.len == 0 then p = null
 				selected_exploit.chmod_attack(p,u,s)
             else if input == 4 then
-                confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
+                confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.pc.public_ip+color.cap+":"+color.yellow+selected_exploit.pc.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
 				if confirm == "pwn" then selected_exploit.sys_pwn
 				
 			else if input == 5 then 
 				attacking = false 
-                return selected_exploit
+				root = selected_exploit
+                //return selected_exploit
             else if input == 0 then 
                 //attack_result = Attack
                 attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
@@ -139,7 +140,7 @@ auto_hack = function(addr, port, data=null)
         else if selected_menu == 2 then
 			//print("result?"+ typeof(selected_exploit))
 			//print(selected_exploit isa CompObject) 
-        	input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user(selected_exploit.PC)+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n0.) Main Menu\n--> ")
+        	input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user(selected_exploit.PC)+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
             input = input.val 
             if input == 1 then
 				root = selected_exploit.pw_attack(true, addr, port)
@@ -160,16 +161,19 @@ auto_hack = function(addr, port, data=null)
 				if p.len == 0 then p = null
 				selected_exploit.cat_attack(p)
 			else if input == 4 then
-				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.local_ip+color.cap+"}\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
+				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.PC.local_ip+color.cap+"}\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
 				if confirm == "pwn" then selected_exploit.sys_pwn
-            else if input == 0 then 
+            else if input == 5 then 
+				attacking = false 
+                return selected_exploit
+			else if input == 0 then 
                 //attack_result = Attack
                 attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
                 selected_menu = attack_result[0]
                 selected_exploit = attack_result[1]
             end if 
         else if selected_menu == 3 then
-		input = user_input("File Exploit:\n[ "+selected_exploit.F.name+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cattack\n4.) PWN \n0.) Main Menu\n--> ") 
+		input = user_input("File Exploit[ "+color.green+selected_exploit.F.name+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n0.) Main Menu\n--> ") 
             input = input.val 
             if input == 1 then 
                 selected_exploit.file_attack
@@ -181,8 +185,11 @@ auto_hack = function(addr, port, data=null)
 				if s.len == 0 then s = "o+wrx" 
 				selected_exploit.chmod_attack(u, s)
 			else if input == 3 then 
+				selected_exploit.cat_attack	
+			else if input == 4 then
+				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
+				if confirm == "pwn" then selected_exploit.sys_pwn
 
-				selected_exploit.cat_attack(p)	
             else 
                 //attack_result = Attack
                 attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
