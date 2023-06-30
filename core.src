@@ -107,16 +107,21 @@ Core["cmd"] = function(object, params)
 		run = valid["run"]
 		if cmd.len == 1 then
 			if valid["cb"] == "result" then
+				if globals.debug then print("cmd: c2a")
 				result = run(object, cmd[0])
 			else
 				run(object, cmd[0])
 			end if
 		else if cmd.len == 2 then 
 			// etc etc
-			run(object, cmd[0], cmd[1])
+			if valid["cb"] == "result" then
+				result = run(object, cmd[0], cmd[1])
+			else
+				run(object, cmd[0], cmd[1])
+			end if
 		else if cmd.len == 3 then
 			// etc etc 
-			run(object, cmd[1], cmd[2], cmd[3])
+			run(object, cmd[0], cmd[1], cmd[2])
 		end if
 	end if
 	return result
@@ -159,8 +164,7 @@ end function
 ///======================= CMD  LIST =========================////
 Core["cmd_list"] = function()
 	tData = []
-	tData.push({color.blue+"/": [0,0,0,0]})
-	tData.push({"<u>[ NAME ]": [0.5,0,0,0]})
+	tData.push({"<b><u>[ NAME ]": [0,0,0,0]})
 	tData.push({"[ ARGS ]": [10,0,0,0]})
 	tData.push({"[ DESC ]          /\n": [35,0,0,0]})
 	for c in Core.list
@@ -168,7 +172,7 @@ Core["cmd_list"] = function()
 		tData.push({c["params"]: [8,0,0,0]})
 		tData.push({color.grey+c["desc"]+"\n": [30,0,0,0]})
 	end for
- 	print f(tData)
+ 	print GFX.f(tData)
 	print(color.white+"<b>-->"+color.cap+ " *</b><i>"+color.grey+" Represents a dynamic, or optional parameter.")
 end function
 ///======================= ANON MODE =========================////
@@ -309,15 +313,27 @@ Core.remove = function(type, index) // : number, : number
 end function
 ///======================= cd  =========================////
 Core["cd"] = function(obj, p)
-	if not p then p = home_dir
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	base = null
+	if not p then 
+		globals.Current_Path = home_dir
+		return globals.Current_Path
+	else
+		base = obj.File(globals.Current_Path)
+		if not base then return print("cd: path not found")
+	end if
 	dir = null
 	if p == "./" then 
-		dir = obj.File(globals.Current_Path).parent
-	else
-		dir = obj.File(p)
+		dir = base.parent
+	else if p == "/" then 
+		dir = obj.File("/")
+	else if p != "/" and base.name == "/" then 
+		dir = obj.File("/"+p)
+	else if p != null then
+		dir = obj.File(base.path+"/"+p)
 	end if
+
 	if dir == null then return print("No directory found")
 	globals.Current_Path = dir.path
 	return globals.Current_Path
@@ -438,8 +454,14 @@ Core["pw"] = function(obj, user)
 end function
 // =======================  touch =======================
 Core["touch"] = function(obj, pathFile, fileName)
+	print("path: "+ pathFile+" fileName "+fileName)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	
+	if fileName == null or fileName == "" then fileName = pathFile
+	if pathFile[0] != "/" then pathFile = Current_Path
+	print("2: path: "+ pathFile+" fileName "+fileName)
+
 	file = obj.touch(pathFile, fileName)
 	if file == false then return print("touch: failed")
 	print(fileName+" created at path "+ pathFile)
@@ -479,6 +501,41 @@ Core["ftp"] = function(object, connect_string, ip, port = 21)
 	connect_string = connect_string.split("@")
 	service = object.connect_service(ip, port, connect_string[0], connect_string[1], "ftp")
 	return service
+end function
+// ======================= SECURE =========================
+Core["secure"] = function(obj, type = "-h")
+	obj = Utils.handle(obj)
+	if typeof(obj) == ("shell" or "ftpshell") then obj = obj.host_computer
+	if not Utils.user(obj) != "root" then return print("You need to be root to run this operation")
+	root = obj.File("/")
+	if not root then return print("no root?")
+	root.chmod("o-wrx", true)
+	if type == "-s" then 
+		root.chmod("g-wrx", true)
+		root.chmod("u-wrx", true)
+		mail = obj.File("/root/Config/Mail.txt")
+		bnk = obj.File("/root/Config/Bank.txt")
+		if mail then mail.delete
+		if bnk then bnk.delete
+		wait(0.2)
+	else 
+		cfg = obj.File("/home/2NA/Config")
+		if cfg then 
+			cfg.set_owner("root", true)
+			cfg.set_group("root", true)
+		end if
+		mail = obj.File("/home/2NA/Config/Mail.txt")
+		bnk = obj.File("/home/2NA/Config/Bank.txt")
+		if mail then mail.delete
+		wait(0.1)
+		if bnk then bnk.delete
+		wait(0.1)
+	end if
+	pw = obj.File("/etc/passwd")
+	del = "o"
+	if pw then del = pw.delete
+	wait(0.1)
+	if del.len > 1 then print("Deleted /etc/passwd")
 end function
 
 ///=====================================================////
@@ -563,7 +620,7 @@ Core["move"] = function(obj, targFilePath, pathFile, fileName)
 	targ = obj.File(targFilePath)
 	if targ == null then return print("mv: no file found")
 	file = targ.move(pathFile, fileName)
-	if file == false then return print("mv: failed to move")
+	if typeof(file) == "string" then return print(file)
 	print(fileName+" created at path "+ pathFile)
 end function
 // =======================  copy =======================
@@ -649,7 +706,7 @@ end function
 // =======================  ping =======================
 Core["ping"] = function(shell, ip)
 	obj = Utils.handle(shell)
-	result = shell.ping(ip)
+	result = obj.ping(ip)
 	if result then
     	if typeof(result) == "string" then
         	print(result) 
@@ -677,22 +734,45 @@ end function
 
 // =======================  apt-get =======================
 PendingUpdating = function(folderPath)
-	aptclient = include_lib("/lib/aptclient.so")
-	if not aptclient then
-    	aptclient = include_lib(current_path + "/aptclient.so")
+	pc = get_shell.host_computer
+	apt = include_lib("/lib/aptclient.so")
+	if not apt then
+    	apt = include_lib(current_path + "/aptclient.so")
 	end if
 	pendingUpdate = []
-	targetFolder = get_shell.host_computer.File(folderPath)
-	if targetFolder != null then
-		files = targetFolder.get_files
-		for itemFile in files
-			output = aptclient.check_upgrade(itemFile.path)
-			if output == true then
-				print(itemFile.name+" was found and needs an update")
-				pendingUpdate.push(itemFile.name)
-			end if
-		end for
-	end if
+	
+	dirs = [folderPath, "/lib/cheese"]
+	
+	for dir in dirs
+		target_folder = pc.File(dir)
+		if target_folder then 
+			for file in target_folder.get_files
+				output = apt.check_upgrade(file.path)
+				if output == true then pendingUpdate.push(file.name)
+			end for
+		end if
+	end for
+	//targetFolder = pc.File(folderPath)
+	//secondaryFolder = pc.File("/lib/cheese")
+	//if targetFolder != null then
+		//files = targetFolder.get_files
+		//for itemFile in files
+		//	output = aptclient.check_upgrade(itemFile.path)
+		//	if output == true then
+		//		print(itemFile.name+" was found and needs an update")
+		//		pendingUpdate.push(itemFile.name)
+		//	end if
+	//	end for
+//	end if
+	//if secondaryFolder != null then 
+	//	for item in secondaryFolder.get_files
+	//		output = aptclient.check_upgrade(item.path)
+	//		if output == true then 
+	//			print(item.name+" was found and needs an update")
+	//			pendingUpdate.push(item.name)
+	//		end if
+	//	end for
+	//end for
 	return pendingUpdate
 end function 
 
@@ -767,14 +847,12 @@ Core["git"] = function(shell, cmd, param=null)
 end function
 
 //////////////////////////////////////////////////////////////////////////////  
-///============================ ATTACKS / FUNCTIONS =====================///
+///======================== NET SESSION =================================///
 //////////////////////////////////////////////////////////////////////////
 ///============================ PROBE =====================///
 Core["Probe"] = function(object, addr)
-	print("probe: "+addr)
 	isDomain = nslookup(addr)
-	print("isDomain: "+isDomain)
-	if not is_valid_ip(addr) and not isDomain then return print(warning+" not a valid IP")
+	if not isDomain and not is_valid_ip(addr)then return print(warning+" not a valid IP")
 	if is_valid_ip(isDomain) then addr = isDomain
 	addr_label = "HIDDEN"
 	if globals.anonymous == false then addr_label = addr
@@ -863,7 +941,7 @@ Core.RouterEntry = function(addr, devices)
 		if choice == 0 then 
 			hacked_object = auto_hack(addr, 0)
 		else 
-			hack_object = auto_hack(addr, 0, devices[choice-1])
+			hacked_object = auto_hack(addr, 0, devices[choice-1])
 		end if
 	end if
 	
@@ -888,7 +966,7 @@ Core.NetEntry = function(ip, lan, port)
 		end if
 		if input == 2 then
 			run = Core["Probe"] 
-			return run(ip)
+			return run(Current_Object, ip)
 		if input == 3 then 
 			value = user_input(color.yellow+"Enter a LAN: \n-->") 
         	hacked_object = auto_hack(ip, 0, value)
@@ -899,30 +977,13 @@ Core.NetEntry = function(ip, lan, port)
 	return hacked_object
 end function
 
-///============================ BRUTE =====================///
-Core["brute_v2"] = function(object, type = 0)
-	choice_arr = ["/home/2NA/src/dict/dictionary.txt", ]
-	choice_sel = choice_arr[type]
-	
-	object = Utils.handle(object)
-	if typeof(object) == "shell" then object = object.host_computer 
-	dict = null
-	dict = object.File(choice_sel)
-	if dict == null then 
-		p = user_input("no path found, specify it here\n--> ")
-		dict = object.File(p)
-		if dict == null then return print("Path incorrect; Not saying its a you thing, but . . . ")
-	end if
- 	pass_list = dict.get_content.split("\n")
-	tries = 1
-	for pass in pass_list
-		print("[tsunamiV2] attempting login with pw: "+pass+ " #"+tries);
-		result = get_shell("root", pass)
-		if result != null then
-			print(pass) 
-			return Utils.got_rooted()
-		end if
-		tries = tries +1;wait(0.1)
-	end for
-	dict = null 
-end function
+// EXPLOITS
+// 1. search
+// 2. update
+// 3. use
+Core.exp = {}
+
+
+
+
+
