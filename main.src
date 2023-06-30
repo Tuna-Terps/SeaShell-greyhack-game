@@ -3,7 +3,7 @@ import_code("/home/2NA/src/bin/compobj")
 import_code("/home/2NA/src/bin/fileobj")
 
 import_code("/home/2NA/src/bin/binary")
-import_code("/home/2NA/src/bin/send")
+//import_code("/home/2NA/src/bin/send")
 
 import_code("/home/2NA/src/utils.src")
 import_code("/home/2NA/src/core.src")
