@@ -79,8 +79,9 @@ Core["cmd"] = function(object, params)
 	if globals.debug then print(color.green+"running CMD: <b>"+color.cap+color.white+valid["name"])
 	run = valid["run"]
 	if cmd.len == 1 then
-		if globals.debug then print("cmd: c1") 
-		if valid["cb"] == "result" then  
+		if globals.debug then print("cmd: c1")
+		if valid["cb"] == "result" then
+			if globals.debug then print("cmd: c1a")  
 			result = run(object, cmd[0])
 		else if valid["cb"] == "custom" then
 			data = get_custom_object()
@@ -292,7 +293,7 @@ Core.add = function(object) // : map
 	else 
 		return print(warning+" unable to add object to the pool: "+typeof(object))
 	end if
-
+	Current_Object = object
 end function
 ///======================= OBJ REMOVE  =========================////
 Core.remove = function(type, index) // : number, : number
@@ -851,9 +852,13 @@ end function
 //////////////////////////////////////////////////////////////////////////
 ///============================ PROBE =====================///
 Core["Probe"] = function(object, addr)
-	isDomain = nslookup(addr)
-	if not isDomain and not is_valid_ip(addr)then return print(warning+" not a valid IP")
-	if is_valid_ip(isDomain) then addr = isDomain
+	isDomain = null
+	if not is_valid_ip(addr) or not is_lan_ip(addr) then
+		isDomain = nslookup(addr)
+		if is_valid_ip(isDomain) then addr = isDomain
+	end if
+	if not isDomain and not is_valid_ip(addr) then return print(warning+" not a valid IP")
+
 	addr_label = "HIDDEN"
 	if globals.anonymous == false then addr_label = addr
 	print(init+"Net Session: searching: "+addr_label)
@@ -902,7 +907,7 @@ Core["Probe"] = function(object, addr)
     end for
     if fwd_machines.len == 0 then 
         input = user_input(title+color.orange+"[Alert] No open ports found\n"+color.yellow+"[SELECT]\n1.) Exploit the router \n0.) Exit\n--> ")
-        if input.val == 1 then return Core["RouterEntry(addr, devices)"]
+        if input.val == 1 then return Core.RouterEntry(addr, devices)
 		if input.val != 1 then return print(title+" exiting . . .")
     end if 
     print(color.blue+"><>"+color.cap+" "+addr_label+color.cap+"::"+color.grey+number+color.cap)
@@ -944,7 +949,6 @@ Core.RouterEntry = function(addr, devices)
 			hacked_object = auto_hack(addr, 0, devices[choice-1])
 		end if
 	end if
-	
 	return hacked_object
 end function
 ///============================ NET ENTRY =====================///
@@ -952,29 +956,41 @@ Core.NetEntry = function(ip, lan, port)
 	ip_label = "HIDDEN"
 	if globals.anonymous == false then ip_label = ip
 	print(init+color.white+" Beginning Net Entry!"+color.cap+" --> "+color.grey+ip_label+color.cap+"/"+color.purple+lan+color.cap+":"+color.blue+port)
-	hacked_object = null
+	hacked = null
 	//obj = Utils.handle(object)
 	if not is_valid_ip(ip) then return print(warning+ "invalid IP")
-	hacked_object = auto_hack(ip, port)
-	if not hacked_object then 
+	hacked = auto_hack(ip, port)
+	if globals.debug then print(".__isa: "+hacked.__isa)
+	if globals.debug then print("we are expecting hacked_object to be map and its a : "+ typeof(hacked))
+	if globals.debug then print("isa map "+(hacked isa map))
+	if globals.debug then print("isa ShellObject "+(hacked isa ShellObject))
+	if globals.debug then print("isa ComputerObject "+(hacked isa CompObject))
+	if globals.debug then print("isa FileObject "+(hacked isa FileObject))
+	// doesnt matter what i put here ????????????
+	print(hacked)
+	if ((typeof(hacked) == "map") == false) then  //or not (hacked_object isa CompObject) or not (hacked_object isa FileObject)  then 
+		print("hacked:" + typeof(hacked))
 		print(warning+" "+color.white+ip_label+color.cap+" @ "+color.grey+lan+color.cap+" : "+color.orange+port+color.red+" Net Session FAILED" )
-        input = user_input("1.) Router Attack\n2.) New Net Attack \n3.) Bounce Test \n4.) Exit\nSELECT ->  ")
+        input = user_input("1.) Router Attack\n2.) New Net Attack \n3.) Bounce \n4.) Exit\nSELECT ->  ")
         input = input.val
 		if input == 1 then
-            hacked_object = auto_hack(ip, 0)
-            if not hacked_object then return print(warning+ip+" couldnt be penetrated via router")
+            hacked = auto_hack(ip, 0)
+            if not hacked then return print(warning+ip_label+" couldnt be penetrated via router")
 		end if
 		if input == 2 then
 			run = Core["Probe"] 
 			return run(Current_Object, ip)
 		if input == 3 then 
 			value = user_input(color.yellow+"Enter a LAN: \n-->") 
-        	hacked_object = auto_hack(ip, 0, value)
+        	hacked = auto_hack(ip, 0, value)
 		end if
-		if input == 4 then exit("You chose to exit")
+		if input == 4 then return print("You chose to exit")
+	else
+		print("This is so weird man: "+typeof(hacked))
 	end if
 	print("exiting net entry . . .")
-	return hacked_object
+	if globals.debug then print("we are expecting hacked_object to be map and its a : "+ typeof(hacked))
+	return hacked
 end function
 
 // EXPLOITS
@@ -982,8 +998,3 @@ end function
 // 2. update
 // 3. use
 Core.exp = {}
-
-
-
-
-
