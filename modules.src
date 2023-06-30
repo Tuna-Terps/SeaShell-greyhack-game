@@ -240,7 +240,33 @@ end function
 ////////////////////////////////////////////////////////////
 
 
-
+///============================ BRUTE =====================///
+Brute["brute_v2"] = function(object, type = 0)
+	choice_arr = ["/home/2NA/src/dict/dictionary.txt", ]
+	choice_sel = choice_arr[type]
+	
+	object = Utils.handle(object)
+	if typeof(object) == "shell" then object = object.host_computer 
+	dict = null
+	dict = object.File(choice_sel)
+	if dict == null then 
+		p = user_input("no path found, specify it here\n--> ")
+		dict = object.File(p)
+		if dict == null then return print("Path incorrect; Not saying its a you thing, but . . . ")
+	end if
+ 	pass_list = dict.get_content.split("\n")
+	tries = 1
+	for pass in pass_list
+		print("[tsunamiV2] attempting login with pw: "+pass+ " #"+tries);
+		result = get_shell("root", pass)
+		if result != null then
+			print(pass) 
+			return Utils.got_rooted()
+		end if
+		tries = tries +1;wait(0.1)
+	end for
+	dict = null 
+end function
 
 
 ///======================= CMD LIST =========================////
@@ -250,12 +276,13 @@ Core.list = [
     { "name": "-a", "desc": "Toggle anonymous mode", "params": [], "run": @Core["anon"], "cb": "anon", },
     { "name": "-g", "desc": "Global Object Menu", "params": [], "run": @Core["objects"], "cb": "result", },
     { "name": "cd", "desc": "Change Working Directory", "params": ["*|./"], "run": @Core["cd"], "cb": "Current_Path", 	},	
-
+	//{ "name": "dir", "desc": "Print Working Directory", "params": [], "run": @Core["path"], "cb": null, 	},	
 //////////////////////////////////    // GENERAL
     { "name": "-c", "desc": "Clear the screen", "params": [], "run": @clear_screen, "cb": "general", },
     { "name": "-u", "desc": "Clear the screen", "params": [], "run": @active_user, "cb": "general", },
     { "name": "-i", "desc": "Prints the current user", "params": [], "run": @Core["me"], "cb": null, },
-    { "name": "git", "desc": "APT Client Update tool", "params": ["*|-u|--", "*"], "run": @Core["git"], "cb": null, },
+    { "name": "dc", "desc": "Decipher a hash", "params": ["*"], "run": @Utils["cipher"], "cb": null, },
+	{ "name": "apt", "desc": "APT Client Update tool", "params": ["*|-u|--", "*|-f"], "run": @Core["git"], "cb": null, },
 
 
 //////////////////////////////////    // SHELL    
@@ -270,9 +297,10 @@ Core.list = [
     { "name": "pw", "desc": "Change a user's password [requires root]", "params": ["*"], "run": @Core["pw"], "cb": null, },
     { "name": "touch", "desc": "Creates a file", "params": ["*", "*"], "run": @Core["touch"], "cb": null, },
     { "name": "mkdir", "desc": "Creates a folder", "params": ["*"], "run": @Core["mkdir"], "cb": null, },
-    { "name": "scp", "desc": "Copy file remotely", "params": ["-d|-u", "*", "*"], "run": @Core["scp"], "cb": null, },
+    { "name": "scp", "desc": "Copy file remotely", "params": ["-d|-u|-i", "*", "*"], "run": @Core["scp"], "cb": null, },
     { "name": "ssh", "desc": "Create SSH connection [requires ssh]", "params": ["*", "*", "*"], "run": @Core["ssh"], "cb": null, },
     { "name": "ftp", "desc": "Create FTP connection [requires ftp]", "params": ["*", "*", "*"], "run": @Core["ftp"], "cb": null, },
+    { "name": "secure", "desc": "Secure PC Permissions [requires root]", "params": ["-s|-h", ], "run": @Core["secure"], "cb": null, },
 //////////////////////////////////    // FILE
 	{ "name": "ls", "desc": "List Directory Contents", "params": [], "run": @Core["ls"], "cb": null, },
 
@@ -294,11 +322,11 @@ Core.list = [
     { "name": "-p", "desc": "Ping a specified device", "params": ["*"], "run": @Core["ping"], "cb": null, },
 
     ///////////////////////////////  // TOOLS & OTHER
-    { "name": "dc", "desc": "Decipher a hash", "params": ["*"], "run": @Utils["cipher"], "cb": null, },
+
     { "name": "mount", "desc": "Mount binaries to shell objects", "params": ["-a|-e"], "run": @Utils["transfer_tools"], "cb": null, },
 	{ "name": "depot", "desc": "Remote deposit of files", "params": [], "run": @remote_transfer, "cb": null, },
 	{ "name": "wipe", "desc": "Wipe the system", "params": ["-t|-l|-s"], "run": @Utils["wipe"], "cb": null, },
-    { "name": "bf", "desc": "Brute force attacks", "params": [], "run": @Core["brute_v2"], "cb": null, },
+    { "name": "bf", "desc": "Brute force attacks", "params": [], "run": @Brute["brute_v2"], "cb": null, },
     // offense
 	 
 	{ "name": "--", "desc": "Net session via IP, !!IPs & Domains can be used as the cmd name!!", "params": ["*|-r|-rp", "*"], "run": @Core["Probe"], "cb": "result", },
