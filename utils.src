@@ -1,21 +1,7 @@
-// ><> ><> ><> ><> LIBRARIES ><> ><> ><> ><>
-meta = null
-dirs = ["/lib/metaxploit.so", "/lib/cheese/metaxploit.so",current_path+"/metaxploit.so",launch_path+"/metaxploit.so",home_dir+"/metaxploit.so","/home/guest/metaxploit.so"]
-for d in dirs
-	meta = include_lib(d)
-	if meta then break
-end for
-if not meta then exit(warning+color.red+"<b> metaxploit.so was not found")
-dirs = ["/lib/crypto.so", "/lib/cheese/crypto.so",current_path+"/crypto.so",launch_path+"/crypto.so",home_dir+"/crypto.so","/home/guest/crypto.so"]
-crypto = null
-for d in dirs
-	crypto = include_lib(d)
-	if meta then break
-end for
-if not crypto then print(warning+color.orange+" crypto was not found")
+//////////////////////// NEW CORE ////////////////////////
 // ><> ><> ><> ><> VARIABLES ><> ><> ><> ><>
 // ><> CORE ><>
-globals.anonymous = false
+
 
 base_shell = new ShellObject
 base_shell.init()
@@ -32,14 +18,19 @@ globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects
 //globals.Exploits = [] // our collection of global exploit objects
 globals.Global_Path = "/home" // our mutable path for 1 or more? objects
 
+globals.Current_Path = current_path // a path for more specific commands
+globals.anonymous = false
+
 Current_Shell = get_shell // mutable shell
 Current_Computer = @host_computer // well see how it goes
 
-globals.Current_Path = current_path // a path for more specific commands
+
 
 // ATTACKS 
 fwd_machines = [] // collection of machines from a probe with open, fwd ports
 local_machines = [] // machines found by ping
+
+
 
 // MISC
 color = {}
@@ -48,17 +39,28 @@ color.cyan = "<color=#00FFE7>";color.purple = "<color=#D700FF>";color.red = "<co
 color.yellow = "<color=#FBFF00>";color.orange = "<color=#FF8701>";color.green = "<color=#00ED03>";
 color.fill = "><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>"
 color.cap = "</color>"
-title = "<color=#00FFE7>[<b>SeaShell</b>]</color>"
-init = "<color=#00ED03>[SeaShell]</color>"
-error = "<color=#AA0000>[SeaShell] <b>Error: </b></color>"
-warning = "<color=#FF8701>[SeaShell] <b>Warning: </b></color>"
-
-cmd = {}
-cmd.usage = "'Invalid Arguments' Use command -"+color.blue+" seashell"+color.cap+color.green+" [ip]\n"+color.green+" For more info - use argument -h or -d"
-//cmd_list = "[CMD] [args] [DESCRIPTION]\n-h * Display_a_list_of_commands\n-d * Tool_&_Author_Info\n-s -a Enter_Surf_Mode(-a=anon)\n-- ip target_ip_for_Net_Session_Entry\n-w domain target_domain_for_Net_Session_Entry\n-r * target_random_ip\n-rp * fish_for_player_ip_(rshell/chat) eel -l|-p|-- extended_rshell_interface | * launches_eel || * launch_payload"
-//cmd.options = format_columns(cmd_list)
-cmd.description = color.grey+"A tool to discretely probe and penetrate networks \n1.) Finds all machines with open processes\n2.) Exploits net sessions \n3.) Local Elevate + rShell Insertion\n4.) Info Collection (Mail, Bank, .log)"//+color.white+"-> Returns a list of machines with closed ports for deeper penetration";
-
+title = "<color=#00FFE7>[<b>SeaShell</b>]</color> "
+init = "<color=#00ED03>[SeaShell] <b>init:</b></color> "
+error = "<color=#AA0000>[SeaShell] <b>Error:</b></color> "
+warning = "<color=#FF8701>[SeaShell] <b>Warning:</b></color> "
+// ><> ><> ><> ><> LIBRARIES ><> ><> ><> ><>
+meta = null
+dirs = ["/lib/metaxploit.so", "/lib/cheese/metaxploit.so",current_path+"/metaxploit.so",launch_path+"/metaxploit.so",home_dir+"/metaxploit.so","/home/guest/metaxploit.so"]
+for d in dirs
+	meta = include_lib(d)
+	if meta then break
+end for
+if not meta then exit(warning+color.red+"<b> metaxploit.so was not found")
+dirs = ["/lib/crypto.so", "/lib/cheese/crypto.so",current_path+"/crypto.so",launch_path+"/crypto.so",home_dir+"/crypto.so","/home/guest/crypto.so"]
+crypto = null
+for d in dirs
+	crypto = include_lib(d)
+	if meta then break
+end for
+if not crypto then print(warning+color.orange+" crypto was not found")
+// ><> ><> ><> ><> ><> ><> ><> ><>
+// ><> ><> ><>  UTILS  ><> ><> ><>
+// ><> ><> ><> ><> ><> ><> ><> ><>
 Utils = {}
 
 Utils.handle = function(object)
@@ -176,6 +178,7 @@ Utils["wipe"] = function(obj, param)
 end function
 //////////////////////////////////// TOOL TRANSFER ///////////////////////////
 Utils["transfer_tools"] = function(obj, eel_only = null)
+	print(init+" mounting . . .")
 	obj = Utils.handle(obj)
     files = []
     filenames = ["metaxploit.so", "crypto.so", "payload", "eel", "ss"]
@@ -183,7 +186,7 @@ Utils["transfer_tools"] = function(obj, eel_only = null)
 	dirs = ["/lib/", parent_path(launch_path) + "/", parent_path(program_path) + "/", "/lib/cheese/"]
     for filename in filenames
         for dir in dirs
-            if get_shell.host_computer.File(dir + filename) then
+            if obj.host_computer.File(dir + filename) then
                 files = files + [dir + filename]
                 break
             end if
@@ -196,7 +199,7 @@ Utils["transfer_tools"] = function(obj, eel_only = null)
     //if payload != 1 then return
     // Transfer files
     for file in files
-        get_shell.scp(file, "/home/guest", obj)
+        obj.scp(file, "/home/guest", obj)
         wait(0.1)
     end for
     // Chown files
@@ -213,27 +216,28 @@ end function
 
 //////////////////////////////////// TOOL WIPE ///////////////////////////
 Utils.clean_sys = function(obj)
+	print(init+" wiping tools from system . . .")
+	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	files = ["ss", "eel", "payload", "metaxploit.so", "crypto.so"]
 	dirs = ["/home/guest", "/bin"]
 	home_folders = null
-	if home and home.is_folder then home_folders = home.get_folders
-	if home_folders and not meta then 
 	for dir in dirs
 		for file in files
-			f = obj.File(dir+"/"+f)
+			f = obj.File(dir+"/"+file)
 			if f then
 				n = f.name 
-				print(color.green+"Deleting: "+f.path)
+				print(color.yellow+"Deleting: "+f.path)
 				del = f.delete
 				wait(0.1)
-				if del.len > 1 then print("Deleted <b>"+n)
+				if del.len < 1 then print(color.green+"Deleted <b>"+n)
 			end if
 		end for
 	end for
 end function
 //////////////////////////////////// LOG WIPE ///////////////////////////
 Utils.wipe_logs = function(obj)
+	print(init+" wiping system . . .")
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	
@@ -468,7 +472,8 @@ end function
 //////////////////////////////////////////////////////////////  
 ///====================== UI =========== ================////
 ////////////////////////////////////////////////////////////
-f=function(l)
+GFX = {}
+GFX.f=function(l)
     x=10
     y=24
     out=""
@@ -516,43 +521,3 @@ end function
 // Whole Word, will decide whether you want to rotate the whole string or just the letters
 // 
 // For personal preferences, I inverted the rotate value so negative values will go anti-clockwise instead
-p = ["This is a more comprehensive test", "Is a pretty good option for displaying text", "A thanks to the author virus", "Testing test"]
-Virus = {}
-Virus.Box = function(prompts, numbered = null)
-	tdata = []
-	longest_prompt = 0
-	for i in prompts
-		if i.len > longest_prompt then longest_prompt = i.len
-	end for	
-	tcap = "<u>."
-	for i in range(1, longest_prompt*1.13)
-		tcap = tcap+" "
-	end for
-	tcap = tcap+".</u>"
-	width = longest_prompt+6
-	c = 1
-	// top
-	tdata.push({tcap:[0,-0.5,0,0]})
-	for i in prompts
-		// left center
-		tdata.push({"|":[0,0,0,0]})
-		tdata.push({"|":[0,0.6,0,0]})
-		tdata.push({"|":[0,1,0,0]})
-		adj = 0.5
-		if numbered then
-			adj = 5 
-			tdata.push({" "+c+".)":[1,0.5,0,0]})
-		end if
-		tdata.push({i:[1+adj,0.5,0,0]}) // center
-		// right center
-		tdata.push({"|":[width,0,0,0]})
-		tdata.push({"|":[width,0.6,0,0]})
-		tdata.push({"|\n":[width,1,0,0]})
-		c = c +1
-	end for
-	// bottom
-	tdata.push({"|":[0,-0.7,0,0]})
-	tdata.push({"|":[width,-0.7,0,0]})
-	tdata.push({tcap:[0.5,-0.5,0,0]})
-	print f(tdata)
-end function
