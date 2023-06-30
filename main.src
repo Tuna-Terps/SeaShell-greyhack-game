@@ -1,6 +1,6 @@
-import_code("/home/2NA/src/bin/objects")
-import_code("/home/2NA/src/bin/binary")
-import_code("/home/2NA/src/bin/send")
+import_code("/home/2NA/src/objects")
+import_code("/home/2NA/src/binary")
+import_code("/home/2NA/src/send")
 
 import_code("/home/2NA/src/utils.src")
 import_code("/home/2NA/src/core.src")
@@ -8,9 +8,9 @@ import_code("/home/2NA/src/modules.src")
 import_code("/home/2NA/src/exploitmenu.src")
 import_code("/home/2NA/src/netsesh.src")
 
-import_code("/home/2NA/src/dep/getlib.src")
-import_code("/home/2NA/src/dep/loadlib.src")
-import_code("/home/2NA/src/dep/gethacks.src")
+import_code("/home/2NA/src/getlib.src")
+import_code("/home/2NA/src/loadlib.src")
+import_code("/home/2NA/src/gethacks.src")
 
 
 // MAIN COMMAND LOOP
