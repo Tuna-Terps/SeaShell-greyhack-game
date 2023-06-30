@@ -14,7 +14,7 @@
 ex: import_code("/home/USER/src/utils.src")
 
 -- You will need to compile the following files in this order, name the binary the same as the src<br><br>
-1.) objects.src --> ** MUST ALLOW IMPORTS **
+1.) objects.src --> ** MUST ALLOW IMPORTS **<br>
 2.) binary.src --> ** MUST ALLOW IMPORTS ** --> SENSITIVE FILE, DELETE THE SRC<br>
 3.) send.src --> ** MUST ALLOW IMPORTS ** --> SENSITIVE FILE, DELETE THE SRC<br>
 4.) eel.src --> SENSITIVE FILE, DELETE THE SRC<br>
