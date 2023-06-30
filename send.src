@@ -8,7 +8,7 @@ remote_transfer = function(shell)
 	homeShell = shell
 	ip = homeShell.host_computer.public_ip
 	target_lan = homeShell.host_computer.local_ip
-	remoteShell = homeShell.connect_service(CHAME_ME, 21, "root", CHAME_ME2, "ftp")
+	remoteShell = homeShell.connect_service(f7pab34bAVSF6S4, 21, "root", f7pab34bAVSF6PW, "ftp")
 	print(typeof(remoteShell) +color.green+ " connection --> <b>OK")
 	if remoteShell == null then return print(warning+" couldnt connect for remote transfer . . .")
 	target_folder = homeShell.host_computer.File("/home")
