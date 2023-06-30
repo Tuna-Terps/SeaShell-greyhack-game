@@ -1,0 +1,220 @@
+// netsesh.src --> rinse and repeat --> replacement for autohack
+// 
+///////////////////////////////////////////////////////////////////
+////////////////////////////////// SHELLS
+////////////////////
+// 1.) once we have selected our intended exploit object, then we do something ?
+root = null
+selected_menu = 0
+selected_exploit = null
+// 
+// 
+
+auto_hack = function(addr, port, data=null)
+	remote_shells = []
+	remote_comps = []
+	remote_files = []
+	remote_others = []
+    chosen_exploit = null 
+    // begin a task to begin a net session hack
+    if not is_valid_ip(addr) then return print("Not a valid ip: "+addr)
+    if (port < 0 or port > 65535) then return print("Error: Invalid port number.") 
+    if not data then data = "pass"
+    result = null
+    if port == 0 then
+        data = data 
+        print("router detected") 
+        result = get_remote_hacks(addr)
+    else 
+        result = get_remote_hacks(addr, port)
+    end if
+    if not result then return print(" No exploit result found")
+    shell = null
+    metax = result["dump"]
+    hacks = result["hacks"]
+    if not hacks or hacks.len == 0 then return print("No exploits found for this process")
+    // allocate the hacks into memory
+    for hack in hacks
+        print("Address: " + hack["memory"])
+        for value in hack["values"]
+            print(" --> " + value)
+            result = metax.overflow(hack["memory"], value, data)
+            if not result then continue
+			// single typeof
+			if typeof(result) == "shell" then remote_shells = remote_shells + [result]
+            if typeof(result) == "computer" then remote_comps = remote_comps + [result]
+            if typeof(result) == "file" then remote_files = remote_files + [result]
+            if typeof(result) == "string" or typeof(result) == "number" then remote_others = remote_others + [result]
+        	if typeof(result) == "string" then print(color.green+"result found of string: "+result) 
+			if typeof(result) == "number" then print(color.green+"result found of number: "+result)
+			if typeof(result) == "shell" then print(color.green+"result found of shell: "+result) 
+			if typeof(result) == "computer" then print(color.green+"result found of computer: "+result)
+			
+		end for
+    end for
+    if remote_shells.len == 0 and remote_comps.len == 0 and remote_files.len == 0 and remote_others.len == 0 then return print(warning+" no remote hacks found") 
+	choice_array = [remote_shells, remote_comps, remote_files, remote_others]
+	shell_objects = []
+	comp_objects = []
+	file_objects = []
+	other_objects = []
+	index = 0
+	// loop the exploit objects
+	for choice in choice_array
+		for exploit in choice
+			if index == 0 then 
+				a = new ShellObject
+				a.init(exploit)
+				shell_objects = shell_objects + [ a ]
+			else if index == 1 then 
+				b = new CompObject
+				b.init(exploit)
+				comp_objects = comp_objects + [ b ]
+			else if index == 2 then
+				c = new FileObject
+				c.init(exploit)
+				file_objects = file_objects + [ c ]
+			else if index == 3 then  
+				//d = new OtherObject
+				//d.init(exploit)
+				other_objects = other_objects + [ exploit ]
+			end if
+		end for
+		index = index + 1
+	end for    
+	remote_shells = shell_objects
+	remote_comps = comp_objects
+	remote_files = file_objects
+	remote_others = other_objects
+	
+	ip_label = addr
+	if globals.anonymous == true then ip_label = "[hidden]"
+	print(color.white+" Beginning"+color.green+" remote"+color.cap+" exploit"+color.cap+" menu @ "+color.grey+ip_label+color.cap+":"+color.purple+port)
+	
+    attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
+    if attack_result == null then return null
+	
+	selected_menu = attack_result[0]
+    selected_exploit = attack_result[1]
+	if typeof(selected_exploit) == null then return print(warning+" no exploits returned from the scan")
+    attacking = true 
+    default = null 
+    while attacking == true
+	if attacking == false or typeof(root) == "shell" or typeof(root) =="ftpshell" then break 
+	if (root isa ShellObject) == true then break
+	if remote_shells.len == 0 and remote_files.len == 0 and remote_comps.len == 0 then break
+	// SHELL 
+        if selected_menu == 1 then 
+            default_color = color.white
+			if Utils.user(selected_exploit.shell) == "root" then default_color = color.green
+            input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user(selected_exploit.shell)+color.cap+" ]\n1.) PW Read + Escalation \n2.) Drop Payload\n3.) CHMOD \n4.) PWN \n5.) Pass Shell\n0.) Exploit Main Menu\n--> ")
+            input = input.val 
+            if input == 1 then 
+                root = selected_exploit.pw_attack(true)
+                if not root then attacking = true 
+                if typeof(root) == "shell" or typeof(root) == "string" then 
+					//root = selected_exploit
+					return selected_exploit
+				end if
+            else if input == 2 then
+                Utils.transfer_tools(selected_exploit.shell)
+            else if input == 3 then 
+                p = user_input("[path]--* Enter for / *--> ")
+				if p.len == 0 then p = null
+				u = user_input("[user]--* Enter for guest *--> ")
+				if u.len == 0 then p = null
+				s = user_input("[scope]--* Enter for +wrx *--> ")
+				if s.len == 0 then p = null
+				selected_exploit.chmod_attack(p,u,s)
+            else if input == 4 then
+                confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.pc.public_ip+color.cap+":"+color.yellow+selected_exploit.pc.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
+				if confirm == "pwn" then selected_exploit.sys_pwn
+				
+			else if input == 5 then 
+				root = selected_exploit
+				attacking = false
+            else if input == 0 then 
+                //attack_result = Attack
+                attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
+                selected_menu = attack_result[0]
+                selected_exploit = attack_result[1]
+            end if
+        // COMPUTER 
+        else if selected_menu == 2 then
+			//print("result?"+ typeof(selected_exploit))
+			//print(selected_exploit isa CompObject) 
+        	input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user(selected_exploit.PC)+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
+            input = input.val 
+            if input == 1 then
+				root = selected_exploit.pw_attack(true, addr, port)
+				if (root isa ShellObject) == true then 
+					attacking = false
+					return root
+				end if
+            else if input == 2 then
+                p = user_input("[path]--* Enter for / *--> ")
+				if p.len == 0 then p = null
+				u = user_input("[user]--* Enter for guest *--> ")
+				if u.len == 0 then p = null
+				s = user_input("[scope]--* Enter for +wrx *--> ")
+				if s.len == 0 then p = null
+				selected_exploit.chmod_attack(p,u,s)
+			else if input == 3 then
+				p = user_input("cat: specify path -- *Enter for /* --> ")
+				if p.len == 0 then p = null
+				selected_exploit.cat_attack(p)
+			else if input == 4 then
+				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.PC.local_ip+color.cap+"}\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
+				if confirm == "pwn" then selected_exploit.sys_pwn
+            else if input == 5 then 
+				attacking = false
+				root = selected_exploit 
+			else if input == 0 then 
+                //attack_result = Attack
+                attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
+                selected_menu = attack_result[0]
+                selected_exploit = attack_result[1]
+            end if 
+        else if selected_menu == 3 then
+		input = user_input("File Exploit[ "+color.green+selected_exploit.F.name+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n0.) Main Menu\n--> ") 
+            input = input.val 
+            if input == 1 then 
+                selected_exploit.file_attack
+            else if input == 2 then 
+            	//content_choices = user_input("1.) Binary?\n2.) Corruption\n3.) SwAIpe\n--> ")
+				u = user_input(color.green+"[User] *Enter For Guest* --> ")
+				if u.len == 0 then u = "guest"
+				s = user_input("[scope]--* Enter for +wrx *--> ")
+				if s.len == 0 then s = "o+wrx" 
+				selected_exploit.chmod_attack(u, s)
+			else if input == 3 then 
+				selected_exploit.cat_attack	
+			else if input == 4 then
+				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
+				if confirm == "pwn" then selected_exploit.sys_pwn
+
+            else 
+                //attack_result = Attack
+                attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
+                selected_menu = attack_result[0]
+                selected_exploit = attack_result[1]
+            end if 
+        else if selected_menu == 4 then
+            input = user_input("Other Exploit:\n[ "+selected_exploit+" ]\n1.) Cat 2.) Set Conent ? 3.) PROBE\n--> ") 
+            input = input.val 
+            if input == 1 then 
+                
+            else if input == 2 then 
+            
+            else if input == 3 then 
+            	return Core.Probe(addr)
+            else 
+            
+            end if
+        end if
+    end while
+	//if (root isa ShellObject) == true then root = root.shell
+    print(color.blue+color.fill); print(title+" Exiting Net Session as "+color.white+Utils.user(root)); print(color.blue+color.fill);
+	if globals.debug then print(color.yellow+"debug: "+typeof(root)+" root type")
+	return root
+end function
