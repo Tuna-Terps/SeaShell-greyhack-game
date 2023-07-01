@@ -960,18 +960,16 @@ Core.NetEntry = function(ip, lan, port)
 	//obj = Utils.handle(object)
 	if not is_valid_ip(ip) then return print(warning+ "invalid IP")
 	hacked = auto_hack(ip, port)
-	if globals.debug then print(".__isa: "+hacked.__isa)
 	if globals.debug then print("we are expecting hacked_object to be map and its a : "+ typeof(hacked))
 	if globals.debug then print("isa map "+(hacked isa map))
 	if globals.debug then print("isa ShellObject "+(hacked isa ShellObject))
 	if globals.debug then print("isa ComputerObject "+(hacked isa CompObject))
 	if globals.debug then print("isa FileObject "+(hacked isa FileObject))
-	// doesnt matter what i put here ????????????
-	print(hacked)
-	if ((typeof(hacked) == "map") == false) then  //or not (hacked_object isa CompObject) or not (hacked_object isa FileObject)  then 
-		print("hacked:" + typeof(hacked))
+	if typeof(hacked) != "map" then 
+	//if not hacked isa map then 
 		print(warning+" "+color.white+ip_label+color.cap+" @ "+color.grey+lan+color.cap+" : "+color.orange+port+color.red+" Net Session FAILED" )
-        input = user_input("1.) Router Attack\n2.) New Net Attack \n3.) Bounce \n4.) Exit\nSELECT ->  ")
+        if globals.debug then print(color.yellow+"debug: obj is of type: "+typeof(hacked)+":"+(hacked isa map))
+		input = user_input("1.) Router Attack\n2.) New Net Attack \n3.) Exit \nSELECT ->  ")
         input = input.val
 		if input == 1 then
             hacked = auto_hack(ip, 0)
@@ -980,11 +978,13 @@ Core.NetEntry = function(ip, lan, port)
 		if input == 2 then
 			run = Core["Probe"] 
 			return run(Current_Object, ip)
+		end if
 		if input == 3 then 
 			value = user_input(color.yellow+"Enter a LAN: \n-->") 
         	hacked = auto_hack(ip, 0, value)
 		end if
-		if input == 4 then return print("You chose to exit")
+		if input == 3 then return hacked
+		//		if input == 4 then return print("You chose to exit")
 	else
 		print("This is so weird man: "+typeof(hacked))
 	end if
