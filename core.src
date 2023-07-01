@@ -75,7 +75,7 @@ Core["cmd"] = function(object, params)
 	cmd = params.split(" ")
 	if globals.debug then print(color.white+"recieved cmd: <b>"+color.cap+color.grey+cmd)
 	valid = Core.isValid(cmd[0])
-	if not valid then return print(warning+color.yellow+"Invalid Command\n"+color.white+"Use command 'help' for list of valid commands")
+	if not valid then return print(warning+color.yellow+"Invalid Command\n"+color.white+"Use command "+color.grey+"<b>-h</b>"+color.cap+color.white+" for list of valid commands")
 	if globals.debug then print(color.green+"running CMD: <b>"+color.cap+color.white+valid["name"])
 	run = valid["run"]
 	if cmd.len == 1 then
@@ -102,6 +102,7 @@ Core["cmd"] = function(object, params)
 		end if
 	else if cmd.len > 1 then
 		cmd.pull // remove the main param, and leave arguments
+		if valid["params"].len < cmd.len then return print(warning+ "too many arguments")
 		if globals.debug then print("cmd: c2") 
 		args = Core.hasRequiredArgs(valid, cmd) 
 		if args == null then return print("lacking required args c2")
