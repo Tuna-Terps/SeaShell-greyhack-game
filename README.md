@@ -38,7 +38,11 @@ Some commands available in surf mode;<br>
  ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/5cda8245-88db-447b-9bd2-257a7f247a34)
 <br>
 <small>exploit menu - modular functions before using surf mode</small><br>
-![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/f6c00f90-0542-46a0-aa86-9513150677bb)
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/aab42764-d65a-4d3d-9c51-b23d483b7096)
+<br>
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/fc0ae38b-00b1-4e5e-a98b-429c71787bf0)
+<br>
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/63499508-1dc8-4c17-bee8-bfefd4b6e184)
 <br>
 <small>global objects <br> </small>
 ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/244a98e5-bd64-4911-9383-a8cd5578e942)
