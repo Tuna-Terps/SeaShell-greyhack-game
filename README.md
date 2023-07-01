@@ -31,13 +31,13 @@ Once complete, the only required filed are ss, eel, and payload<br>
 Hope you enjoy if you find useful;<br>
 ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/0ac8a1f3-e4e1-4c42-8c60-8d3d429b74a2)
 <br>
-Some commands available in <h2>"Surf Mode"</h2><br>
+<h2>"Surf Mode"</h2><br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/bd2220d6-f0b2-4144-bcca-bc8fc4baf417)
 <br>
 <h2>port entry</h2><br>
-![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/9349baec-ce49-4fa6-9f23-c2a691aceb46)
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/5497579a-73ce-410a-8fce-650ba427b51b)
 <br>
-<h2>exploit menu - modular functions before using surf mode</h2><br>
+<h2>exploit menu</h2><br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/aab42764-d65a-4d3d-9c51-b23d483b7096)
 <br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/fc0ae38b-00b1-4e5e-a98b-429c71787bf0)
