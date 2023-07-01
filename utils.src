@@ -1,8 +1,4 @@
-//////////////////////// NEW CORE ////////////////////////
 // ><> ><> ><> ><> VARIABLES ><> ><> ><> ><>
-// ><> CORE ><>
-
-
 base_shell = new ShellObject
 base_shell.init()
 
@@ -24,13 +20,9 @@ globals.anonymous = false
 Current_Shell = get_shell // mutable shell
 Current_Computer = @host_computer // well see how it goes
 
-
-
 // ATTACKS 
 fwd_machines = [] // collection of machines from a probe with open, fwd ports
 local_machines = [] // machines found by ping
-
-
 
 // MISC
 color = {}
@@ -55,7 +47,7 @@ dirs = ["/lib/crypto.so", "/lib/cheese/crypto.so",current_path+"/crypto.so",laun
 crypto = null
 for d in dirs
 	crypto = include_lib(d)
-	if meta then break
+	if crypto then break
 end for
 if not crypto then print(warning+color.orange+" crypto was not found")
 // ><> ><> ><> ><> ><> ><> ><> ><>
@@ -182,11 +174,16 @@ Utils["transfer_tools"] = function(obj, eel_only = null)
 	obj = Utils.handle(obj)
     files = []
     filenames = ["metaxploit.so", "crypto.so", "payload", "eel", "ss"]
-    if eel_only != null then filenames = ["metaxploit.so","eel"]
-	dirs = ["/lib/", parent_path(launch_path) + "/", parent_path(program_path) + "/", "/lib/cheese/"]
-    for filename in filenames
+    if eel_only == "-e" then filenames = ["metaxploit.so","eel"]
+	dirs = ["/lib/", "/bin/", parent_path(launch_path) + "/", parent_path(program_path) + "/", launch_path+"/", "/lib/cheese/", "/home/guest/"]
+    // if you chmod your system you will likely run into errors running this from home pc as non root
+	for filename in filenames
+		if globals.debug then print(color.white + "attempting "+filename)
         for dir in dirs
-            if obj.host_computer.File(dir + filename) then
+			str = dir+filename
+			f = get_shell.host_computer.File(str)
+            if f then
+				if globals.debug then print("Found: "+ dir+filename)
                 files = files + [dir + filename]
                 break
             end if
@@ -194,12 +191,8 @@ Utils["transfer_tools"] = function(obj, eel_only = null)
     end for
 	if files.len == 0 then print(color.orange+"Error: Cannot get files for transfer.")
     if files.len == 0 then return false
-    //payload = user_input(color.green+"Confirm transfer of files\n1.) Confirm\n2.) Press any to skip\n--> ")
-    //payload = payload.val
-    //if payload != 1 then return
-    // Transfer files
     for file in files
-        obj.scp(file, "/home/guest", obj)
+        get_shell.scp(file, "/home/guest", obj)
         wait(0.1)
     end for
     // Chown files
