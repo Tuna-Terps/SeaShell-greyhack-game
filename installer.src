@@ -1,0 +1,67 @@
+// wip install script
+
+if params.len == 0 then exit("SEASHELL INSTALL: usage install [-i|-b]\n<b>-i</b> Initial Install\n<b>-b</b> Build All\n* Run install, copy sorce code into each file & save. Then run install -b")
+
+// INSTALL
+files = [ ["main.src",true], ["core.src",false], ["payload.src",true],["utils.src",false], ["modules.src",false], ["objects.src",true], ["exploitmenu.src",false], ["netsesh.src",false],["getlib.src",false],["loadlib.src",false],["gethacks.src",false],["binary.src",true],["send.src",true]]
+base = get_shell
+dirs = base.host_computer.File(home_dir)
+
+has_src = null
+
+check_src = function
+
+	for dir in dirs.get_folders
+		print(dir.name)
+		if dir.name == "src" then 
+			has_src = true
+			print(home_dir+"/src already exists !")
+			return
+		end if
+	end for
+	print("creating src")
+	base.host_computer.create_folder(home_dir, "src")
+
+end function
+check_src
+
+// check src folder
+folder = base.host_computer.File(home_dir+"/src")
+if not folder or not folder.is_folder then return print("no src folder found")
+
+if params[0] == "-i" then 
+
+	for file in files
+		test = base.host_computer.File(home_dir+"/src/"+file[0])
+		if test == null then 
+			print("Creating: "+file[0])
+			base.host_computer.touch(home_dir+"/src", file[0])
+		else 
+			print("Already Exists: "+file[0])
+		end if
+	end for
+
+else if params[0] == "-b" then 
+	
+	for file in files
+		test = base.host_computer.File(home_dir+"/src/"+file[0])
+		if (test != null) and (file[1] == true) then 
+			file_label = file[0].split(".")[0]
+			file_path = home_dir+"/src/"
+			imports = false
+			if file[0] == "main.src" then 
+				file_label = "ss"
+				file_path = "/bin/"
+			else if file[0] == "payload.src" or file[0] == "eel.src" then 
+				file_path = "/bin/"
+			else 
+				imports = true
+			end if
+			print("Compiling: "+file_label+" @ "+file_path+" imports: "+imports)
+			compile = base.build(home_dir+"/src/"+file[0], file_path+file_label, imports)
+			
+		end if
+	end for
+else 
+
+end if
