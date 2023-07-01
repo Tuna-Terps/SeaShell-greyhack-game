@@ -13,7 +13,7 @@
  <br>
 -- You can pase the src code from here to the files, then easily compile them all using the installer <br>
 
--- adjust the paths for the refernce code in main.src and autolocal.src <br>
+-- adjust the paths for the refernce code in main.src and payload.src <br>
 ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 
 -- You will need to compile the following files in this order, name the binary the same as the src<br><br>
