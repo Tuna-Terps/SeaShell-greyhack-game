@@ -416,7 +416,11 @@ Core[".exe"] = function(obj, p, data = null)
 		if file then obj.launch(file.path, "-a")
 	else 
 		if p[0] != "/" and Current_Path != "/" then p = Current_Path+"/"+p
-		obj.launch(p)
+		if data then 
+			obj.launch(p, data)
+		else
+			obj.launch(p)
+		end if
 	end if
 	return data
 end function
@@ -576,29 +580,35 @@ end function
 
 // =======================  chmod =======================
 Core["chmod"] = function(obj, recursive, perms, path_to_file)
+	rec = false
+	if recursive == "-r" then rec = true
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	file = obj.File(path_to_file)
 	if file == null then return print("cannot find file "+path_to_file)
-	output = file.chmod(perms, recursive)
+	output = file.chmod(perms, rec)
 	if output.len > 1 then print(output)
 end function
 // =======================  chgrp =======================
 Core["chgrp"] = function(obj, recursive, perms, path_to_file)
+	rec = false
+	if recursive == "-r" then rec = true
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	file = obj.File(path_to_file)
 	if file == null then return print("cannot find file "+path_to_file)
-	output = file.set_group(perms, recursive)
+	output = file.set_group(perms, rec)
 	if output.len > 1 then print(output)
 end function
 // =======================  chown =======================
 Core["chown"] = function(obj, recursive, perms, path_to_file)
+	rec = false
+	if recursive == "-r" then rec = true
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	file = obj.File(path_to_file)
 	if file == null then return print("cannot find file "+path_to_file)
-	output = file.set_owner(perms, recursive)
+	output = file.set_owner(perms, rec)
 	wait(0.1)
 	if output then print(output)
 end function
@@ -984,9 +994,6 @@ Core.NetEntry = function(ip, lan, port)
         	hacked = auto_hack(ip, 0, value)
 		end if
 		if input == 3 then return hacked
-		//		if input == 4 then return print("You chose to exit")
-	else
-		print("This is so weird man: "+typeof(hacked))
 	end if
 	print("exiting net entry . . .")
 	if globals.debug then print("we are expecting hacked_object to be map and its a : "+ typeof(hacked))
