@@ -35,7 +35,7 @@ Some commands available in surf mode;<br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/bd2220d6-f0b2-4144-bcca-bc8fc4baf417)
 <br>
 <small>port entry</small><br>
- ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/5cda8245-88db-447b-9bd2-257a7f247a34)
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/9349baec-ce49-4fa6-9f23-c2a691aceb46)
 <br>
 <small>exploit menu - modular functions before using surf mode</small><br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/aab42764-d65a-4d3d-9c51-b23d483b7096)
