@@ -44,8 +44,8 @@ Some commands available in <h2>"Surf Mode"</h2><br>
 <br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/63499508-1dc8-4c17-bee8-bfefd4b6e184)
 <br>
-<h2>global objects </h2> <br>
+global objects<br>
 ![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/244a98e5-bd64-4911-9383-a8cd5578e942)
 <br>
-<h2>LAN mapping </h2> <br> 
+LAN mappin<br> 
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/482ef634-330e-412c-bbf8-0d58eae222e0)
