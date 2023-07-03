@@ -34,7 +34,7 @@ Once complete, the only required filed are ss, eel, and payload<br>
 Hope you enjoy if you find useful;<br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/8ace3ea9-e893-4500-8403-532803dd9d98)
 <br>
-<h2>"Surf Mode"</h2><br>
+"Surf Mode"<br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/bd2220d6-f0b2-4144-bcca-bc8fc4baf417)
 <br>
 <h2>port entry</h2><br>
