@@ -9,7 +9,7 @@
 <br>
 ## INSTALL ##
 
--- Use installer to create the required file structure, *be sure to launch as home user* alternatively you can: <br>
+-- Use installer to create the required file structure, (*be sure to launch as home user*) alternatively you can: <br>
 *create a folder named src, and place all scripts inside of it via the game code editor <br>
  <br>
 -- You can pase the src code from here to the files, then easily compile them all using the installer <br>
