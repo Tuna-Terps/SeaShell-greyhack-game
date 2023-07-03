@@ -1,5 +1,3 @@
-CHANGE_ME = CHANGE_ME
-CHAME_ME2 = CHAGE_ME2
 // remote_transfer // trnafser files via ftp baby :)
 
 remote_transfer = function(shell)
