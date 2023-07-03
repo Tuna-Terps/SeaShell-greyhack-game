@@ -37,10 +37,10 @@ Hope you enjoy if you find useful;<br>
 "Surf Mode"<br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/bd2220d6-f0b2-4144-bcca-bc8fc4baf417)
 <br>
-<h2>port entry</h2><br>
+port entry<br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/5497579a-73ce-410a-8fce-650ba427b51b)
 <br>
-<h2>exploit menu</h2><br>
+exploit menu<br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/aab42764-d65a-4d3d-9c51-b23d483b7096)
 <br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/fc0ae38b-00b1-4e5e-a98b-429c71787bf0)
