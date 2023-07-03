@@ -32,7 +32,7 @@ send.src --> references binary.src, for your protection, do not keep src as thes
 
 Once complete, the only required filed are ss, eel, and payload<br>
 Hope you enjoy if you find useful;<br>
-![image](https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/0ac8a1f3-e4e1-4c42-8c60-8d3d429b74a2)
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/8ace3ea9-e893-4500-8403-532803dd9d98)
 <br>
 <h2>"Surf Mode"</h2><br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/bd2220d6-f0b2-4144-bcca-bc8fc4baf417)
