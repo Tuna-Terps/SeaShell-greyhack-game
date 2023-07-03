@@ -5,6 +5,7 @@
 <b> Acknowledgments </b><br>
 // Thank you @github: WyattSL for the GreyHack Game documentation<br>
 // Thank you @github: psimonson for https://github.com/psimonson/greyhack-scripts/tree/master/v0.8/scripts<br>
+// Thank you to the members of the GreyHack community & discord<br>
 <br>
 ## INSTALL ##
 
