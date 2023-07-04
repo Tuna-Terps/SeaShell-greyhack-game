@@ -63,7 +63,7 @@ exploit menu<br>
 <img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/63499508-1dc8-4c17-bee8-bfefd4b6e184" alt="Exploit Menu" width="500" height="350">
 <br>
 global objects<br>
-<img src="https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/244a98e5-bd64-4911-9383-a8cd5578e942" alt="Global Objects" width="750" height="500">
+<img src="https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/244a98e5-bd64-4911-9383-a8cd5578e942" alt="Global Objects" width="500" height="350">
 <br>
 LAN mappin<br> 
 <img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/482ef634-330e-412c-bbf8-0d58eae222e0" alt="LAN Mapping" width="750" height="1000">
