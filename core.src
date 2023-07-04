@@ -82,7 +82,8 @@ Core["cmd"] = function(object, params)
 		if globals.debug then print("cmd: c1")
 		if valid["cb"] == "result" then
 			if globals.debug then print("cmd: c1a")  
-			result = run(object, cmd[0])
+			if valid["name"] == "-g" then result = run
+			if not valid["name"] == "-g" then result = run(object, cmd[0])
 		else if valid["cb"] == "custom" then
 			data = get_custom_object()
 			data.so = @ShellObject
@@ -332,6 +333,8 @@ Core["cd"] = function(obj, p)
 		dir = obj.File("/")
 	else if p != "/" and base.name == "/" then 
 		dir = obj.File("/"+p)
+	else if p[0] == "/" then
+		dir = obj.File(p)
 	else if p != null then
 		dir = obj.File(base.path+"/"+p)
 	end if
@@ -343,10 +346,7 @@ end function
 ///======================= cd  =========================////
 Core["me"] = function(obj)
 	obj = Utils.handle(obj)
-	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then me = obj.host_computer.File(home_dir).owner
-	if typeof(obj) == "computer" then me = obj.File(home_dir).owner
-	if typeof(obj) == "file" then me = obj(home_dir).owner
-	return me
+	return print(Utils.user(obj))
 end function
 
 ///=====================================================////
@@ -361,7 +361,6 @@ Core["terminal"] = function(obj, _)
 end function
 // =======================  sudo =======================
 Core["sudo"] = function(s = get_shell, arg, arg2=null, arg3=null)
-	o = s
 	if typeof(s) == "map" then s = Utils.handle(s)
 	computer = s.host_computer
 	inputPass = user_input("Password: ", true)
@@ -374,11 +373,12 @@ Core["sudo"] = function(s = get_shell, arg, arg2=null, arg3=null)
 		if not arg3 then s.launch(arg2)
 		if arg3	then s.launch(arg2, arg3)
 	end if
-	confirm = user_input("[SELECT] \n"+color.white+"1.)"+color.cap+" Terminal\n"+color.white+"2.)"+color.cap+" Surf Mode\n"+color.white+"3.)"+color.cap+" Return\n--> ")
-	if confirm.val == 1 then return s.start_terminal
-	if confirm.val == 2 then return Main.surf_mode(o)
-	if confirm.val == 3 then return s
-
+	so = null
+	if typeof(s) == "shell" then 
+		so = new ShellObject
+		so.init(s)
+	end if
+	return so
 end function
 // =======================  launch =======================
 Core[".exe"] = function(obj, p, data = null)
@@ -425,6 +425,40 @@ Core[".exe"] = function(obj, p, data = null)
 	end if
 	return data
 end function
+// =======================  service =======================
+Core["service"] = function(object, action, service = null)
+	obj = Utils.handle(object)
+
+	if action == "-l" then
+		svs = ["libssh.so","libftp.so","libhttp.so","libchat.so","librepo.so","librshell.so",]
+		svs_dis = null
+		for s in svs
+			status = color.yellow+"not installed"
+			library = get_library(s)
+			if library then status = color.green+"installed"
+			svs_dis = color.white+s+color.cap+" "+status+"\n"+svs_dis
+		end for
+		return print(svs_dis)
+	end if
+	srv = null
+	srv = get_library(service)
+	if not srv then return print(warning+service+" not found")
+	act = null
+	locals.router = get_router
+	if not router then return print(error+" An error occured")
+	ports = router.device_ports(obj.host_computer.local_ip) // these appear to be forwarded ports ?
+	if action == "-i" and service then 
+		act = srv.install_service
+	else if action == "start" and service then
+		act = srv.start_service
+	else if action == "stop" and service then
+		act = srv.stop_service
+	end if	
+	if typeof(act) == string then return print(act)
+	if act == 1 then print(action+" "+service+color.green+" OK")
+end function
+
+
 ///=====================================================////
 ////////////////////////// COMPUTER ///////////////////////
 ///====================================================////
@@ -460,22 +494,33 @@ Core["pw"] = function(obj, user)
 end function
 // =======================  touch =======================
 Core["touch"] = function(obj, pathFile, fileName)
-	print("path: "+ pathFile+" fileName "+fileName)
+	print("path: "+ pathFile+"\nfileName: "+fileName)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	
-	if fileName == null or fileName == "" then fileName = pathFile
-	if pathFile[0] != "/" then pathFile = Current_Path
-	print("2: path: "+ pathFile+" fileName "+fileName)
-
-	file = obj.touch(pathFile, fileName)
-	if file == false then return print("touch: failed")
+	if fileName == "" or fileName == null then 
+		if globals.debug then print("tch: c1")
+		destParent = Utils.pth(pathFile) // define destination
+		destParse = destParent.split("/") // parse
+		fileName = destParse[destParse.len-1] // get name
+		pathFile = destParent.split(fileName)[0] // use name to get parent
+	end if
+	// single arg
+	create = obj.touch(pathFile, fileName)
+	file = obj.File(pathFile+"/"+fileName)
+	if file == null then return print("touch: failed")
 	print(fileName+" created at path "+ pathFile)
 end function
 // =======================  mkdir =======================
 Core["mkdir"] = function(obj, pathFile, fileName)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if fileName == "" or fileName == null then 
+		if globals.debug then print("mkdir: c1")
+		destParent = Utils.pth(pathFile) // define destination
+		destParse = destParent.split("/") // parse
+		fileName = destParse[destParse.len-1] // get name
+		pathFile = destParent.split(fileName)[0] // use name to get parent
+	end if
 	file = obj.create_folder(pathFile, fileName)
 	if file == false then return print("mkdir: failed")
 	print(fileName+" created at path "+ pathFile)
@@ -497,7 +542,13 @@ Core["ssh"] = function(shell, connect_string, ip, port = 22)
 	if typeof(object) != "shell" then return print(" no shell detected")
 	connect_string = connect_string.split("@")
 	service = object.connect_service(ip, port, connect_string[0], connect_string[1])
-	return service
+	so = null
+	if typeof(service) == "shell" then
+		Utils.paired_msg 
+		so = new ShellObject
+		so.init(service)
+	end if 
+	return so
 end function
 // ======================= FTP =========================
 Core["ftp"] = function(object, connect_string, ip, port = 21)
@@ -506,13 +557,19 @@ Core["ftp"] = function(object, connect_string, ip, port = 21)
 	if not object then object = Global_Shells[0][0]
 	connect_string = connect_string.split("@")
 	service = object.connect_service(ip, port, connect_string[0], connect_string[1], "ftp")
-	return service
+	so = null
+	if typeof(service) == "ftpshell" then
+		Utils.paired_msg 
+		so = new ShellObject
+		so.init(service)
+	end if 
+	return so
 end function
 // ======================= SECURE =========================
 Core["secure"] = function(obj, type = "-h")
 	obj = Utils.handle(obj)
-	if typeof(obj) == ("shell" or "ftpshell") then obj = obj.host_computer
-	if not Utils.user(obj) != "root" then return print("You need to be root to run this operation")
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if Utils.user(obj) != "root" then return print("You need to be root to run this operation")
 	root = obj.File("/")
 	if not root then return print("no root?")
 	root.chmod("o-wrx", true)
@@ -552,7 +609,7 @@ end function
 Core["ls"] = function(obj)
 	p = globals.Current_Path
 	if not p then p = current_path
-	print(init+" fs: "+color.yellow+p)
+	print(init+"fs: "+color.yellow+p)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then 
 		folder = obj.host_computer.File(p)
@@ -564,7 +621,11 @@ Core["ls"] = function(obj)
 	folder_path = p
 	sub_files = folder.get_folders + folder.get_files
 	output = ""
-	if sub_files.len > 0 then output = color.grey+"NAME"+color.cap+" "+color.white+"TYPE"+color.cap+" "+color.grey+"OWNER"+color.cap+" "+color.white+"GROUP"+color.cap+" "+color.grey+"SIZE"+color.cap+" "+color.white+"PERMISSIONS"+color.cap
+	if not sub_files then
+		output = "*"+color.grey+"<i>This Directory Has No Content</i>"+color.cap+"*  Use cmd: "+color.white+"<b>cd ./</b>"+color.cap+" to navigate to previous directory"
+	else if sub_files.len > 0 then 
+		output = color.grey+"NAME"+color.cap+" "+color.white+"TYPE"+color.cap+" "+color.grey+"OWNER"+color.cap+" "+color.white+"GROUP"+color.cap+" "+color.grey+"SIZE"+color.cap+" "+color.white+"PERMISSIONS"+color.cap
+	end if
 	for f in sub_files
 		if output.len > 0 then 
 			output = output + "\n"
@@ -576,6 +637,7 @@ Core["ls"] = function(obj)
 		permission = f.permissions
 		output = output +color.white+ file_name+color.cap+ " "+file_type+" " +color.orange+ f.owner +color.cap+ " " +color.green+ f.group +color.cap+ " "+ color.cyan+ f.size +color.cap +" "+ color.white+permission+color.cap
 	end for
+	if not sub_files then return print(output)
 	print(format_columns(output))
 end function
 
@@ -618,8 +680,8 @@ end function
 Core["cat"] = function(obj, pathFile)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
 	file = obj.File(pathFile)
-
 	if file == null then return print("cat: file not found: "+pathFile)
 	if file.is_binary then return print("cat: can't open " + file.path + ". Binary file")	
 	if not file.has_permission("r") then return print("cat: permission denied")
@@ -649,6 +711,7 @@ end function
 Core["rm"] = function(obj, pathFile)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
 	file = obj.File(pathFile)
 	if file == null then return print("rm: cant find file")
 	if file.has_permission("w") == false then return print("rm: cant write to file")
@@ -657,10 +720,48 @@ Core["rm"] = function(obj, pathFile)
 	wait(0.1)
 	if del.len < 1 then print("deleted "+n)
 end function
-// =======================  edit =======================
-// this is really, really bad
+
+/////////////////////////////////////////////////////////////
+//////////////////    FILE EDIT    //////////////////////
+////////////////////////////////////////////////////
+inputs = {}
+inputs.pos = {}
+inputs.pos.x = 0
+inputs.pos.y = 0
+inputs.pos.setY = function(lineIndex, data)
+	current_line = inputs.pos.y
+	length = data.len-1
+	// down
+	if lineIndex < 0 and length > 0 and inputs.pos.y != 0 then  // up
+		print("moving: up")
+		inputs.pos.y = inputs.pos.y-1
+	else if length > 0 and lineIndex > 0 and inputs.pos.y != length then // down
+		print("moving: down")
+		inputs.pos.y = inputs.pos.y+1
+	end if
+	//if globals.debug == true then print("setY: input "+lineIndex+" global: "+inputs.pos.y+"\n-----")
+	inputs.pos.x = 0
+	return inputs.pos.y
+end function
+
+inputs.pos.setX = function(linePos, data)
+	current_position = data[inputs.pos.y-1] // gets the line we are editing
+	print("SET X line: "+current_position)
+	length = current_position.len-1
+	if linePos < 0 and length > 0 and inputs.pos.x != 0 then // left
+		print("moving: left")
+		inputs.pos.x = inputs.pos.x-1
+	else if length > 0 and linePos > 0 and inputs.pos.x != length then // right 
+		print("moving: right")
+		inputs.pos.x = inputs.pos.x+1
+	end if
+	//if globals.debug == true then print("setX: input "+linePos+"\nglobal: "+inputs.pos.x+"\n-----")
+	return inputs.pos.x
+end function
+
 Core["edit"] = function(obj, pathFile)
 	obj = Utils.handle(obj)
+	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	if typeof(obj) == "computer" then obj = obj.File(pathFile)
 	if typeof(obj) == "file" then 
@@ -675,43 +776,126 @@ Core["edit"] = function(obj, pathFile)
 		return print("edit: error with file")
 	end if
 	if f.is_binary then return print("cat error: binary file")
-	content = f.get_content
-	lines = content.split("\n")
-	c = 0
-	con = null
-	info = color.yellow+f.name
-	print(info)
-	for l in lines 
-		print("( "+color.white+ c +color.cap+ " ) : "+l)
-		c = c +1
-	end for
-	tail = ""
-	content = null
-	input = user_input("select line: ").to_int
-	replace = user_input("enter content: ")
-	for l in lines
-		if l == char(10) or l == "" then 
-			content = content+l 
-		else
-			content = content + char(10) + l
-		end if
-	end for
-	if lines.len-1 < input then
-		print("c1")
-		//lines = lines.split(char(10))
-		print(lines.len)
-		for i in range(lines.len-1, lines.len+input)
-			if lines.len+input == input then 
-				content = content+replace
-			else 
-				content = content + ""+char(10)
-			end if
-		end for
+	o = new ShellObject
+	o.init()
+	obj = Utils.handle(o)
+	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if typeof(obj) == "computer" then obj = obj.File(pathFile)
+	if typeof(obj) == "file" then 
+		f = obj
 	else 
-		lines[input-1] = replace
+		f = obj.File(pathFile)
 	end if
-	r = f.set_content(content)
-	if r == 1 then print(color.white+f.name+color.green+" edit --> OK")
+	editing = true
+	saving = false 
+	raw_content  = f.get_content
+	new_content = null
+	valid_inputs = ["_","LeftArrow","RightArrow","DownArrow","UpArrow"]
+	invalid_inputs = ["LeftShift","RightShift", "Tab", "LeftControl", "RightControl", "LeftAlt", "RightAlt"]
+	parse = null
+	while editing == true 
+		display = null
+		lineIndex = inputs.pos.y		
+		index = inputs.pos.x
+		if new_content == null then 
+			new_content = raw_content
+			parse = new_content.split(char(10))
+		end if
+		if globals.debug then print("Initial data: "+parse)
+		count = 0
+		for line in parse
+			// brb
+			display = display + "\n"+count+".) "+line
+			count = count+1
+		end for
+		print(color.blue+color.fill+"\nEditing: "+pathFile+"\n"+display)
+		//if globals.debug then print("X: "+index+"\nY:"+lineIndex)
+		controller = user_input("|", false, true)
+		
+		//if globals.debug then 
+		print("INPUT: "+controller+"\nX: "+index+"\nY: "+lineIndex)
+		//if globals.debug then print(color.fill+"\nline to edit: "+l+"\nindex: "+l[inputs.pos.x])
+		if valid_inputs.indexOf(controller) then
+			if globals.debug then print("controller input") 
+			if controller == "LeftArrow" then 
+				index = inputs.pos.setX(-1, parse)
+			else if controller == "RightArrow" then 
+				index = inputs.pos.setX(1, parse)
+			else if controller == "UpArrow" and lineIndex != 0 and lineIndex > 0 then 
+				lineIndex = inputs.pos.setY(-1, parse)
+			else if controller == "DownArrow" and lineIndex > -1 then 
+				lineIndex = inputs.pos.setY(1, parse)
+			end if
+			l = parse[inputs.pos.y]
+			if globals.debug then print("line to edit: "+l)
+		else
+			l = parse[inputs.pos.y]
+			if globals.debug then print("line to edit: "+l)//+"\nindex: "+l[inputs.pos.x])
+			if controller == "Escape" then 
+				if globals.debug then print("c1")
+				break
+			else if controller == "" then
+				if globals.debug then print("c2") 
+				parse.push("")
+			else if controller == "F1" then
+				saving = true 
+				break
+			else if not invalid_inputs.indexOf(controller) then
+				if globals.debug then print("<color=green><b>c3\n"+parse[inputs.pos.y])
+				mut_line = ""
+				cI = 0
+				if l.values.len == 0 then 
+					if globals.debug then print("<color=green>this happens")
+					mut_line=controller
+				else 
+					if globals.debug then print("<color=red>this happens")					
+				end if
+				for chars in l.values
+					if cI == inputs.pos.x then
+						if globals.debug then print("count == pos : adding "+chars+" to: "+controller) 
+						if controller == "Backspace" then
+							mut_line = mut_line+""
+							inputs.pos.x = inputs.pos.x-1
+						else if controller == "Spacebar" then
+							mut_line = mut_line+" "
+						else
+							inputs.pos.x = inputs.pos.x+1
+							mut_line = mut_line+chars+controller//+chars//+chars+mut_line
+						end if
+					else
+						mut_line = mut_line+chars
+					end if
+					cI = cI +1
+				end for
+				//if inputs.pos.x != 0 then inputs.pos.x = inputs.pos.x-1
+				if globals.debug then print("mut line: "+mut_line)
+				parse[inputs.pos.y] = mut_line
+				if globals.debug then print("parse line: "+parse[inputs.pos.y])
+				if globals.debug then print("c3") 
+			end if 
+			
+		end if
+	end while
+	if saving then
+		set = null
+		newcount = 0
+		for p in parse
+			if globals.debug then print("p: "+p) 
+			if p == char(10) or p == "\n" or p == "" then 
+				set = set+char(10)
+			else
+				if newcount == 0 then
+					set = set+p
+				else
+					set = set+char(10)+p
+				end if
+			end if
+			newcount = newcount+1
+		end for
+		save = f.set_content(set)
+		if typeof(save) != "string" then return print(f.name+" was saved!")
+	end if
 end function
 // =======================  move =======================
 
@@ -1002,7 +1186,92 @@ Core.NetEntry = function(ip, lan, port)
 end function
 
 // EXPLOITS
+// 1. checkLib
 // 1. search
-// 2. update
-// 3. use
+// 2. create
+// 3. update
+
 Core.exp = {}
+Core.exp["get_format"] = function(data)
+// take file content from library file, and format it into valid params
+
+end function
+
+Core.exp["set_format"] = function(data)
+// take raw data from gethacks, and format it into parsable txt
+
+end function
+
+Core.exp["search"] = function(library)
+	exploits = null
+	base = globals.Shells[0][0]
+	user = base.user
+	base = Utils.handle(base)
+	//if typeof(base) == "shell" or typeof(base) == "ftpshell" then base = base.host_computer
+	// check base shell dir
+	fsPath = ["/home/"+user+"/src", "/home/"+user+"/src/dict", "/home/"+user+"/src/dict/exploits"]
+	for file in fsPath
+		f = base.host_computer.File(file)
+		if f == null then
+			return print("Missing "+file)
+		else if f.name == "exploits" then 
+			break
+		end if
+	end for
+	depot = base.host_computer.File("/home/"+user+"/src/dict/exploits")
+	if not depot then return print(error+" no exploit folder found") 
+	for file in home.get_files
+		if globals.debug then print("file: "+file.name)
+		if file == null or file.is_binary then 
+			print("Missing "+file)
+		else if file.name == library then
+			exploits = file.get_content 
+			break
+		end if
+	end for
+	// return info
+	return explpoits
+end function
+
+
+Core.exp["create"] = function(object, library, data)
+	exploits = null
+	valid_path = null
+	// check base shell dir
+	fsPath = ["/home/"+user+"/src", "/home/"+user+"/src/dict", "/home/"+user+"/src/dict/exploits"]
+	for file in fsPath
+		f = base.host_computer.File(file)
+		if f == null then
+			return print("Missing "+file)
+		else if f.name == "exploits" then
+			valid_path = true 
+			break
+		end if
+	end for
+	//depot = base.host_computer.File("/home/"+user+"/src/dict/exploits")
+	if not valid_path then return print(error+" no exploit folder found") 
+	exploit_file = base.host_computer.File("/home/"+user+"/src/dict/exploits/"+library)
+	formatted = @Core.exp["set_format"]
+	content = formatted(data)
+	
+	
+	if exploit_file == null then
+		if globals.debug then print("exp: create c1")  
+		create = base.host_computer.touch("/home/"+user+"/src/dict/exploits", library)
+		verify = base.host_computer.File("/home/"+user+"/src/dict/exploits/"+library)
+		if verify then
+			edit = exploit_file.set_content(content)
+			if typeof(edit) == "string" then return print(warning+"failed to set file content")
+			if edit == 1 then print(color.green+" Exploit Save --> <b>OK</b>"+color.cap+" Library: "+color.white+library) 
+		end if
+	else 
+		if globals.debug then print("exp: create c2") 
+		content = exploit_file.get_content
+		if content.len > 1 then
+		if globals.debug then print("exp: create c2a")  
+		edit = exploit_file.set_content(data)
+		if typeof(edit) == "string" then return print(warning+"failed to set file content")
+		if edit == 1 then print(color.green+" Exploit Save --> <b>OK</b>"+color.cap+" Library: "+color.white+library) 
+	end if
+	return true
+end function
