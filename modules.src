@@ -9,13 +9,29 @@ Brute = {}
 //////////////////////////////////////////////////////////////  
 ///======================= EEL ===========================///
 ////////////////////////////////////////////////////////////
+
+Eel["handle"] = function(_object, p)
+	if p == "-l" then 
+		run = Eel["get"]
+	else if p == "-p" then 
+		run = Eel["plant"]
+	else if p == "-c" then 
+		run = Eel["capture"]
+	else if p == "-i" then 
+		run = Eel["collect_info"]
+	else
+		run = Eel["get"]
+	end if
+	run()
+end function
+
 Eel["get"] = function()
 	print(title+"Listening for upcoming connections...")
 	metaxploit = meta
 	shells = []
 	while shells.len == 0	
 		shells = metaxploit.rshell_server
-		if(typeof(shells) == "string") then exit(shells)	
+		if(typeof(shells) == "string") then return print(shells)	
 		if(shells.len == 0) then wait(2)
 	end while
 
@@ -47,6 +63,8 @@ Eel["get"] = function()
 	end if
 
 end function
+
+
 
 Eel["capture"] = function(root)
 	confirm = user_input("*"+color.white+" Press 1 to extend eel"+color.cap+" * "+color.grey+"Press Any to Return"+color.cap+" * -->").to_int
@@ -276,30 +294,28 @@ Core.list = [
     { "name": "-a", "desc": "Toggle anonymous mode", "params": [], "run": @Core["anon"], "cb": "anon", },
     { "name": "-g", "desc": "Global Object Menu", "params": [], "run": @Core["objects"], "cb": "result", },
     { "name": "cd", "desc": "Change Working Directory", "params": ["*|./"], "run": @Core["cd"], "cb": "Current_Path", 	},	
-	//{ "name": "dir", "desc": "Print Working Directory", "params": [], "run": @Core["path"], "cb": null, 	},	
 //////////////////////////////////    // GENERAL
     { "name": "-c", "desc": "Clear the screen", "params": [], "run": @clear_screen, "cb": "general", },
-    { "name": "-u", "desc": "Clear the screen", "params": [], "run": @active_user, "cb": "general", },
-    { "name": "-i", "desc": "Prints the current user", "params": [], "run": @Core["me"], "cb": null, },
-    { "name": "dc", "desc": "Decipher a hash", "params": ["*"], "run": @Utils["cipher"], "cb": null, },
+    { "name": "-u", "desc": "Prints the current user", "params": [], "run": @Core["me"], "cb": null, },
+    { "name": "-d", "desc": "Decipher a hash", "params": ["*"], "run": @Utils["cipher"], "cb": null, },
 	{ "name": "apt", "desc": "APT Client Update tool", "params": ["*|-u|--", "*|-f"], "run": @Core["git"], "cb": null, },
-
 
 //////////////////////////////////    // SHELL    
     { "name": "-t", "desc": "Start a Terminal", "params": [], "run": @Core["terminal"], "cb": null },
     { "name": "-s", "desc": "Sudo Commands", "params": ["-s|-u", ], "run": @Core["sudo"], "cb": "result", },
-
+	{ "name": "svc", "desc": "Manage Services", "params": ["-l|-i|start|stop", "*"], "run": @Core["service"], "cb": null, },
     { "name": "!", "desc": "Launch a Binary file", "params": ["-e|-s|*"], "run": @Core[".exe"], "cb": null, }, // eel | payload | path
-	{ "name": "!!", "desc": "Launch Payload", "params": [], "run": @Core[".exe"], "cb": "custom", }, // eel | payload | path
+	{ "name": "!!", "desc": "Launch Payload", "params": [], "run": @Core[".exe"], "cb": "custom", }, 
+
 //////////////////////////////////    // COMPUTER
     { "name": "ps", "desc": "Computer Process List", "params": [], "run": @Core["ps"], "cb": null, },
     { "name": "kill", "desc": "Kill a specified process", "params": ["*"], "run": @Core["kill"], "cb": null, },
     { "name": "pw", "desc": "Change a user's password [requires root]", "params": ["*"], "run": @Core["pw"], "cb": null, },
     { "name": "touch", "desc": "Creates a file", "params": ["*", "*"], "run": @Core["touch"], "cb": null, },
-    { "name": "mkdir", "desc": "Creates a folder", "params": ["*"], "run": @Core["mkdir"], "cb": null, },
+    { "name": "mkdir", "desc": "Creates a folder", "params": ["*", "*"], "run": @Core["mkdir"], "cb": null, },
     { "name": "scp", "desc": "Copy file remotely", "params": ["-d|-u|-i", "*", "*"], "run": @Core["scp"], "cb": null, },
-    { "name": "ssh", "desc": "Create SSH connection [requires ssh]", "params": ["*", "*", "*"], "run": @Core["ssh"], "cb": null, },
-    { "name": "ftp", "desc": "Create FTP connection [requires ftp]", "params": ["*", "*", "*"], "run": @Core["ftp"], "cb": null, },
+    { "name": "ssh", "desc": "Create SSH connection [requires ssh]", "params": ["*", "*", "*"], "run": @Core["ssh"], "cb": "result", },
+    { "name": "ftp", "desc": "Create FTP connection [requires ftp]", "params": ["*", "*", "*"], "run": @Core["ftp"], "cb": "result", },
     { "name": "secure", "desc": "Secure PC Permissions [requires root]", "params": ["-s|-h", ], "run": @Core["secure"], "cb": null, },
 //////////////////////////////////    // FILE
 	{ "name": "ls", "desc": "List Directory Contents", "params": [], "run": @Core["ls"], "cb": null, },
@@ -332,7 +348,7 @@ Core.list = [
 	{ "name": "--", "desc": "Net session via IP, !!IPs & Domains can be used as the cmd name!!", "params": ["*|-r|-rp", "*"], "run": @Core["Probe"], "cb": "result", },
 
 	// eel 
-    { "name": "eel", "desc": "Extended Rshell - Interface", "params": ["-l|-p|--"], "run": @Eel["get"], "cb": "result", },
+    { "name": "eel", "desc": "Extended Rshell - Interface", "params": ["-l|-p|--"], "run": @Eel["handle"], "cb": "result", },
 
 	{ "name": "exit", "desc": "Exit Surf Mode", "params": [], "run": null, "cb": "EXIT", },
 ]
