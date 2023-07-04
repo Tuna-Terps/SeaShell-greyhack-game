@@ -1,15 +1,5 @@
 import_code("/home/2NA/src/objects")
 import_code("/home/2NA/src/utils.src") 
-import_code("/home/2NA/src/bin/binary")
-import_code("/home/2NA/src/bin/send")
-
-import_code("/home/2NA/src/getlib.src")
-import_code("/home/2NA/src/loadlib.src")
-import_code("/home/2NA/src/gethacks.src")
-
-import_code("/home/2NA/src/exploitmenu.src")
-
-
 print(init+color.red+"~~~~^~~^~~^~ Beginning Auto Local ~^~~^~~^~~~~")
 data = get_custom_object()
 shells = []
