@@ -20,8 +20,8 @@ ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 # COMPILE #<br>
 -- You will need to compile the following files in this order, name the binary the same as the src<br><br>
 1.) objects.src --> ** MUST ALLOW IMPORTS **<br>
-2.) binary.src --> ** MUST ALLOW IMPORTS ** --> SENSITIVE FILE, DELETE THE SRC<br>
-3.) eel.src --> SENSITIVE FILE, DELETE THE SRC<br>
+2.) binary.src --> ** MUST ALLOW IMPORTS **<br>
+3.) eel.src<br>
 4.) payload.src <br>
 5.) main.src --> RENAME TO ss <br>
 
