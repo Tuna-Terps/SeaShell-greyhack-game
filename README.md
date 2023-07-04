@@ -56,11 +56,11 @@ port entry<br>
 <img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/5497579a-73ce-410a-8fce-650ba427b51b" alt="Port Entry" width="750" height="750">
 <br>
 exploit menu<br>
-<img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/aab42764-d65a-4d3d-9c51-b23d483b7096" alt="Exploit Menu" width="750" height="750">
+<img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/aab42764-d65a-4d3d-9c51-b23d483b7096" alt="Exploit Menu" width="500" height="350">
 <br>
-<img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/fc0ae38b-00b1-4e5e-a98b-429c71787bf0" alt="Exploit Menu" width="750" height="750">
+<img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/fc0ae38b-00b1-4e5e-a98b-429c71787bf0" alt="Exploit Menu" width="500" height="350">
 <br>
-<img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/63499508-1dc8-4c17-bee8-bfefd4b6e184" alt="Exploit Menu" width="750" height="750">
+<img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/63499508-1dc8-4c17-bee8-bfefd4b6e184" alt="Exploit Menu" width="500" height="350">
 <br>
 global objects<br>
 <img src="https://github.com/Tuna-Terps/grey-hack-game-scripts/assets/62733984/244a98e5-bd64-4911-9383-a8cd5578e942" alt="Global Objects" width="750" height="500">
