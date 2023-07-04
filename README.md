@@ -1,10 +1,3 @@
-<style>
-  img {
-    width: 250px;
-    height: 250px;
-  }
-</style>
-
 <h1> A collection of scripts written for use in the game grey hack https://store.steampowered.com/app/605230/Grey_Hack/ </h1>
 <br>
 <small> WIP </small><br>
