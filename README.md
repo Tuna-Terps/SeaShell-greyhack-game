@@ -43,7 +43,7 @@ I have had some questions on how to best utilize in game & Here are some tips; <
 <br>
 Hope you enjoy if you find useful;<br>
 "Surf Mode"<br>
-![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/8ace3ea9-e893-4500-8403-532803dd9d98)
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/8ace3ea9-e893-4500-8403-532803dd9d98=250x250)
 <br>
 port entry<br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/5497579a-73ce-410a-8fce-650ba427b51b)
