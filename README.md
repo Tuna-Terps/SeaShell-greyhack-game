@@ -38,6 +38,7 @@ I have had some questions on how to best utilize in game & Here are some tips; <
 5.) Exploit menu is somewhere between deprecated and redundant, ill let you decide<br>
 <br>
 Hope you enjoy if you find useful;<br>
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/20922457-d403-4512-9a2d-465dd22f844f)"<br>
 "Surf Mode"<br>
 <img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/8ace3ea9-e893-4500-8403-532803dd9d98" alt="Surf Mode" width="750" height="1000">
 <br>
