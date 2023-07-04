@@ -15,39 +15,27 @@ ShellObject.init = function(shell=null, user=null, pass=null, type=null)
 	if shell then self.shell = shell
 	if not shell and user and pass then self.shell = get_shell(user, pass)
 	if not shell and not user then self.shell = get_shell
-
 	if type then self.type = type
-	
 	self.pc = self.shell.host_computer
 	self.ip = self.shell.host_computer.public_ip
 	self.lan = self.shell.host_computer.local_ip
-
+	self.user = function()
+		object = self.shell.host_computer
+		if not object then return print("User check error, no object found")
+		if object.File("/root").has_permission("r") and object.File("/root").has_permission("w") and object.File("/root").has_permission("x") then return object.File("/root").name
+		if object.File("/home") == null then return "unknown"
+		for f in object.File("/home/").get_folders
+    		if f.name=="guest" then continue
+			if f.has_permission("r") and f.has_permission("w") and f.has_permission("x") then return f.name
+  		end for
+  		return "guest"
+	end function
 	self.is_root = self.shell.host_computer.File("/root").has_permission("r") and self.shell.host_computer.File("/root").has_permission("w") and self.shell.host_computer.File("/root").has_permission("x")
 	self.dict = self.shell.host_computer.File("/home")	
 end function
-// path: string, filename: string
-ShellObject.getType = function(p, f="anonymous.dat")
-	self.user = "guest"
-	if not self.pc then return print("error")
-	file = self.pc.File(p+"/"+f)
-	if file == null then
-		response = user_input("enter new filename\n--> ") 
-		self.pc.touch(p, response)
-		if self.pc.File(p+"/"+response) != null then	 
-			wait(0.1)
-			print(self.pc.File(p+"/"+response))
-			if self.pc.File(p+"/"+response).has_permission("r") then return self.pc.File(p+"/"+response).owner
-			self.user = self.pc.File(p+"/"+response).owner
-		else 
-			print("Error: no permissions for directory")
-			self.user = "guest"
-		end if 
-	end if
-	return self.user
-end function
 
 /////////////////////////////////////////////////////////
-/////////////////////  UTILITY *redundant*   ///////////
+////////////////////////// UTILITY /////////////////////
 ///////////////////////////////////////////////////////
 // =======================  cd =======================
 ShellObject.cd = function(p=null)
@@ -140,15 +128,19 @@ end function
 
 
 ShellObject.pw_attack = function(net = null)
-	print(color.purple+"[S]"+color.white+" attempting simple password change . . .") 
+
 	password = null
-	password = user_input("Enter a new password: ", true)
-	pw_change = self.pc.change_password("root", password)
-	wait(0.1)
-	if pw_change == 1 then
-		print(color.green+"-- auth change OK !  --> "+password)
+	
+
+	if self.user == "root" then
+	//if pw_change == 1 then
+		print(color.purple+"[S]"+color.white+" attempting root password change . . .") 
+		password = user_input("Enter a new password: ", true)
+		pw_change = self.pc.change_password("root", password)
+		wait(0.1)
+		if pw_change == 1 then print(color.green+"-- auth change OK !  --> "+password)
 	else
-		print(color.grey+"-- auth change Failed !  --> "+color.cap+" attempting to access /etc/passwd . . .")
+		print(color.grey+"-- Non Root !  --> "+color.cap+" attempting to access /etc/passwd . . .")
 		file = self.pc.File("/etc/passwd")
 		if not file then return print(color.yellow+"Error: Cannot get passwd file.")
 		if not file.has_permission("r") then return print(color.red+"/etc/passwd: Permission denied.") 
@@ -206,12 +198,12 @@ ShellObject.sys_pwn = function()
 			print("attempting deletion of: "+file.name)
 			fdel = file.delete
 			wait(0.1)
-			if fdel == 0 then print("deletion --> OK") 
+			if fdel.len == 0 then print("deletion --> OK") 
 		else 
 			print("attempting deletion of: "+file.name)
 			fdel = file.delete
 			wait(0.1)
-			if fdel == 0 then print("deletion --> OK") 
+			if fdel.len == 0 then print("deletion --> OK") 
 		end if 
 	end for
 end function
@@ -265,6 +257,9 @@ Mut_Comp = null // this is a shell that we will use for handling and throwing aw
 CompObject = {}
 CompObject.fs = {}
 CompObject.user = "unknown"
+CompObject.email = "null"
+CompObject.bank = "void"
+
 CompObject.pass = "pass"
 CompObject.type = "base"
 
@@ -273,6 +268,21 @@ CompObject.init = function(computer)
     if typeof(computer) != "computer" then print("c.o init error 1: computer expected, got"+typeof(computer))
     if not computer then return print("c.o init error 2")
     self.PC = computer
+	self.user = function()
+		if self.PC.File("/root").has_permission("r") and self.PC.File("/root").has_permission("w") and self.PC.File("/root").has_permission("x") then return self.PC.File("/root").name
+		if self.PC.File("/home") == null then return "unknown"
+		for f in self.PC.File("/home/").get_folders
+    		if f.name=="guest" then continue
+			if f.has_permission("r") and f.has_permission("w") and f.has_permission("x") then
+				email = self.PC.File("/home/"+file.name+"/Config/Mail.txt")
+				bank = self.PC.File("/home/"+file.name+"/Config/Bank.txt")
+				if email and not email.is_binary then self.email = email.get_content
+				if bank and not bank.is_binary then self.bank = bank.get_content
+				return f.name
+			end if
+  		end for
+  		return "guest"
+	end function
     self.ip = computer.public_ip
     self.lan = computer.local_ip
 end function
@@ -445,61 +455,42 @@ FileObject.init = function(file=null, file_path=null)//path
     self.perms = self.F.permissions
     self.isf = self.F.is_folder
     self.isb = self.F.is_binary
-    self.scope = self.F.has_permission("r")+" "+self.F.has_permission("w")+" "+self.F.has_permission("x")
+
+	self.r = self.F.has_permission("r")
+	self.w = self.F.has_permission("w")	
+	self.x = self.F.has_permission("x")
+	self.scope = self.r+" "+self.w+" "+self.x
 end function
 //////////////////////////////////////////////////////////////////
 
 ///////////////////////////////// CAT ATTACK /////////////////////////////////
-// wow i am bad
 FileObject.cat_attack = function()
-    if self.F.has_permission("r") == false then return print(warning+" Cant read "+self.F.name)
-    if self.F.is_folder then 
-        for f in self.F.get_files 
-            if f.is_binary then continue
-            if f.has_permission("r") then print(color.white+file.name+":\n"+file.get_content)
-        end for
-        for sub in self.F.get_folders
-            if sub.is_folder then 
-                for sf in sub.get_files 
-                    if sf.is_binary then continue
-                    if sf.has_permission("r") then print(color.grey+sf.name+":\n"+sf.get_content) 
-                end for
-                for sfo in sub.get_folders 
-                    if sfo.is_folder then 
-                        for sfo2 in sfo.get_files
-                            if sfo2.is_folder then 
-                                ui = user_input("continue w/ "+sfo2.name)
-                                if ui.len > 0 then continue
-                                for sfo3 in sfo2.get_files
-                                    if sfo3.is_binary then continue 
-                                    if not sfo3.is_folder and sfo3.has_permission("r") then print(sfo3.name+":\n"+sfo3.get_content) 
-                                end for
-                            else 
-                                if sfo2.is_binary then continue
-                                if sfo2.has_permission("r") then print(sfo2.name+":\n"+sfo2.get_content)
-                            end if
-                        end for
-                    else
-                        if sfo.is_binary then continue
-                        if sfo.has_permission("r") then print(sfo.name+":\n"+sfo.get_content)
-                    end if
-                end for
-            else
-                if sub.is_binary == false and sub.has_permission("r") then print(sub.name+":\n"+sub.get_content)
-            end if
-        end for
-        return
-    else   
-        return print(color.white+file.name+":\n"+file.get_content)
-    end if
-        
-    return print("Cant access "+file.name)
+	if self.F.r == false then return print("FO Error: Cant read "+self.F.name)
+	if self.F.isf then
+		sub_files = self.F.get_files
+		sub_folders = self.F.get_folders
+		for subFi in sub_files
+			if not subFi.is_binary then print(subFi.path+":\n"+subFi.get_content)
+		end for
+		for subFo in sub_folders
+			for subFi2 in subFo.get_files
+				if not subFi2.is_binary then print(subFi2.path+":\n"+subFi2.get_content)
+			end for
+			for subFo2 in subFo.get_folders
+				for subFi3 in subFo2.get_files
+					if not subFi3.is_binary then print(subFi3.path+":\n"+subFi3.get_content)
+				end for
+			end for
+		end for
+	else 
+		if not F.isb then return print(self.F.path+":\n"+self.F.get_content)
+	end if
 end function
+
 ///////////////////////////////// CONTENT ATTACK /////////////////////////////////
 // specify the content of a file to something new
 FileObject.content_attack = function(target_path = "/", choice = 0)
-    if file == null then return print("unable to find "+target_path)
-    if self.F.has_permission("w") == false then return print("unable to write to "+target_path)
+    if self.F.w == false then return print("unable to write to "+target_path)
     binaries = ["/home/guest/payload.txt"]
     choices = ""; count = 1;
     
@@ -562,7 +553,7 @@ FileObject.file_attack = function( net = null, all = null )
     if self.F.isb then return print(warning+" Binary File Found")
     if self.F.is_folder then 	
         for file in self.F.get_files
-            if file.is_binary then continue
+            if self.F.isb then continue
             if file.name == "passwd" then 
                 print(color.green+" passwd file --> OK ")
                 root_attempt = user_input("1.) Decipher\n2.) Press any to return\n--> ")
