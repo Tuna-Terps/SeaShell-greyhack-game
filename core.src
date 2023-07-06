@@ -851,7 +851,7 @@ inputs.pos.setX = function(linePos, data)
 end function
 
 Core["edit"] = function(obj, pathFile, clean = null)
-	inputs.pos.x = 0;inputs.pos.y = 0;cI = 0;bool = false
+	inputs.pos.x = 0;inputs.pos.y = 0;cI = 0;bool = false;f=null;
 	if clean == "-c" then bool = true
 	obj = Utils.handle(obj)
 	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
@@ -859,6 +859,7 @@ Core["edit"] = function(obj, pathFile, clean = null)
 	if typeof(obj) == "computer" then obj = obj.File(pathFile)
 	if typeof(obj) == "file" then 
 		f = obj
+		if globals.debug then print("edit: file object passed "+f.path)
 	else
 		f = obj.File(pathFile)
 	end if
@@ -867,16 +868,7 @@ Core["edit"] = function(obj, pathFile, clean = null)
 	else if f.has_permission("r") == false or f.has_permission("w") == false then 
 		return print(warning+"edit: error with file permissions")
 	end if
-	if f.is_binary then return print(warning+"edit: binary file")
-	o = new ShellObject;o.init();obj = Utils.handle(o);
-	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
-	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	if typeof(obj) == "computer" then obj = obj.File(pathFile)
-	if typeof(obj) == "file" then 
-		f = obj
-	else 
-		f = obj.File(pathFile)
-	end if
+	
 	editing = true;saving = false;raw_content = f.get_content;new_content = null
 	valid_inputs = ["_","LeftArrow","RightArrow","DownArrow","UpArrow"]
 	invalid_inputs = ["LeftShift","RightShift", "Tab", "LeftControl", "RightControl", "LeftAlt", "RightAlt"]
@@ -1201,18 +1193,13 @@ Core["Entry"] = function(obj, p1, p2 = null)
 	port = null
 	// reg, random,
 	if not p2 then
-		if p1 == "-r" then addr = Utils.random_ip
-		if globals.debug then print("net entry: c1") 
-		isDomain = null
-		if not is_valid_ip(p1) or not is_lan_ip(p1) then
-			if globals.debug then print("net entry: c1a") 
-			isDomain = nslookup(p1)
-			if is_valid_ip(isDomain) then addr = isDomain
+		print("p1: "+p1)
+		if p1 == "-r" then 
+			addr = Utils.random_ip
 		else 
-			if globals.debug then print("net entry: c1b") 
 			addr = p1
 		end if
-		if not isDomain and not is_valid_ip(p1) then return print(warning+" not a valid IP")
+		if globals.debug then print("net entry: c1") 
 	else // random specific port
 		if p1 != "-r" then return print(warning+"entry: <i>invalid usage") 
 		if globals.debug then print("net entry: c2") 
@@ -1236,11 +1223,11 @@ Core["Probe"] = function(object, addr)
     if isLanIp then 
 		print("lan detected")
         router = get_router;
-		if not router then exit(error+" An error occured")
+		if not router then return print(error+" An error occured")
 		ports = router.device_ports(addr) // these appear to be forwarded ports ?
 	else 
         router = get_router(addr); 
-		if not router then exit(error+" An error occured")
+		if not router then return print(error+" An error occured")
 		ports = router.used_ports
 	end if
  	devices = router.devices_lan_ip 	// any machine on the network reachable by ping on this address 
