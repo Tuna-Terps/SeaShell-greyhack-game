@@ -437,9 +437,6 @@ end function
 //////////////////////////////////////////////////////////
 //////////////////////// INIT  ///////////////////////////
 /////////////////////////////////////////////////////////
-
-Mut_Comp = null // this is a shell that we will use for handling and throwing away shells 
-
 FileObject = {}
 ///////////////////////////////// INIT /////////////////////////////////
 FileObject.init = function(file=null, file_path=null)//path
@@ -455,7 +452,6 @@ FileObject.init = function(file=null, file_path=null)//path
     self.perms = self.F.permissions
     self.isf = self.F.is_folder
     self.isb = self.F.is_binary
-
 	self.r = self.F.has_permission("r")
 	self.w = self.F.has_permission("w")	
 	self.x = self.F.has_permission("x")
@@ -463,6 +459,71 @@ FileObject.init = function(file=null, file_path=null)//path
 end function
 //////////////////////////////////////////////////////////////////
 
+FileObject.fs = function()
+	browsing = true
+	selected_file = self.F
+	while browsing == true
+		options = []
+		sub_options = []
+		display = "0.)"+color.grey+" Previous Directory"
+		print(display.len)
+		count = 1
+		if selected_file.is_folder then 
+			for file in selected_file.get_files
+				if file.is_binary then continue
+				if file.is_folder then continue // lol ik ik
+				display = display+"\n"+count+".) "+file.name+color.purple+" file"
+				options.push(file)
+				count = count+1
+			end for
+			for folder in selected_file.get_folders
+				// sub folders wip
+				display = display+"\n"+count+".) "+folder.name+color.purple+" folder"
+				options.push(folder)
+				count = count+1
+			end for
+		else 
+			options.push(self.F)
+		end if
+		if display.len == 37 then print("@ "+selected_file.name)
+		print("--"+color.white+"Select [File] "+color.cap+"--")
+		if display.len != 37 then print(color.yellow+selected_file.path+"\n"+display)
+		fsoption = user_input("-- *Enter to Return*"+color.cap+"--> ")
+		if fsoption == "" then return
+		fsoption = fsoption.to_int
+		if fsoption == 0 then 
+			selected_file = selected_file.parent
+		else
+			if fsoption > options.len-1 then continue
+			selected_file = options[fsoption-1]
+		end if
+		//selected_file = options[fsoption-1]
+		plabel = null
+		if selected_file.name == "/" then
+			plabel = "/"
+		else
+			plabel = selected_file.parent
+		end if 
+		print("selected file: "+color.white+plabel+"/<b>"+color.yellow+selected_file.name)
+		choice = user_input(color.grey+"Choose [option]"+color.cap+"\n1.) Edit\n2.) Delete\n3.) View\n4.) Parent Dir\n5.) Open\n0.) Return\n-->").to_int
+		if choice == 1 then 
+			run = Core["edit"]
+			run(selected_file, selected_file.path)
+		else if choice == 2 then 
+			selected_file.delete
+			if selected_file.name != "/" then selected_file = selected_file.parent
+		else if choice == 3 then 
+			print(selected_file.get_content)
+		else if choice == 4 then 
+			if selected_file.name != "/" then selected_file = selected_file.parent
+		else if choice == 5 then 
+			selected_file = selected_file
+		else 
+			return
+		end if
+	end while
+
+end function
 ///////////////////////////////// CAT ATTACK /////////////////////////////////
 FileObject.cat_attack = function()
 	if self.F.r == false then return print("FO Error: Cant read "+self.F.name)
