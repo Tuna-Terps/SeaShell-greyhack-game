@@ -1,18 +1,15 @@
+globals.debug = null
 import_code("/home/2NA/src/objects")
 import_code("/home/2NA/src/binary")
 import_code("/home/2NA/src/utils.src")
 import_code("/home/2NA/src/core.src")
 import_code("/home/2NA/src/modules.src")
-
 // MAIN COMMAND LOOP
 Current_Object = globals.Current_Shell
 Current_Object = new ShellObject
 Current_Object.init
 Main = {}
-
-globals.debug = null
-// object: ShellObject | CompObject 
-
+// object: ShellObject | CompObject | FileObject*
 Main.eval = function(object, data)
 	if (data isa ShellObject) == true or (data isa CompObject) == true then
 		print(color.fill+"\n"+title+color.green+" New Object detected!")
@@ -21,7 +18,6 @@ Main.eval = function(object, data)
 		if confirm == 1 then Core.add(data)
 		if confirm == 2 then Main.surf_mode(data)
 	end if
-
 end function
 
 Main.surf_mode = function(object)
