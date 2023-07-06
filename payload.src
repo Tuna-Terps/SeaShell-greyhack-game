@@ -1,5 +1,15 @@
-import_code("/home/2NA/src/objects")
+import_code("/home/2NA/src/bin/objects")
 import_code("/home/2NA/src/utils.src") 
+//import_code("/home/2NA/src/bin/binary")
+//import_code("/home/2NA/src/bin/send")
+
+//import_code("/home/2NA/src/dep/getlib.src")
+//import_code("/home/2NA/src/dep/loadlib.src")
+//import_code("/home/2NA/src/dep/gethacks.src")
+
+//import_code("/home/2NA/src/exploitmenu.src")
+
+
 print(init+color.red+"~~~~^~~^~~^~ Beginning Auto Local ~^~~^~~^~~~~")
 data = get_custom_object()
 shells = []
@@ -126,8 +136,11 @@ while attacking == true
 		end if
 	// COMPUTER 
 	else if selected_menu == 2 then 
-        input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user(selected_exploit.PC)+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
-		input = input.val 
+        addon = ""
+		user = selected_exploit.user
+		if globals.anon == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.email+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email
+        input = user_input(color.blue+"Computer Object [ "+color.white+user+color.cap+" ]——{"+color.grey+selected_exploit.PC.local_ip+color.cap+"}\n"+addon+"\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
+        input = input.val 
 		if input == 1 then 
 			root_attempt = selected.exploit.pw_attack()
 			wait(0.1)
@@ -163,7 +176,7 @@ while attacking == true
 			selected_exploit = attack_result[1]
 		end if 
 	else if selected_menu == 3 then
-		input = user_input("File Exploit:\n[ "+selected_exploit.F.name+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n--> ") 
+		input = user_input(color.green+"File Exploit "+color.cap+"[ "+color.white+selected_exploit.F.name+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n5.) Browse FS [new]\n0.) Main Menu\n--> ") 
 		input = input.val 
 		if input == 1 then
 			a = user_input("[args] [-a/*]")
@@ -180,6 +193,8 @@ while attacking == true
 		else if input == 4 then 
 			confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.F.name+color.cap+"}\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
 			if confirm == "pwn" then selected_exploit.sys_pwn
+		else if input == 5 then
+            selected_exploit.fs
 		else 
 			//attack_result = Attack
 			attack_result = exploit_menu(shells, comps, files, others)
@@ -187,20 +202,10 @@ while attacking == true
 			selected_exploit = attack_result[1]
 		end if 
 	else if selected_menu == 4 then
-	 	input = user_input("Other Exploit:\n[ "+selected_exploit+" ]") 
-		input = input.val 
-		if input == 1 then 
-			
-		else if input == 2 then 
-		
-		else if input == 3 then 
-		
-		else 
-			//attack_result = Attack
-			attack_result = exploit_menu(shells, comps, files, others)
-			selected_menu = attack_result[0]
-			selected_exploit = attack_result[1]
-		end if
+	 	input = user_input("Other Exploit:\n[ "+selected_exploit+" ] include:\n.) Password Changes\n.) Firewall Disable\n3.) Bounces\nReturn: ")
+		attack_result = exploit_menu(shells, comps, files, others)
+		selected_menu = attack_result[0]
+		selected_exploit = attack_result[1]
 	end if
 end while
 
