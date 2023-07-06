@@ -3,7 +3,7 @@
 if params.len == 0 then exit("SEASHELL INSTALL: usage install [-i|-b]\n<b>-i</b> Initial Install\n<b>-b</b> Build All\n* Run install, copy sorce code into each file & save. Then run install -b")
 
 // INSTALL
-files = [ ["main.src",true], ["core.src",false], ["payload.src",true],["utils.src",false], ["modules.src",false], ["objects.src",true], ["exploitmenu.src",false], ["netsesh.src",false],["getlib.src",false],["loadlib.src",false],["gethacks.src",false],["binary.src",true],["send.src",true]]
+files = [ ["main.src",true], ["core.src",false], ["payload.src",true],["utils.src",false], ["modules.src",false], ["objects.src",true], ["binary.src",true] ]
 base = get_shell
 dirs = base.host_computer.File(home_dir)
 
