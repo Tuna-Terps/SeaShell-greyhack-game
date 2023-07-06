@@ -1,7 +1,5 @@
-//////////////////////// NEW CORE ////////////////////////
 // ><> ><> ><> ><> VARIABLES ><> ><> ><> ><>
 // ><> CORE ><>
-globals.debug = null
 
 base_shell = new ShellObject
 base_shell.init()
@@ -16,14 +14,12 @@ globals.Shells = [ [base_shell, "MAIN"] ] // our collection of global shell obje
 globals.Computers = [ [base_pc, "MAIN"] ] // our collection of global computer objects
 globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects
 //globals.Exploits = [] // our collection of global exploit objects
+globals.Mode = null // basic: no crypto/mx | crypto: crypto, no mx | null: crpto, mx
 globals.Global_Path = "/home" // our mutable path for 1 or more? objects
-
 globals.Current_Path = current_path // a path for more specific commands
 globals.anonymous = false
-
 Current_Shell = get_shell // mutable shell
 Current_Computer = @host_computer // well see how it goes
-
 // ATTACKS 
 fwd_machines = [] // collection of machines from a probe with open, fwd ports
 local_machines = [] // machines found by ping
@@ -47,14 +43,20 @@ for d in dirs
 	meta = include_lib(d)
 	if meta then break
 end for
-if not meta then exit(warning+color.red+"<b> metaxploit.so was not found")
+if not meta then print(warning+color.red+"<b>metaxploit.so</b> was not found")
+
 dirs = ["/lib/crypto.so", "/lib/cheese/crypto.so",current_path+"/crypto.so",launch_path+"/crypto.so",home_dir+"/crypto.so","/home/guest/crypto.so"]
 crypto = null
 for d in dirs
 	crypto = include_lib(d)
 	if crypto then break
 end for
-if not crypto then print(warning+color.orange+" crypto was not found")
+if not crypto then print(warning+color.orange+"<b>crypto.so</b> was not found")
+
+if not crypto and not meta then globals.Mode = "basic"
+if crypto and not meta then globals.Mode = "crypto"
+if globals.debug then print("Initializing with config: "+globals.Mode)
+
 // ><> ><> ><> ><> ><> ><> ><> ><>
 // ><> ><> ><>  UTILS  ><> ><> ><>
 // ><> ><> ><> ><> ><> ><> ><> ><>
@@ -274,7 +276,7 @@ Utils.wipe_logs = function(obj)
 end function
 
 Utils.wipe_sys = function(object)
-	obj = Utils.handle(obj)
+	obj = Utils.handle(object)
 	if Utils.user(obj) != "root" then return print("You must run as root.")
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+obj.public_ip+color.cap+":"+color.yellow+obj.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
@@ -319,6 +321,10 @@ end function
 ///==================== CONNECTION =======================////
 ////////////////////////////////////////////////////////////
 //////////////////////////////////// WHOIS ///////////////////////////
+Utils["w1ad3s"] = function(ip)	// ;-; tfw i didnt have to change
+	if (is_valid_ip(ip)) and (ip[1] != "w") then return Utils.who(ip)
+	Utils.lookup(ip)
+end function
 Utils.who = function(ip)
 	if is_lan_ip(ip) then return
 	info = whois(ip)
@@ -329,6 +335,10 @@ Utils.who = function(ip)
 	phone = parse[3].split(":")[1]
 	print(color.blue+color.fill+"\nDomain: "+color.white+domain+color.cap+"\n"+"Admin: "+color.red+admin+color.cap+"\n"+"Email: "+color.white+email+color.cap+"\n"+"Phone: "+color.white+phone+color.cap+"\n"+color.blue+color.fill)
 end function
+Utils.lookup = function(ip)
+	print("nslookup: "+nslookup(ip))
+end function
+
 //////////////////////////////////// CONNECT ///////////////////////////
 Utils.connect = function(object, username = "root", password, addr, port)
 	if not object then object = globals.Current_Object
@@ -359,6 +369,93 @@ Utils.connect = function(object, username = "root", password, addr, port)
 end function
 
 //////////////////////////////////////////////////////////////  
+///================== WEB SERVICE =====================////
+////////////////////////////////////////////////////////////
+//////////////////////////////////// entry ///////////////////////////
+Utils["webmanager"] = function(obj, action, arg = null)
+	// build
+	if action == "-b" then 
+		return Utils.site_build(obj, arg)
+	// uninstall
+	else if action == "-u" then
+		return Utils.site_wipe(obj, arg)
+	else
+		return print("web manager: returning")
+	end if
+
+end function
+//////////////////////////////////// SOURCE ///////////////////////////
+Utils.site_source = function(option = "-h")
+	str = null
+	if option == "-h" then 
+		str = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; }*html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}**.hackshop {*text-align: center;*padding: 100px;*padding-top: 25px;*}**.btn {*background-color: #151515;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}*.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #2b2b2b;*}*<style>*<div class='btn-group' style='text-align: center;'>*<button type='button' class='btn btn-primary btn-sel' id='Main'>Main</button>*<button type='button' class='btn btn-primary' id='HackShopTools'>Tools</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='Jobs'>Jobs</button>*</div>*<div class='hackshop'>*<img src='gecko.png' width='80' height='80' align='center'>*<p style='font-size:18px;'>HackShop</p>*<p>Welcome to my personal store. Buy what you want, I will not ask questions.</p>*</div>*"
+	else if option == "-s" then
+		str = "<!doctype html>**<style>*h1 { font-size: 16px; text-align: center; color: grey;}*p { color: whitesmoke; }*body { font: 20px Helvetica, sans-serif; color: #333; margin:0; overflow-y:auto; height:100%; }*.btn {*background-color: #006699;*border: 1px solid grey;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}*article { display: block; text-align: left; width: 600px; margin: 0 auto; }* html{*background-color: #10063D;*height:100%;*}*.btn-sel{*background-color: #008CD1;*}*.btn-group button:hover {*background-color: #008CD1;*}*.btn-group{*padding-top: 4px;*}*.logo{*text-align: center;*padding: 10px;*}*img{*display: block;*margin: 0 auto;*}*</style>*</div>*<div padding:11px;'>*<div class='btn-group' style='text-align: center;'>*<button type='button' class='btn btn-primary' id='Home'>Main</button>*<button type='button' class='btn btn-primary' id='ISPConfig'>Services</button>*</div>**</div>*<article>*<div class='logo text-center'>*<p><i>*Lucentan. The Internet Provider Service designed for you!*<font size=13>*@ Rental servers available*@ Cancel your subscription at any time*@ Subscription is paused when you don't use it*</font>*</i></p>*<img src='isp.jpg' width='440' height='180' align='center'>@*</div>*</article>*"
+		str = str.replace("@","<br"+">")	
+	else if option == "-b" then
+		 
+	else if option == "-m" then
+	end if
+	str = str.replace("*",char(10))	
+	str = str.replace("'","""")
+	if globals.debug then print str
+	return str
+end function
+//////////////////////////////////// SITE WIPE ///////////////////////////
+Utils.site_wipe = function(obj, arg = null)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if not arg then
+		del1 = obj.File("/Public").delete
+		if del1.len > 1 then print("Deleted: /Public")
+		del2 = obj.File("/server").delete
+		if del2.len > 1 then print("Deleted: /server")
+	else if arg == "html" then
+		del1 = obj.File("/Public/htdocs/website.html").delete
+		if del1.len > 1 then print("Deleted: /Public")
+	end if
+end function
+//////////////////////////////////// SITE BUILD ///////////////////////////
+Utils.site_build = function(obj, arg)
+	if not arg then arg = "-s"
+	print(init+color.yellow+"Site Builder")
+	content = Utils.site_source(arg)
+	if not content then return print("site builder: there was an error")
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	public = obj.File("/Public")
+	if not public then 
+		create = obj.create_folder("/", "Public")
+		if create == false then return print(warning+"failed to install Public folder")
+		docs = obj.create_folder("/Public", "htdocs")
+		if docs == false then return print(warning+"failed to install htdocs folder")
+		html = obj.touch("/Public/htdocs", "website.html")
+		if obj.File("/Public/htdocs/website.html") == null then return print(warning+"failed to create website.html")
+	else if not obj.File("/Public/htdocs") then 
+		docs = obj.create_folder("/Public", "htdocs")
+		if docs == false then return print(warning+"failed to install htdocs folder")
+		html = obj.touch("/Public/htdocs", "website.html")
+		if obj.File("/Public/htdocs/website.html") == null then return print(warning+"failed to create website.html")
+	else if not obj.File("/Public/htdocs/website.html") then 
+		html = obj.touch("/Public/htdocs", "website.html")
+		if obj.File("/Public/htdocs/website.html") == null then return print(warning+"failed to create website.html")
+	end if
+	server = obj.File("/server")
+	if not server then
+		create = obj.create_folder("/", "server")
+		if not obj.File("/server") then return print(warning+"failed to create the web service /server")
+		downloads = obj.create_folder("/server", "downloads")
+		if downloads == false then return print("error creating downloads folder")
+	else if not obj.host_computer.File("/server/downloads") then 
+		downloads = obj.create_folder("/server", "downloads")
+		if downloads == false then return print("error creating downloads folder")
+	end if
+	obj.File("/Public/htdocs/website.html").set_content(content)
+	wait(0.1)
+	print(color.green+"Site Build --> <b>OK")
+end function
+
+//////////////////////////////////////////////////////////////  
 ///====================== MISC =========================////
 ////////////////////////////////////////////////////////////
 Utils.random_ip = function()
@@ -371,15 +468,23 @@ Utils.random_ip = function()
     end while
 end function
 //////////////////////////////////// RANDOM PLAYER IP ///////////////////////////
-Utils.player_ip = function(p = 1222)
-	print("Fishing for Player IP: . . . ><> . . . ><> . . . ><>")
-    while true //loop
-        ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
-        if not is_valid_ip(ip) or is_lan_ip(ip) then continue //If the ip is invalid, try again
-		r = get_router(ip);if not r then continue;ports = r.used_ports
+Utils.player_ip = function(p)
+	print("Fishing @ port ["+p+"] . . . ><> . . . ><> . . . ><>")
+    common_ports = ["21", "22", "25", "80", "141", "8080", "1222", "1542", "3306","3307","3308","6667", "37777"]
+	if not common_ports.indexOf(p) then print(warning+p+" is not a commonly used port!\nAre you trying to catch a marlin?")
+	locals.ip = null
+	ip = null
+	i = locals.ip
+	p = p.val
+	while true //loop
+        i = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
+        if not is_valid_ip(i) or is_lan_ip(i) then continue //If the ip is invalid, try again
+		r = get_router(i);if not r then continue;ports = r.used_ports
 		if ports.len == 0 then continue;
 			for port in ports
-				if port.port_number == p then return ip
+				if port.port_number == p then
+					return i
+				end if
 			end for
 		//end for 
     end while
@@ -400,7 +505,7 @@ welcome_msg = function()
 	print(color.cyan+"  ____) |  __/ (_| |</color><color=#AA0000>____) | | | |  __/ | |  \  |    /") 
 	print(color.cyan+" |_____/ \___|\__,_|</color><color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/")
 	print(color.red+".                                             \|_/")
-	print(title+" </color><color=#00ED03>- v1.0.2 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
+	print(title+" </color><color=#00ED03>- v1.0.3 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
 	print(color.blue+color.fill)
 end function
 
@@ -508,7 +613,7 @@ load_library = function(libname = "kernel_module.so")
 		if not lib and globals.debug then
 			print("Warning: Library not found at '" + libpath + "'.")
 		else if lib then
-			if not globals.debug then print("Information: Found library '" + libname + "'.")
+			if globals.debug then print("Information: Found library '" + libname + "'.")
 			break
 		end if
 	end for
@@ -595,14 +700,14 @@ get_local_hacks = function()
 		for mem in addresses
 			hack = {}
 			values = []
-			print("Address: " + mem)
+			if globals.debug then print("Address: " + mem)
 			data = mx.scan_address(dump, mem)
 			strings = data.split("Unsafe check: ")
 			for string in strings
 				if string == strings[0] then continue
 			
 				value = string[string.indexOf("<b>")+3:string.indexOf("</b>")]
-				print(" --> " + value)
+				if globals.debug then print(" --> " + value)
 				values = values + [value]
 			end for
 			hack["metalib"] = filename
@@ -666,8 +771,7 @@ auto_hack = function(addr, port, data=null)
         	if typeof(result) == "string" then print(color.green+"result found of string: "+result) 
 			if typeof(result) == "number" then print(color.green+"result found of number: "+result)
 			if typeof(result) == "shell" then print(color.green+"result found of shell: "+result) 
-			if typeof(result) == "computer" then print(color.green+"result found of computer: "+result)
-			
+			if typeof(result) == "computer" then print(color.green+"result found of computer: "+result)	
 		end for
     end for
     if remote_shells.len == 0 and remote_comps.len == 0 and remote_files.len == 0 and remote_others.len == 0 then return print(warning+" no remote hacks found") 
@@ -825,7 +929,7 @@ auto_hack = function(addr, port, data=null)
             else if input == 2 then 
             
             else if input == 3 then 
-            	return Core.Probe(addr)
+            	//return Core.Probe(addr)
             else 
             
             end if
@@ -1006,4 +1110,3 @@ GFX.f=function(l)
     end while
     return out
 end function
-
