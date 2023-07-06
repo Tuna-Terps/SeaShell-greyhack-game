@@ -1,15 +1,6 @@
+globals.debug = null
 import_code("/home/2NA/src/bin/objects")
 import_code("/home/2NA/src/utils.src") 
-//import_code("/home/2NA/src/bin/binary")
-//import_code("/home/2NA/src/bin/send")
-
-//import_code("/home/2NA/src/dep/getlib.src")
-//import_code("/home/2NA/src/dep/loadlib.src")
-//import_code("/home/2NA/src/dep/gethacks.src")
-
-//import_code("/home/2NA/src/exploitmenu.src")
-
-
 print(init+color.red+"~~~~^~~^~~^~ Beginning Auto Local ~^~~^~~^~~~~")
 data = get_custom_object()
 shells = []
