@@ -681,6 +681,11 @@ Core["secure"] = function(obj, type = "-h")
 		wait(0.1)
 		if bnk then bnk.delete
 		wait(0.1)
+		files = ["/sys", "/boot", "/lib"]
+		for file in files
+			if obj.File(file) then obj.File(file).chmod("u-wx", true)
+		end for
+		
 	end if
 	pw = obj.File("/etc/passwd")
 	del = "o"
@@ -732,7 +737,11 @@ end function
 // =======================  chmod =======================
 Core["chmod"] = function(obj, recursive, perms, path_to_file)
 	rec = false
-	if recursive == "-r" then rec = true
+	if recursive == "-r" then 
+		rec = true
+	else if recursive == "-d" then 
+		rec = false
+	end if
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	file = obj.File(path_to_file)
