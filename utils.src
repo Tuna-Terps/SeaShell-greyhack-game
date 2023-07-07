@@ -1,41 +1,25 @@
 // ><> ><> ><> ><> VARIABLES ><> ><> ><> ><>
-// ><> CORE ><>
-
-base_shell = new ShellObject
-base_shell.init()
-
-base_pc = new CompObject
-base_pc.init(get_shell.host_computer)
-
-base_file = new FileObject
-base_file.init(get_shell.host_computer.File("/"))
-
+color = {};color.white = "<color=#FFFFFF>";color.grey = "<color=#A5A5A5>";color.blue = "<color=#003AFF>";color.cyan = "<color=#00FFE7>";color.purple = "<color=#D700FF>";color.red = "<color=#AA0000>";color.yellow = "<color=#FBFF00>";color.orange = "<color=#FF8701>";color.green = "<color=#00ED03>";color.fill = "><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>";color.cap = "</color>";title = "<color=#00FFE7>[<b>SeaShell</b>]</color> ";init = "<color=#00ED03>[SeaShell] <b>init:</b></color> ";error = "<color=#AA0000>[SeaShell] <b>Error:</b></color> ";warning = "<color=#FF8701>[SeaShell] <b>Warning:</b></color> ";
+// ><> CORE OBJECTS ><>
+base_shell = new ShellObject;base_shell.init();
+base_pc = new CompObject;base_pc.init(get_shell.host_computer);
+base_file = new FileObject;base_file.init(get_shell.host_computer.File("/"));
+// ><> ><> ><> ><> ><> GLOBAL OBJECT CACHE
 globals.Shells = [ [base_shell, "MAIN"] ] // our collection of global shell objects
 globals.Computers = [ [base_pc, "MAIN"] ] // our collection of global computer objects
 globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects
-//globals.Exploits = [] // our collection of global exploit objects
-globals.Mode = null // basic: no crypto/mx | crypto: crypto, no mx | null: crpto, mx
-globals.Global_Path = "/home" // our mutable path for 1 or more? objects
-globals.Current_Path = current_path // a path for more specific commands
+// ><> ><> ><> ><> ><> GLOBAL VARIABLES
 globals.anonymous = false
+globals.Current_Path = current_path // a path for more specific commands
+globals.Mode = null // basic: no crypto/mx | crypto: crypto, no mx | null: crpto, mx
 Current_Shell = get_shell // mutable shell
+// ><> ><> ><> ><> ><> todo
+globals.Exploits = [] // our collection of global exploit objects
+globals.Global_Path = "/home" // our mutable path for 1 or more? objects
 Current_Computer = @host_computer // well see how it goes
 // ATTACKS 
 fwd_machines = [] // collection of machines from a probe with open, fwd ports
 local_machines = [] // machines found by ping
-
-
-// MISC
-color = {}
-color.white = "<color=#FFFFFF>";color.grey = "<color=#A5A5A5>";color.blue = "<color=#003AFF>";
-color.cyan = "<color=#00FFE7>";color.purple = "<color=#D700FF>";color.red = "<color=#AA0000>";
-color.yellow = "<color=#FBFF00>";color.orange = "<color=#FF8701>";color.green = "<color=#00ED03>";
-color.fill = "><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>"
-color.cap = "</color>"
-title = "<color=#00FFE7>[<b>SeaShell</b>]</color> "
-init = "<color=#00ED03>[SeaShell] <b>init:</b></color> "
-error = "<color=#AA0000>[SeaShell] <b>Error:</b></color> "
-warning = "<color=#FF8701>[SeaShell] <b>Warning:</b></color> "
 // ><> ><> ><> ><> LIBRARIES ><> ><> ><> ><>
 meta = null
 dirs = ["/lib/metaxploit.so", "/lib/cheese/metaxploit.so",current_path+"/metaxploit.so",launch_path+"/metaxploit.so",home_dir+"/metaxploit.so","/home/guest/metaxploit.so"]
@@ -52,24 +36,33 @@ for d in dirs
 	if crypto then break
 end for
 if not crypto then print(warning+color.orange+"<b>crypto.so</b> was not found")
-
-if not crypto and not meta then globals.Mode = "basic"
 if crypto and not meta then globals.Mode = "crypto"
+if not crypto and not meta then globals.Mode = "basic"
 if globals.debug then print("Initializing with config: "+globals.Mode)
 
 // ><> ><> ><> ><> ><> ><> ><> ><>
 // ><> ><> ><>  UTILS  ><> ><> ><>
 // ><> ><> ><> ><> ><> ><> ><> ><>
 Utils = {}
-
+// OBJECT HANDLER
 Utils.handle = function(object)
 	if (object isa ShellObject) == true then object = object.shell
 	if (object isa CompObject) == true then object = object.PC
 	if (object isa FileObject) == true then object = object.F
 	return object
 end function
-
-
+// PATH HANDLER
+Utils.pth = function(p)
+	if globals.debug then print(p)
+	if p[0] != "/" and Current_Path != "/" then p = Current_Path+"/"+p
+	if p[0] != "/" and Current_Path == "/" then p = Current_Path+p
+	if p == "./" and Current_Path != "/" then 
+		parse = p.split("/")
+		print(parse)
+		p = parse[0]+"/"
+	end if
+	return p
+end function
 //////////////////////////////////////////////////////////////  
 ///==================== USERS =======================////
 ////////////////////////////////////////////////////////////
@@ -106,17 +99,7 @@ end function
 //////////////////////////////////////////////////////////////  
 ///==================== FILESYSTEM =======================////
 ////////////////////////////////////////////////////////////
-Utils.pth = function(p)
-	print(p)
-	if p[0] != "/" and Current_Path != "/" then p = Current_Path+"/"+p
-	if p[0] != "/" and Current_Path == "/" then p = Current_Path+p
-	if p == "./" and Current_Path != "/" then 
-		parse = p.split("/")
-		print(parse)
-		p = parse[0]+"/"
-	end if
-	return p
-end function
+
 //////////////////////////////////// DEHASH ///////////////////////////
 Utils["cipher"] = function(_, userPass)
 	password = crypto.decipher(userPass)
@@ -221,8 +204,8 @@ Utils.clean_sys = function(obj)
 	print(init+" wiping tools from system . . .")
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	files = ["ss", "eel", "payload", "metaxploit.so", "crypto.so"]
-	dirs = ["/home/guest", "/bin"]
+	files = ["ss", "eel", "payload", "metaxploit.so", "crypto.so", "anonymous.dat", "fish.txt"]
+	dirs = ["/home/guest", "/bin", "/home", home_dir]
 	home_folders = null
 	for dir in dirs
 		for file in files
@@ -242,36 +225,33 @@ Utils.wipe_logs = function(obj)
 	print(init+" wiping system . . .")
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	
-	corrupt = obj.File(home_dir+"/anonymous.dat")
+	file = null
+	copied = null
+	corrupt = obj.File("/etc/fstab")
 	if corrupt == null then corrupt = obj.File("/home/guest/anonymous.dat")
-	if corrupt == null then 
+	if corrupt and corrupt.has_permission("w") == true then 
+		corrupt.set_content(char(10)+char(10)+char(10)+char(10)+char(10)+char(10)+"><>")
+		copied = corrupt.copy("/var/", "system.log")
+		wait(0.1)
+		corrupt.set_content("")
+		status = color.green+"corrupted"+color.cap
+	else 
 		res = obj.touch("/home/", "fish.txt")
-		wait(0.5)
-		file = null
-		copied = null
-		if res != 1 then 
+		wait(0.1)
+		if res == 1 then 
+			status = color.red+"Not Corrupted" 
+		else
 			file = obj.File("/home/fish.txt")
 			if file == null then return print(warning+" b8 file wasnt found")
 			file.set_content(char(10)+char(10)+char(10)+char(10)+char(10)+char(10)+"><>")
 			wait(0.1)
-			copied = file.move("/var/", "system.log")
-			status = color.yellow+"wiped"+color.cap
-		else 
-			corrupt = obj.File("/etc/fstab")
-			if corrupt == null then return print(warning+" fstab wasnt found")
-			copied = corrupt.copy("/var/", "system.log")
-			corrupt.set_content(char(10)+char(10)+char(10)+char(10)+char(10)+char(10)+"><>")
-			status = color.green+"corrupted"+color.cap
+			copied = file.copy("/var/", "system.log")
+			status = color.yellow+"corrupted"+color.cap
 		end if
-	else 
-		corrupt.set_content("\n\n\n\n\n\n\n                          ><>")
-		wait(0.1)
-		copied = corrupt.move("/var/", "system.log")
-		status = color.green+"corrupted"+color.cap
 	end if
+	
 	if copied != 1 then print(warning+" -- Unable to wipe the system logs --")
-	if copied == 1 then print(title+" system.log was [ "+status+" ] !")
+	if copied == 1 then print(title+" system.log was [ "+status+" ]")
 	return copied
 end function
 
@@ -388,7 +368,7 @@ end function
 Utils.site_source = function(option = "-h")
 	str = null
 	if option == "-h" then 
-		str = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; }*html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}**.hackshop {*text-align: center;*padding: 100px;*padding-top: 25px;*}**.btn {*background-color: #151515;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}*.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #2b2b2b;*}*<style>*<div class='btn-group' style='text-align: center;'>*<button type='button' class='btn btn-primary btn-sel' id='Main'>Main</button>*<button type='button' class='btn btn-primary' id='HackShopTools'>Tools</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='Jobs'>Jobs</button>*</div>*<div class='hackshop'>*<img src='gecko.png' width='80' height='80' align='center'>*<p style='font-size:18px;'>HackShop</p>*<p>Welcome to my personal store. Buy what you want, I will not ask questions.</p>*</div>*"
+		str = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; }**html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}**.hackshop {*text-align: center;*    padding: 100px;*padding-top: 25px;*}**.btn {*background-color: #151515;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}**.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #2b2b2b;*}*</style>*<div class='btn-group' style='text-align: center;'>*<button type='button' class='btn btn-primary btn-sel' id='Main'>Main</button>*<button type='button' class='btn btn-primary' id='HackShopTools'>Tools</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='Jobs'>Jobs</button>*</div>**<div class='hackshop'>*<img src='gecko.png' width='80' height='80' align='center'>*<p style='font-size:18px;'>HackShop</p>*<p>Welcome to my personal store. Buy what you want, I will not ask questions.</p>*</div>*"
 	else if option == "-s" then
 		str = "<!doctype html>**<style>*h1 { font-size: 16px; text-align: center; color: grey;}*p { color: whitesmoke; }*body { font: 20px Helvetica, sans-serif; color: #333; margin:0; overflow-y:auto; height:100%; }*.btn {*background-color: #006699;*border: 1px solid grey;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}*article { display: block; text-align: left; width: 600px; margin: 0 auto; }* html{*background-color: #10063D;*height:100%;*}*.btn-sel{*background-color: #008CD1;*}*.btn-group button:hover {*background-color: #008CD1;*}*.btn-group{*padding-top: 4px;*}*.logo{*text-align: center;*padding: 10px;*}*img{*display: block;*margin: 0 auto;*}*</style>*</div>*<div padding:11px;'>*<div class='btn-group' style='text-align: center;'>*<button type='button' class='btn btn-primary' id='Home'>Main</button>*<button type='button' class='btn btn-primary' id='ISPConfig'>Services</button>*</div>**</div>*<article>*<div class='logo text-center'>*<p><i>*Lucentan. The Internet Provider Service designed for you!*<font size=13>*@ Rental servers available*@ Cancel your subscription at any time*@ Subscription is paused when you don't use it*</font>*</i></p>*<img src='isp.jpg' width='440' height='180' align='center'>@*</div>*</article>*"
 		str = str.replace("@","<br"+">")	
@@ -446,7 +426,7 @@ Utils.site_build = function(obj, arg)
 		if not obj.File("/server") then return print(warning+"failed to create the web service /server")
 		downloads = obj.create_folder("/server", "downloads")
 		if downloads == false then return print("error creating downloads folder")
-	else if not obj.host_computer.File("/server/downloads") then 
+	else if not obj.File("/server/downloads") then 
 		downloads = obj.create_folder("/server", "downloads")
 		if downloads == false then return print("error creating downloads folder")
 	end if
@@ -844,28 +824,27 @@ auto_hack = function(addr, port, data=null)
                 p = user_input("[path]--* Enter for / *--> ")
 				if p.len == 0 then p = null
 				u = user_input("[user]--* Enter for guest *--> ")
-				if u.len == 0 then p = null
+				if u.len == 0 then u = null
 				s = user_input("[scope]--* Enter for +wrx *--> ")
-				if s.len == 0 then p = null
+				if s.len == 0 then s = null
 				selected_exploit.chmod_attack(p,u,s)
             else if input == 4 then
                 confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.pc.public_ip+color.cap+":"+color.yellow+selected_exploit.pc.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
 				if confirm == "pwn" then selected_exploit.sys_pwn
-				
 			else if input == 5 then 
 				root = selected_exploit
 				attacking = false
             else if input == 0 then 
-                //attack_result = Attack
                 attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
                 selected_menu = attack_result[0]
                 selected_exploit = attack_result[1]
             end if
         // COMPUTER 
         else if selected_menu == 2 then
-			//print("result?"+ typeof(selected_exploit))
-			//print(selected_exploit isa CompObject) 
-        	input = user_input(color.blue+"Computer Object [ "+color.white+Utils.user(selected_exploit.PC)+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
+			addon = ""
+			user = selected_exploit.user
+			if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.email+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email
+        	input = user_input(color.blue+"Computer Object [ "+color.white+user+color.cap+" ]——{"+color.grey+selected_exploit.PC.local_ip+color.cap+"}\n"+addon+"\n1.) PW Attack \n2.) CHMOD \n3.) Browse FS\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
             input = input.val 
             if input == 1 then
 				root = selected_exploit.pw_attack(true, addr, port)
@@ -877,14 +856,15 @@ auto_hack = function(addr, port, data=null)
                 p = user_input("[path]--* Enter for / *--> ")
 				if p.len == 0 then p = null
 				u = user_input("[user]--* Enter for guest *--> ")
-				if u.len == 0 then p = null
+				if u.len == 0 then u = null
 				s = user_input("[scope]--* Enter for +wrx *--> ")
-				if s.len == 0 then p = null
+				if s.len == 0 then s = null
 				selected_exploit.chmod_attack(p,u,s)
 			else if input == 3 then
-				p = user_input("cat: specify path -- *Enter for /* --> ")
-				if p.len == 0 then p = null
-				selected_exploit.cat_attack(p)
+				selected_exploit.fs
+				//p = user_input("cat: specify path -- *Enter for /* --> ")
+				//if p.len == 0 then p = null
+				//selected_exploit.cat_attack(p)
 			else if input == 4 then
 				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.PC.local_ip+color.cap+"}\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
 				if confirm == "pwn" then selected_exploit.sys_pwn
@@ -892,18 +872,16 @@ auto_hack = function(addr, port, data=null)
 				attacking = false
 				root = selected_exploit 
 			else if input == 0 then 
-                //attack_result = Attack
                 attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
                 selected_menu = attack_result[0]
                 selected_exploit = attack_result[1]
             end if 
         else if selected_menu == 3 then
-		input = user_input("File Exploit[ "+color.green+selected_exploit.F.name+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n0.) Main Menu\n--> ") 
+		input = user_input(color.green+"File Exploit "+color.cap+"[ "+color.white+selected_exploit.F.name+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n5.) Browse FS [new]\n0.) Main Menu\n--> ") 
             input = input.val 
             if input == 1 then 
                 selected_exploit.file_attack
             else if input == 2 then 
-            	//content_choices = user_input("1.) Binary?\n2.) Corruption\n3.) SwAIpe\n--> ")
 				u = user_input(color.green+"[User] *Enter For Guest* --> ")
 				if u.len == 0 then u = "guest"
 				s = user_input("[scope]--* Enter for +wrx *--> ")
@@ -914,28 +892,20 @@ auto_hack = function(addr, port, data=null)
 			else if input == 4 then
 				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
 				if confirm == "pwn" then selected_exploit.sys_pwn
-
-            else 
-                //attack_result = Attack
+			else if input == 5 then
+            	selected_exploit.fs
+			else 
                 attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
                 selected_menu = attack_result[0]
                 selected_exploit = attack_result[1]
             end if 
         else if selected_menu == 4 then
-            input = user_input("Other Exploit:\n[ "+selected_exploit+" ]\n1.) Cat 2.) Set Conent ? 3.) PROBE\n--> ") 
-            input = input.val 
-            if input == 1 then 
-                
-            else if input == 2 then 
-            
-            else if input == 3 then 
-            	//return Core.Probe(addr)
-            else 
-            
-            end if
+            input = user_input("Other Exploit:\n[ "+selected_exploit+" ] include:\n.) Password Changes\n.) Firewall Disable\n3.) Bounces\nReturn: ")
+			attack_result = exploit_menu(shells, comps, files, others)
+			selected_menu = attack_result[0]
+			selected_exploit = attack_result[1]
         end if
     end while
-	//if (root isa ShellObject) == true then root = root.shell
     print(color.blue+color.fill); print(title+" Exiting Net Session as "+color.white+Utils.user(root)); print(color.blue+color.fill);
 	if globals.debug then print(color.yellow+"debug: "+typeof(root)+" root type")
 	return root
@@ -1110,3 +1080,4 @@ GFX.f=function(l)
     end while
     return out
 end function
+
