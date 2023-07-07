@@ -13,7 +13,7 @@
 1.) Use installer to create the required file structure, (*be sure to launch as home user*) alternatively you can: <br>
 *create a folder named src, and place all scripts inside of it via the game code editor <br>
  <br>
--- You can pase the src code from here to the files, then easily compile them all using the installer <br>
+-- You can pass the src code from here to the files, then easily compile them all using the installer <br>
 
 -- adjust the paths for the refernce code in main.src and payload.src <br>
 ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
