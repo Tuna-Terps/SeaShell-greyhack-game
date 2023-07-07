@@ -641,7 +641,7 @@ end function
 // ======================= FTP =========================
 Core["ftp"] = function(object, connect_string, ip, port = 21)
 	object = Utils.handle(object)
-	if typeof(object) != "shell" or typeof(obj) == "ftpshell" then return print(" no shell detected")
+	if typeof(object) != "shell" or typeof(object) == "ftpshell" then return print(" no shell detected")
 	if not object then object = Global_Shells[0][0]
 	connect_string = connect_string.split("@")
 	service = object.connect_service(ip, port, connect_string[0], connect_string[1], "ftp")
@@ -742,6 +742,7 @@ Core["chmod"] = function(obj, recursive, perms, path_to_file)
 	else if recursive == "-d" then 
 		rec = false
 	end if
+	if path_to_file[0] != "/" then path_to_file = Utils.pth(path_to_file)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	file = obj.File(path_to_file)
@@ -751,8 +752,10 @@ Core["chmod"] = function(obj, recursive, perms, path_to_file)
 end function
 // =======================  chgrp =======================
 Core["chgrp"] = function(obj, recursive, perms, path_to_file)
+	if perms == null or path_to_file == null then return print(warning+"invalid usage")
 	rec = false
 	if recursive == "-r" then rec = true
+	if path_to_file[0] != "/" then path_to_file = Utils.pth(path_to_file)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	file = obj.File(path_to_file)
@@ -762,8 +765,10 @@ Core["chgrp"] = function(obj, recursive, perms, path_to_file)
 end function
 // =======================  chown =======================
 Core["chown"] = function(obj, recursive, perms, path_to_file)
+	if perms == null or path_to_file == null then return print(warning+"invalid usage")
 	rec = false
 	if recursive == "-r" then rec = true
+	if path_to_file[0] != "/" then path_to_file = Utils.pth(path_to_file)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	file = obj.File(path_to_file)
@@ -1276,7 +1281,7 @@ Core["Probe"] = function(object, addr)
         if input.val == 1 then return Core.RouterEntry(addr, devices)
 		if input.val != 1 then return print(title+" exiting . . .")
     end if 
-    print(color.blue+"><>"+color.cap+" "+addr_label+color.cap+"::"+color.grey+number+color.cap)
+    print(color.blue+"><>"+color.cap+" "+addr_label+color.cap+"::"+color.grey+number+color.cap+" Router: <b>v"+color.white+router.kernel_version)
 	if globals.anonymous == false then Utils.who(addr)
     print(color.green+"><> "+color.cap+format_columns("LIB STATE VERSION LAN PORT")+color.green+" ><>")
     print(format_columns(info))
@@ -1335,7 +1340,7 @@ Core.NetEntry = function(ip, lan, port)
 	//if not hacked isa map then 
 		print(warning+" "+color.white+ip_label+color.cap+" @ "+color.grey+lan+color.cap+" : "+color.orange+port+color.red+" Net Session FAILED" )
         if globals.debug then print(color.yellow+"debug: obj is of type: "+typeof(hacked)+":"+(hacked isa map))
-		input = user_input("1.) Router Attack\n2.) New Net Attack \n3.) Exit \nSELECT ->  ")
+		input = user_input("1.) Router Attack\n2.) New Net Attack \n3.) Bounce\n4.) Exit \nSELECT ->  ")
         input = input.val
 		if input == 1 then
             hacked = auto_hack(ip, 0)
@@ -1349,7 +1354,9 @@ Core.NetEntry = function(ip, lan, port)
 			value = user_input(color.yellow+"Enter a LAN: \n-->") 
         	hacked = auto_hack(ip, 0, value)
 		end if
-		if input == 3 then return hacked
+		if input == 4 then 
+			return hacked
+		end if
 	end if
 	print("exiting net entry . . .")
 	if globals.debug then print("we are expecting hacked_object to be map and its a : "+ typeof(hacked))
