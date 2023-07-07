@@ -28,14 +28,23 @@ ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 Once complete, the only required filed are ss, eel, and payload<br>
 <br>
 DELETE ALL SRC FILES ONCE YOU HAVE SUCCESFULLY RAN SS<br>
+<h2> Featurs </h2><br>
+1.) Manage multiple objects in a sandbox environment<br>
+2.) Capture net sessions remotely, return exploit objects from launched binaries<br>
+3.) Extensive surf mode which intends to replicate all vanilla commands<br>
+4.) Extended rshell-interface and commands<br>
+5.) FileSystem browser, editor, deleter ;)<br>
+6.) Service Manager & Site Builder<br>
+& More !<br>
+<br>This tool easily handles negative karma 0-2 missions, and while not inteded directly for PvP, is a valid option
+<br>
 <h2> Usage</h2><br>
 I have had some questions on how to best utilize in game & Here are some tips; <br>
 
 1.) When capturing and utilizing shell objects, For *Most* commands in surf_mode you must mount; then launch the binaries to run commands on your newly captured machine<br>
 2.) Most commands work passed to a computer object, obviously things a shell can do, a computer cannot itself. <br>
-3.) File objects are mainly WIP. Use their file permissions, as well as your scope to better strategize other object use<br>
-4.) If you are getting errors when it comes to file paths, please first check your permissions, there are some places i might forget<br>
-5.) Exploit menu is somewhere between deprecated and redundant, ill let you decide<br>
+3.) If you are getting errors when it comes to file paths, please first check your permissions, there are some places i might forget<br>
+4.) Exploit menu is somewhere between deprecated and redundant, ill let you decide<br>
 <br>
 Hope you enjoy if you find useful;<br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/20922457-d403-4512-9a2d-465dd22f844f)"<br>
