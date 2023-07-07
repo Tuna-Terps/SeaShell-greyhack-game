@@ -274,8 +274,8 @@ CompObject.init = function(computer)
 		for f in self.PC.File("/home/").get_folders
     		if f.name=="guest" then continue
 			if f.has_permission("r") and f.has_permission("w") and f.has_permission("x") then
-				email = self.PC.File("/home/"+file.name+"/Config/Mail.txt")
-				bank = self.PC.File("/home/"+file.name+"/Config/Bank.txt")
+				email = self.PC.File("/home/"+f.name+"/Config/Mail.txt")
+				bank = self.PC.File("/home/"+f.name+"/Config/Bank.txt")
 				if email and not email.is_binary then self.email = email.get_content
 				if bank and not bank.is_binary then self.bank = bank.get_content
 				return f.name
@@ -430,7 +430,71 @@ CompObject.pw_attack = function(net_session = null, addr = null, port = null)
     end if
     return root_shell
 end function
+///////////////////////////////// COMPUTER FS /////////////////////////////////
+CompObject.fs = function()
+	browsing = true
+	selected_file = self.PC.File("/home/"+self.user)
+	while browsing == true
+		options = []
+		sub_options = []
+		display = "0.)"+color.grey+" Previous Directory"
+		count = 1
+		if selected_file.is_folder then 
+			for file in selected_file.get_files
+				if file.is_binary then continue
+				if file.is_folder then continue // lol ik ik
+				display = display+"\n"+count+".) "+file.name+color.purple+" file"
+				options.push(file)
+				count = count+1
+			end for
+			for folder in selected_file.get_folders
+				// sub folders wip
+				display = display+"\n"+count+".) "+folder.name+color.purple+" folder"
+				options.push(folder)
+				count = count+1
+			end for
+		else 
+			options.push(self.PC.File("/"))
+		end if
+		if display.len == 37 then print("@ "+selected_file.name)
+		print("--"+color.white+"Select [File] "+color.cap+"--")
+		if display.len != 37 then print(color.yellow+selected_file.path+"\n"+display)
+		fsoption = user_input("-- *Enter to Return*"+color.cap+"--> ")
+		if fsoption == "" then return
+		fsoption = fsoption.to_int
+		if fsoption == 0 then 
+			selected_file = selected_file.parent
+		else
+			if fsoption > options.len-1 then continue
+			selected_file = options[fsoption-1]
+		end if
+		//selected_file = options[fsoption-1]
+		plabel = null
+		if selected_file.name == "/" then
+			plabel = "/"
+		else
+			plabel = selected_file.parent
+		end if 
+		print("selected file: "+color.white+plabel+"/<b>"+color.yellow+selected_file.name)
+		choice = user_input(color.grey+"Choose [option]"+color.cap+"\n1.) Edit\n2.) Delete\n3.) View\n4.) Parent Dir\n5.) Open\n0.) Return\n-->").to_int
+		if choice == 1 then 
+			run = Core["edit"]
+			run(selected_file, selected_file.path)
+		else if choice == 2 then 
+			selected_file.delete
+			if selected_file.name != "/" then selected_file = selected_file.parent
+		else if choice == 3 then 
+			print(selected_file.get_content)
+		else if choice == 4 then 
+			if selected_file.name != "/" then selected_file = selected_file.parent
+		else if choice == 5 then 
+			selected_file = selected_file
+		else 
+			return
+		end if
+	end while
 
+end function
 
 
 // compobject -> create mutable instances of each exploit object
@@ -466,7 +530,6 @@ FileObject.fs = function()
 		options = []
 		sub_options = []
 		display = "0.)"+color.grey+" Previous Directory"
-		print(display.len)
 		count = 1
 		if selected_file.is_folder then 
 			for file in selected_file.get_files
