@@ -375,7 +375,7 @@ end function
 // =======================  terminal =======================
 Core["terminal"] = function(obj, _)
 	obj = Utils.handle(obj)
-	if typeof(obj) != "shell" or typeof(obj) != "ftpshell" then return print("cant launch")
+	if typeof(obj) != "shell" and typeof(obj) != "ftpshell" then return print("-t cant launch")
 	return obj.start_terminal
 end function
 // =======================  sudo =======================
@@ -402,7 +402,7 @@ end function
 // =======================  launch =======================
 Core[".exe"] = function(obj, p, data = null)
 	obj = Utils.handle(obj)
-	if typeof(obj) != "shell" then return print(color.yellow+"exe: cant launch")
+	if typeof(obj) != "shell" and typeof(obj) != "ftpshell" then return print(color.yellow+"exe: cant launch")
 	dirs = ["/home/guest", "/bin"]
 	file = null
 	if p == "-e" then 
@@ -1107,10 +1107,16 @@ Core["aircrack"] = function(obj, pathFile)
 end function
 
 Core["lib_catch"] = function(obj, lib, libVersion)
-	ip = Utils.lib_catch(obj, lib, libVersion)
+	ip = null
+	if lib == "-r" then 
+		ip = Utils.router_catch(obj, libVersion)
+	else 
+		ip = Utils.lib_catch(obj, lib, libVersion)
+	end if
 	if ip then return Core.Probe(obj, ip)
 	return print(error+"with cmd: lib")
 end function
+
 // =======================  apt-get =======================
 PendingUpdating = function(obj, folderPath)
 	pc = obj.host_computer
