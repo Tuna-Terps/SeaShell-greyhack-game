@@ -375,7 +375,7 @@ end function
 // =======================  terminal =======================
 Core["terminal"] = function(obj, _)
 	obj = Utils.handle(obj)
-	if typeof(obj) != "shell" then return print("cant launch")
+	if typeof(obj) != "shell" or typeof(obj) != "ftpshell" then return print("cant launch")
 	return obj.start_terminal
 end function
 // =======================  sudo =======================
@@ -413,7 +413,7 @@ Core[".exe"] = function(obj, p, data = null)
 				break
 			end if
 		end for
-		if file != null then obj.launch(file.path, "-a")
+		if typeof(file) == "file" then obj.launch(file.path, "-a")
 	else if p == "-p" then 
 		for file in dirs 
 			f = obj.host_computer.File(file+"/payload")
@@ -1106,7 +1106,11 @@ Core["aircrack"] = function(obj, pathFile)
 	end if
 end function
 
-
+Core["lib_catch"] = function(obj, lib, libVersion)
+	ip = Utils.lib_catch(obj, lib, libVersion)
+	if ip then return Core.Probe(obj, ip)
+	return print(error+"with cmd: lib")
+end function
 // =======================  apt-get =======================
 PendingUpdating = function(obj, folderPath)
 	pc = obj.host_computer
@@ -1143,7 +1147,7 @@ Core["git"] = function(shell, cmd, param=null)
 	if not aptclient then
     	aptclient = include_lib(current_path + "/aptclient.so")
 	end if
-	if not aptclient then return print(warning+ " Missing aptclient.so library in the /lib path or the current folder")
+	if not aptclient then return print(error+ " Missing aptclient.so library in the /lib path or the current folder")
 	if cmd == "-u" then // update
 		print("Updating package lists...")
 		output = aptclient.update
@@ -1192,6 +1196,9 @@ Core["git"] = function(shell, cmd, param=null)
 			output = aptclient.del_repo(param)
     		if output then print(output)
     		print("Repository " + param + " removed succesfully.\nLaunch apt with the update option to apply the changes")
+		else if cmd == "update" then 
+			output = aptclient.install(param)
+			if output == true then print("updated: "+param)
 		end if
 	end if
 end function
