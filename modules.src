@@ -1,3 +1,4 @@
+if not globals.entry_modules then exit("><> ><> ><>")
 //////////////////////////////////////////////////////////////  
 ///======================= Modules =======================///
 ////////////////////////////////////////////////////////////
@@ -10,7 +11,6 @@ BAM = {}//binary attack module
 //////////////////////////////////////////////////////////////  
 ///======================= EEL ===========================///
 ////////////////////////////////////////////////////////////
-
 Eel["handle"] = function(_object, p)
 	if p == "-l" then 
 		run = Eel["get"]
@@ -147,9 +147,9 @@ Router["get"] = function(p1)
 	end if
 	
 	firewall_rules = router.firewall_rules
-	if typeof(firewall_rules) == "string" then exit(firewall_rules)
+	if typeof(firewall_rules) == "string" then return print(firewall_rules)
 	print("\nScanning firewall rules...")
-	if firewall_rules.len == 0 then exit("No rules found.")
+	if firewall_rules.len == 0 then return print("No rules found.")
 	info = "ACTION PORT SOURCE_IP DESTINATION_IP"
 	for rules in firewall_rules
 		info = info + "\n" + rules
@@ -218,7 +218,9 @@ Router["scan_lan"] = function(obj, showPorts = null)
 				rule_label = format_columns(rule_label)
 			end if
 			// print the router device
-			print(color.blue+color.fill+"\n"+color.purple+"~^~~~^~"+color.cap+"[<b>" +color.white+ device +color.cap +"</b>]"+color.purple+" ~^~~~^~"+color.cap+" ( " +col+ deviceInfo +color.cap+ " )"+color.purple+" ~^~ <b>"+color.cap+color.white+deviceVersion+color.cap+"\n" + rule_label)
+			version_color = color.white
+			if deviceVersion == "1.9.7" or deviceVersion == "1.5.0" then version_color = color.red
+			print(color.blue+color.fill+"\n"+color.purple+"~^~~~^~"+color.cap+"[<b>" +color.white+ device +color.cap +"</b>]"+color.purple+" ~^~~~^~"+color.cap+" ( " +col+ deviceInfo +color.cap+ " )"+color.purple+" ~^~ <b>"+color.cap+version_color+deviceVersion+color.cap+"\n" + rule_label)
 			for subDevice in lanDevice.devices_lan_ip
 				if deviceList.indexOf(subDevice) then continue
 				if subDevice == c.local_ip and globals.anonymous == false then subDevice = color.purple+subDevice+color.cap
@@ -300,7 +302,7 @@ BAM["handle"] = function(obj, pathFile, bam_name, bam_param = null)
 	BAM.l(obj, pathFile, cmd, bam_param)
 end function
 BAM.isValid = function(bin_name)
-	if globals.debug then print("BAM: valid check = "+BAM.bin["name"].indexOf(bin_name))
+	//if globals.debug then print("BAM: valid check = "+BAM.bin["name"].indexOf(bin_name))
 	bin = null
 	for n in BAM.bin
 		if n["name"] == bin_name then return n["str"]
@@ -340,28 +342,42 @@ BAM.l = function(obj, filePath, fileStr, param)
 		end if
 		wait(0.1)
 		bam = targFile.set_content("")
-		if typeof(bam) != "string" then return print(color.white+"<b>BAM:</b>"+color.cap+color.green+" src wipe --> OK")
+		if typeof(bam) != "string" then return print(color.white+"<b>BAM:</b>"+color.cap+color.green+" src wipe --> OK") 
 		print(color.white+"<b>BAM:"+color.cap+color.orange+" src wipe --> FAIL")
 	end if
 end function
 ///======================= binaries =========================///
 BAM.bin = [
 {"name":"fake_kill", "str": "PID = params[0].to_int;if typeof(PID) != 'number' then exit('The PID must be a number' + command_info('kill_usage'));processes = get_shell.host_computer.show_procs;process_list = processes.split('\n');for process in process_list@parsed = process.split(' ');process_pid = parsed[1];process_cmd = parsed[4];if PID == process_pid.to_int and process_cmd == 'kernel_tasks' then exit('Permission denied. Process protected.');end for@output = get_shell.host_computer.close_program(PID);if output == true then exit('Process ' + PID + ' closed');if output then exit(output);print('Process ' + PID + ' not found');"},
-{"name":"eelite", "str": "meta = null@home = get_shell.host_computer.File('/home')@dirs = ['/home/guest', '/lib', '/lib/cheese', '/bin',]@@for dir in dirs@meta = include_lib(dir+'/metaxploit.so')@if meta then break@end for@@@home_folders = null@if home and home.is_folder then home_folders = home.get_folders@if home_folders and not meta then@for fol in home_folders@if fol == 'guest' then continue@meta = include_lib('/home/'+fol+'/metaxploit.so')@if meta then break@end for@end for@if not meta then meta = include_lib(home_dir+'/metaxploit.so')@if not meta then meta = include_lib(current_path+'/metaxploit.so')@if not meta then meta = include_lib(launch_path+'/metaxploit.so')@meta.rshell_client(access, 1222, 'kernel_tasks');print('                     _____');print('       /\     _..--'`     `'-.');print('      {.-} _.'            _   '.');print('     ;_.-'\              (X)    \');print('    {    _.}_            _.---:-'');print('     \.-' /  `,         _\'._ \\');print('      \  |    /_..--''```'-.`' |');print('       \ |  ,/              `''`');print('        \|_//');exit()@"},
+{"name":"eelite", "str": "mxf=null;root=get_shell.host_computer.File('/');newFiles=root.get_folders+root.get_files;while newFiles.len;currFile=newFiles.pull;if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;test=include_lib(currFile.path);if typeof(test) == 'MetaxploitLib' then;mxf=currFile.path;break;end if;end while;rshelled=0;ps=get_shell.host_computer.show_procs;for proc in ps.split(char(10))[1:];proc=proc.split(' ');if proc[-1] == 'kernel_tasks' then rshelled=1;end for;if not rshelled then ;if mxf then include_lib(mxf).rshell_client('1.1.1.1',1222,'fstab');end if"},
 
 ]
 
-//BAM.bin["fake_kill"] = function()
-//	str = null
-//	str = "PID = params[0].to_int;if typeof(PID) != 'number' then exit('The PID must be a number' + command_info('kill_usage'));processes = get_shell.host_computer.show_procs;process_list = processes.split('\n');for process in process_list@parsed = process.split(' ');process_pid = parsed[1];process_cmd = parsed[4];if PID == process_pid.to_int and process_cmd == 'kernel_tasks' then exit('Permission denied. Process protected.');end for@output = get_shell.host_computer.close_program(PID);if output == true then exit('Process ' + PID + ' closed');if output then exit(output);print('Process ' + PID + ' not found');"
-//	return str
-//end function
-//BAM.bin["eelite"] = function()
-//	str = null
-//	str = "meta = null@home = get_shell.host_computer.File('/home')@dirs = ['/home/guest', '/lib', '/lib/cheese', '/bin',]@@for dir in dirs@meta = include_lib(dir+'/metaxploit.so')@if meta then break@end for@@@home_folders = null@if home and home.is_folder then home_folders = home.get_folders@if home_folders and not meta then@for fol in home_folders@if fol == 'guest' then continue@meta = include_lib('/home/'+fol+'/metaxploit.so')@if meta then break@end for@end for@if not meta then meta = include_lib(home_dir+'/metaxploit.so')@if not meta then meta = include_lib(current_path+'/metaxploit.so')@if not meta then meta = include_lib(launch_path+'/metaxploit.so')@meta.rshell_client(access, 1222, 'kernel_tasks');print('                     _____');print('       /\     _..--'`     `'-.');print('      {.-} _.'            _   '.');print('     ;_.-'\              (X)    \');print('    {    _.}_            _.---:-'');print('     \.-' /  `,         _\'._ \\');print('      \  |    /_..--''```'-.`' |');print('       \ |  ,/              `''`');print('        \|_//');exit()@"
-//	return str
-//end function
-//BAM.l(get_shell, "/home/2NA/misc/guppy.src", BAM.format(BAM.bin["fake_kill"]), "1900")
+
+
+Run = {}
+Run.ok = function(obj, _)
+
+	obj = Utils.handle(obj)
+	con1=null;con2=null;
+	conn1 = obj.connect_service(ip, 22,"root", ssh)
+	if typeof(con1) == "shell" then 
+		conn2 = conn1.connect_service(lan, 22, "root", http)
+		
+	else
+		return print("Warning we didnt make connection 1")
+	end if
+	
+	if typeof(con2) == "shell" then
+		print("WE LANDED AT THE SHORE") 
+		return con2
+	else
+		print("WE ARE LOST AT SEA")
+		return con1
+	end if
+
+end function
+
 ///======================= CMD LIST =========================////
 Core.list = [
 //////////////////////////////////    // BASE
@@ -382,7 +398,7 @@ Core.list = [
     { "name": "-s", "desc": "Sudo Commands", "params": ["-s|-u", ], "run": @Core["sudo"], "cb": "result", "usage": "sudo can only get new shells on the machine running the script\nthis means youll need to launch with cmd ! [-s|path_to_ss] to get a new shell" },
 	{ "name": "svc", "desc": "Manage Services", "params": ["-l|-i|-s|-k", "*", "*|-b|-u"], "run": @Core["service"], "cb": null, "usage": "-l --> Lists the services installed\n-i [name] --> install a service\ns-s/-k [service] --> starts/stops a service" },
     { "name": "!", "desc": "Launch a Binary file", "params": ["-e|-s|*", "*"], "run": @Core[".exe"], "cb": null, "usage": "-e --> launches eel\n-s --> launches ss in surf_mode\n* --> define a path to launch" }, // eel | payload | path
-	{ "name": "!!", "desc": "Launch Payload", "params": [], "run": @Core[".exe"], "cb": "custom", "usage": "Launch payload and return an object back to your main program" }, 
+	{ "name": "!!", "desc": "Launch Payload", "params": ["*", "*"], "run": @Core[".exe"], "cb": "custom", "usage": "Launch payload and return an object back to your main program" }, 
 
 //////////////////////////////////    // COMPUTER
     { "name": "ps", "desc": "Computer Process List", "params": [], "run": @Core["ps"], "cb": null, "usage": "List computer processes, need i say more?" },
@@ -391,7 +407,7 @@ Core.list = [
     { "name": "touch", "desc": "Creates a file", "params": ["*", "*"], "run": @Core["touch"], "cb": null, "usage": null },
     { "name": "mkdir", "desc": "Creates a folder", "params": ["*", "*"], "run": @Core["mkdir"], "cb": null, "usage": null },
 	{ "name": "scp", "desc": "Upload/Download files [requires Shell]", "params": ["-u|-d", "*", "*"], "run": @Core["scp"], "cb": null, "usage": null },
-    { "name": "put", "desc": "Copy file remotely [requires FTP]", "params": ["-d|-u|-i", "*", "*"], "run": @Core["put"], "cb": null, "usage": null },
+    { "name": "put", "desc": "Copy file remotely [requires FTP]", "params": ["*", "*", "*"], "run": @Core["put"], "cb": "general", "usage": null },
 	{ "name": "ssh", "desc": "Create SSH connection [requires SSH]", "params": ["*", "*", "*"], "run": @Core["ssh"], "cb": "result", "usage": null },
     { "name": "ftp", "desc": "Create FTP connection [requires FTP]", "params": ["*", "*", "*"], "run": @Core["ftp"], "cb": "result", "usage": null },
     { "name": "secure", "desc": "Secure PC Permissions [requires root]", "params": ["-s|-h", ], "run": @Core["secure"], "cb": null, "usage": "-s --> secures a server config\n-h --> secure home config" },
@@ -409,7 +425,7 @@ Core.list = [
 	{ "name": "edit", "desc": "Edit contents of a file", "params": ["*", "-c|*"], "run": @Core["edit"], "cb": null, "usage": null },
     { "name": "crack", "desc": "Use decipher on a specified file", "params": ["*"], "run": @Utils["decrypt"], "cb": null, "usage": null },
 //////////////////////////////////	// NETWORK    
-    { "name": "router", "desc": "Simple router scan", "params": [ "*" ], "run": @Router["get"], "cb": null, "usage": null },
+	{ "name": "router", "desc": "Simple router scan", "params": [ "*" ], "run": @Router["get"], "cb": "general", "usage": null },
     { "name": "lan", "desc": "Scans local area network", "params": [ "-a|-p|*" ], "run": @Router["scan_lan"], "cb": null, "usage": "Local Area Network Map --> Must be used on launching machine" },
     { "name": "sf", "desc": "Sniff device for incoming connections", "params": [], "run": @Core["sniff"], "cb": "general", "usage": null },
     { "name": "-p", "desc": "Ping a specified device", "params": ["*"], "run": @Core["ping"], "cb": null, "usage": null },
@@ -418,18 +434,18 @@ Core.list = [
 	{ "name": "airmon", "desc": "Manage Monitor Mode", "params": ["start|stop", "*"], "run": @Core["airmon"], "cb": null, "usage": null },
 	{ "name": "aireplay", "desc": "WIFI Frame Injection", "params": ["*", "*",], "run": @Core["aireplay"], "cb": "general", "usage": null },
 	{ "name": "aircrack", "desc": "Key Cracking Program", "params": ["*",], "run": @Core["aircrack"], "cb": null, "usage": null },
-	
+	{ "name": "lib", "desc": "Hunt for specified Library [lib] [version]", "params": ["*|-r", "*"], "run": @Core["lib_catch"], "cb": "result", "usage": null },
 /////////////////////////////////  // TOOLS & OTHER
     { "name": "mount", "desc": "Mount binaries to shell objects", "params": ["-a|-e|-t"], "run": @Utils["transfer_tools"], "cb": null, "usage": "-a --> mounts all files [ss,eel,payload]\n-e --> mount eel\n-t --> mounts ss"},
-	{ "name": "depot", "desc": "Remote deposit of files", "params": [], "run": @remote_transfer, "cb": null, "usage": null },
+	//{ "name": "depot", "desc": "Remote deposit of files", "params": [], "run": @remote_transfer, "cb": null, "usage": null },
 	{ "name": "wipe", "desc": "Wipe the system", "params": ["-t|-l|-s"], "run": @Utils["wipe"], "cb": null, "usage": null },
     { "name": "bf", "desc": "Brute force attacks", "params": [], "run": @Brute["brute_v2"], "cb": null, "usage": null },
     // offense
 	//{ "name": "--", "desc": "Net Session Entry <i>IP & Domains are valid CMD name</i>", "params": ["*|-r|-rp", "*"], "run": @Core["Probe"], "cb": "result", "usage": null },
 	{ "name": "--", "desc": "Net Session <i>IP & Domains are valid CMD name</i>", "params": ["*|-r", "*"], "run": @Core["Entry"], "cb": "result", "usage": "IP/Domain --> can be used at the cmd name\n-r --> target random server\n* --> optional port param, targets random ip with fwd port" }, // port: number | -r -> random ip random port
 	{ "name": "bam", "desc": "<i>Binary Attack Module</i>", "params": ["*", "*", "*"], "run": @BAM["handle"], "cb": null, "usage": "wip, intended to be used to launch binaries instead of using file transfer" }, // port: number | -r -> random ip random port
-	// eel 
     { "name": "eel", "desc": "Extended Rshell - Interface", "params": ["-l|-p|--"], "run": @Eel["handle"], "cb": "result", "usage": "-l --> extended rshell-interface menu\n-p --> wip plant feature\n-- --> wip info collection" },
+    { "name": "ok", "desc": "", "params": ["*"], "run": @Run["ok"], "cb": "result", "usage": "-l --> extended rshell-interface menu\n-p --> wip plant feature\n-- --> wip info collection" },
 	// fin
 	{ "name": "exit", "desc": "Exit Surf Mode", "params": [], "run": null, "cb": "EXIT", "usage": null },
 ]
