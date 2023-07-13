@@ -1,9 +1,0 @@
-// MAKE THESE VARABLES MATCH THE FILES,
-// THEY DONT HAVE TO BE OBFUSCATED, BUT DO NOT LEAVE THESE FILES SRC IN GAME
-// init
-b45VAfd52v = "userpassword"
-
-// send 
-ab45VAfd52v = "home-rootpassword"
-f7pab34bAVSF6S4 = "ftp-ip"
-f7pab34bAVSF6PW = "ftp-pw"
