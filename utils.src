@@ -1,3 +1,8 @@
+if not globals.entry_util then exit("><> ><> ><>")
+//////////////////////////////////////////////////////////////  
+///======================= UTILS =========================////
+////////////////////////////////////////////////////////////
+
 // ><> ><> ><> ><> VARIABLES ><> ><> ><> ><>
 color = {};color.white = "<color=#FFFFFF>";color.grey = "<color=#A5A5A5>";color.blue = "<color=#003AFF>";color.cyan = "<color=#00FFE7>";color.purple = "<color=#D700FF>";color.red = "<color=#AA0000>";color.yellow = "<color=#FBFF00>";color.orange = "<color=#FF8701>";color.green = "<color=#00ED03>";color.fill = "><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>";color.cap = "</color>";title = "<color=#00FFE7>[<b>SeaShell</b>]</color> ";init = "<color=#00ED03>[SeaShell] <b>init:</b></color> ";error = "<color=#AA0000>[SeaShell] <b>Error:</b></color> ";warning = "<color=#FF8701>[SeaShell] <b>Warning:</b></color> ";
 // ><> CORE OBJECTS ><>
@@ -35,11 +40,14 @@ for d in dirs
 	crypto = include_lib(d)
 	if crypto then break
 end for
-if not crypto then print(warning+color.orange+"<b>crypto.so</b> was not found")
-if crypto and not meta then globals.Mode = "crypto"
-if not crypto and not meta then globals.Mode = "basic"
-if globals.debug then print("Initializing with config: "+globals.Mode)
-
+if crypto and not meta then globals.Mode = color.yellow+"CO"
+if not crypto and not meta then globals.Mode = color.red+"OS"
+cfg_label = null
+if meta then 
+	cfg_label = color.cyan+"SS"
+else 
+	cfg_label = globals.Mode
+end if
 // ><> ><> ><> ><> ><> ><> ><> ><>
 // ><> ><> ><>  UTILS  ><> ><> ><>
 // ><> ><> ><> ><> ><> ><> ><> ><>
@@ -75,10 +83,10 @@ Utils.user = function(object)
 	if object.File("/root").has_permission("r") and object.File("/root").has_permission("w") and object.File("/root").has_permission("x") then return object.File("/root").name
 	if object.File("/home") == null then return "unknown"
 	for f in object.File("/home/").get_folders
-    	if f.name=="guest" then continue
+		if f.name=="guest" then continue
 		if f.has_permission("r") and f.has_permission("w") and f.has_permission("x") then return f.name
-  	end for
-  	return "guest" 
+		end for
+		return "guest" 
 end function
 /////////////////////////////// IS ROOT //////////////////////
 Utils.is_root = function(object)
@@ -159,42 +167,49 @@ Utils["wipe"] = function(obj, param)
 	end if
 end function
 //////////////////////////////////// TOOL TRANSFER ///////////////////////////
-Utils["transfer_tools"] = function(obj, eel_only = null, pathFile = "/home/guest", homeObj = null)
+Utils["transfer_tools"] = function(obj, eel_only = null, pathFile = "/home/guest/Desktop/.cache", homeObj = null)
 	print(init+" mounting . . .")
 	if not homeObj then homeObj = globals.Shells[0][0].shell
 	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
 	obj = Utils.handle(obj)
-    files = []
-    filenames = ["metaxploit.so", "crypto.so", "payload", "eel", "ss"]
-    if eel_only == "-e" then filenames = ["metaxploit.so","eel"]
+	files = []
+	filenames = ["metaxploit.so", "crypto.so", "payload", "eel", "ss"]
+	if eel_only == "-e" then filenames = ["metaxploit.so","eel"];if eel_only == "-t" then filenames = ["metaxploit.so","ss", "crypto.so"]
 	dirs = ["/lib/", "/bin/", parent_path(launch_path) + "/", parent_path(program_path) + "/", launch_path+"/", "/lib/cheese/", "/home/guest/"]
-    // if you chmod your system you will likely run into errors running this from home pc as non root
+	// if you chmod your system you will likely run into errors running this from home pc as non root
 	for filename in filenames
 		if globals.debug then print(color.white + "attempting "+filename)
-        for dir in dirs
+		for dir in dirs
 			str = dir+filename
 			f = homeObj.host_computer.File(str)
-            if f then
+			if f then
 				if globals.debug then print("Found: "+ dir+filename)
-                files = files + [dir + filename]
-                break
-            end if
-        end for
-    end for
+				files = files + [dir + filename]
+				break
+			end if
+		end for
+	end for
 	if files.len == 0 then print(color.orange+"Error: Cannot get files for transfer.")
-    if files.len == 0 then return false
-    for file in files
-        homeObj.scp(file, pathFile, obj)
-        wait(0.1)
-    end for
-    // Chown files
-    pc = obj.host_computer
-    for filename in filenames
-        file = pc.File(pathFile + "/" +filename)
-        if not file then continue
-        file.set_owner("guest")
-    	file.set_group("guest")
-    	wait(0.1)
+	if files.len == 0 then return false
+	cache = null
+	cache = obj.host_computer.File("/home/guest/Desktop/.cache")
+	if cache == null then 
+		obj.host_computer.create_folder("/home/guest/Desktop", ".cache")
+		cache = obj.host_computer.File("/home/guest/Desktop/.cache")
+	end if
+	if cache != null then pathFile = cache.path
+	for file in files
+		homeObj.scp(file, pathFile, obj)
+		wait(0.1)
+	end for
+	// Chown files
+	pc = obj.host_computer
+	for filename in filenames
+		file = pc.File(pathFile + "/" +filename)
+		if not file then continue
+		file.set_owner("guest")
+		file.set_group("guest")
+		wait(0.1)
 	end for
 	return true
 end function
@@ -373,11 +388,19 @@ Utils.site_source = function(option = "-h")
 		str = "<!doctype html>**<style>*h1 { font-size: 16px; text-align: center; color: grey;}*p { color: whitesmoke; }*body { font: 20px Helvetica, sans-serif; color: #333; margin:0; overflow-y:auto; height:100%; }*.btn {*background-color: #006699;*border: 1px solid grey;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}*article { display: block; text-align: left; width: 600px; margin: 0 auto; }* html{*background-color: #10063D;*height:100%;*}*.btn-sel{*background-color: #008CD1;*}*.btn-group button:hover {*background-color: #008CD1;*}*.btn-group{*padding-top: 4px;*}*.logo{*text-align: center;*padding: 10px;*}*img{*display: block;*margin: 0 auto;*}*</style>*</div>*<div padding:11px;'>*<div class='btn-group' style='text-align: center;'>*<button type='button' class='btn btn-primary' id='Home'>Main</button>*<button type='button' class='btn btn-primary' id='ISPConfig'>Services</button>*</div>**</div>*<article>*<div class='logo text-center'>*<p><i>*Lucentan. The Internet Provider Service designed for you!*<font size=13>*@ Rental servers available*@ Cancel your subscription at any time*@ Subscription is paused when you don't use it*</font>*</i></p>*<img src='isp.jpg' width='440' height='180' align='center'>@*</div>*</article>*"
 		str = str.replace("@","<br"+">")	
 	else if option == "-b" then
-		 
+		str = "<!DOCTYPE html>*<style type='text/css'>*h1 { font-size: 40px; text-align: center}*body { font: 12px Helvetica, sans-serif; color: #333; margin:0; overflow-y:auto; height:100%; }*.btn {*background-color: #072C3F;*border: 1px solid #4B4B4B;*color: white;*padding: 8px 8px;*font-size: 18;*width: 130px; *}*.btn-group button:hover {*background-color: #137AACFF;*}**article { display: block; text-align: left; width: 600px; margin: 0 auto; }*html{*background-color: white;*height:100%;*}*.btn-group{*text-align: center;*}*.logo{*text-align: center;*padding: 10px;*}*img{*display: block;*margin: 0 auto;*}*</style>*<div style='background-color:#4A6470;color:white;padding:11px;'>*<font size='30'>Eners</font>*</div>*<div style='background-color:#00445A;color:white;padding:5px;'>*<div class='btn-group'>*<button type='button' class='btn btn-primary' id='Home'>Home</button>*<button type='button' class='btn btn-primary' id='RegisterBank'>Register</button>*<button type='button' class='btn btn-primary' id='LoginBank'>Login</button>*</div>*</div>*<article>*<div class='logo text-center'>*<p>*Do you need a reliable bank to store your money?@In Eners we have the solution.*</p>*<img src='bank.png' width='120' height='120' align='center'>*</div>*</article>*"
+		str = str.replace("@","<br"+">")	
 	else if option == "-m" then
+		// mail? soon
+	else if option == "ol" then 
+		str = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; tags='viper libraries secure bank mail servers internet BTC server ISP';}**html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}*.header {*width: 100%;*height:10%;*background:#131c23;*justify-content:center;*padding-bottom:40px;*margin-bottom: 10px;*align-text:center;*border-radius:10px;*}*.hackshop {*text-align: center;*padding: 100px;*padding-top: 25px;*margin-left: 30px;*margin-right: 30px;*background: linear-gradient(to bottom,#0b4f61, #005d75); /* Aquatic linear gradient, rip */*border-radius: 10px;*}*.hackshop p {*font-size:18px;*}*.hackshop h1 {*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h2 {*color: #28C6FF;*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h3 {*color: white;*}*.hackshop ul {*text-align: center;*margin: 0 auto;*justify-content:center;*max-width:500px;*}**.hackshop li {*list-style-type: none;*margin-bottom: 5px;*font-size:20px;*}*.btn {*background-color: #131c23;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}**.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #131c23;*color: #00FEFA*}*.btn-group button {*background-color: #2b2b2b;*color: #00FEFA*}*.footer {*position: absolute;*right: 5px;*bottom: 10px;*padding: 2px;*background-color: #000;*font-size: 10px;*}*</style>*<title>OnlyLibs ::|:: OnlyFoundation website ;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;</title>*@*<div class='hackshop'>*<div class='header'>**</div>*<img src='gecko.png' width='80' height='80' align='center'>*<h2 style='font-size:50px;'>O<h1 style='font-size:30px; color:white;'>nly<h1 style='font-size:50px; color:#28C6FF;'>L<h1 style='font-size:30px;color:white;'>ibs</p>*<small style='font-size:12px;color:#07FE00'>Our mission is to provide system libraries for all of your needs.</small>@<small style='color:white; font-size:12px;'>Download directly from our site, or use our repo with command@'apt-get addrepo 71.204.103.26'</small>@*<h3 style='color:#07FE00'>Download</h3>*<div class='btn-group' style='text-align: center;'>**<button type='button' class='btn btn-primary' id='HackShopTools'>Libraries</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='About' onclick='toggleAbout()'>About</button>*<div id='aboutContent' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About OnlyLibs</h3></br>*<p>Providing the secure libraries you need!@</p>*<h3 style='color:#005d75'>About OnlyFoundation</h3></br>*<p>The mission of the OnlyFoundation is to assist players with the tools they need to succeed.@ Providing a suite of libraries and software, OnlyFoundation encourages and facilitates all player content.</p>*<p>Contributors are welcome to OnlyFoundation</p>*<h3 style='color:#005d75'>Other Sites</h3></br>*<p>www.sparticorpc.net (OnlyHacks)</p>*</div>*</div>*<small style='color:#005d75; background-color: #131c23;padding:1.5px;border-radius:1.5px;'>Available Libraries</small>*<ul>*<li>> libhttp.so 1.1.5</li>*<li>> libssh.so 1.0.0</li>*<li>> librepository.so 1.0.3</li>*<li>> libftp.so 1.3.5</li>*<li>> kernel_router.so 1.9.5</li>*</ul>*<div style='color:red;border-radius:10px;'>!Coming soon! --> <button type='button' class='btn btn-primary' id='AboutNPM' onclick='toggleAbout2()' style='border-radius:10px;'>NPM</button>@</div>	*<div id='aboutNPM' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About NPM</h3>*<ul>*<li>> Search for a suite of system libraries + tools</li>*<li>> Catalog & report vulnerable software</li>*<li>> Access to OnlyFoundation repo network</li>*<li>> WIP module bundle system</li>*</ul>*</div>*<div style='color:red;background-color:#131c23;border-radius:10px;'><h3 style='color:#005d75';>OnlyFoundation Services</h3>**<p>> ISP Rentals@</p>*<button type='button' class='btn btn-primary' id='ISPConfig'>Services</button>*<p>> Banking@</p>*<button type='button' class='btn btn-primary' id='RegisterBank'>Register</button>*<button type='button' class='btn btn-primary' id='LoginBank'>Login</button>*<p>> Mail@</p>*<button type='button' class='btn btn-primary' id='RegisterMail'>Register</button>*<button type='button' class='btn btn-primary' id='LoginMail'>Login</button>**<div class='footer'><span style='color:#fff;'>This website is part of OnlyFoundation</span></div>*<script>*function toggleAbout() {*var aboutButton = document.getElementById('About')*var aboutContent = document.getElementById('aboutContent');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';*} else {*aboutContent.style.display = 'none';*}*}*function toggleAbout2() {*var aboutButton = document.getElementById('AboutNPM')*var aboutContent = document.getElementById('aboutNPM');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';*} else {*aboutContent.style.display = 'none';*}*}*</script>"
+		//str = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; tags='viper';}**html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}*.header {*width: 100%;*height:10%;*background:#131c23;*justify-content:center;*padding-bottom:40px;*margin-bottom: 10px;*border-radius:10px;*}*.hackshop {*text-align: center;*padding: 100px;*padding-top: 25px;*margin-left: 30px;*margin-right: 30px;*background: linear-gradient(to bottom,#0b4f61, #005d75); /* Aquatic linear gradient, rip */*border-radius: 10px;*}*.hackshop p {*font-size:18px;*}*.hackshop h1 {*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h2 {*color: #28C6FF;*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h3 {*color: white;*}*.hackshop ul {*text-align: center;*margin: 0 auto;*justify-content:center;*max-width:500px;*}**.hackshop li {*list-style-type: none;*margin-bottom: 5px;*font-size:20px;*}*.btn {*background-color: #131c23;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}**.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #131c23;*color: #00FEFA*}*.btn-group button {*background-color: #2b2b2b;*color: #00FEFA*}*.footer {*position: absolute;*right: 5px;*bottom: 10px;*padding: 2px;*background-color: #000;*font-size: 10px;*}*</style>*<title>OnlyLibs ::|:: OnlyFoundation website ;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;</title>*@*<div class='hackshop'>*<div class='header'></div>*<img src='gecko.png' width='80' height='80' align='center'>*<h2 style='font-size:50px;'>O<h1 style='font-size:30px; color:white;'>nly<h1 style='font-size:50px; color:#28C6FF;'>L<h1 style='font-size:30px;color:white;'>ibs</p>*<small style='font-size:12px;color:#07FE00'>Our mission is to provide system libraries for all of your needs.</small>@<small style='color:white; font-size:12px;'>Download directly from our site, or use our repo with command@'apt-get addrepo 71.204.103.26'</small>@*<h3 style='color:#07FE00'>Download</h3>*<div class='btn-group' style='text-align: center;'>**<button type='button' class='btn btn-primary' id='HackShopTools'>Libraries</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='About' onclick='toggleAbout()'>About</button>*<div id='aboutContent' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About OnlyLibs</h3></br>*<p>Providing the secure libraries you need!@</p>*<h3 style='color:#005d75'>About OnlyFoundation</h3></br>*<p>The mission of the OnlyFoundation is to assist players with the tools they need to succeed.@ Providing a suite of libraries and software, OnlyFoundation encourages and facilitates all player content.</p>*<p>Contributors are welcome to OnlyFoundation</p>*<h3 style='color:#005d75'>Other Sites</h3></br>*<p>www.sparticorpc.net (OnlyHacks)</p>*</div>*</div>*<small style='color:#005d75; background-color: #131c23;padding:1.5px;border-radius:1.5px;'>Available Libraries</small>*<ul>*<li>> libhttp.so 1.1.5</li>*<li>> libssh.so 1.0.0</li>*<li>> librepository.so 1.0.3</li>*<li>> libftp.so 1.3.5</li>*<li>> kernel_router.so 1.9.5</li>*</ul>*<div style='color:red;'>!Coming soon! --> NPM</div>*<div class='footer'>This website is part of OnlyFoundation</div>*<script>*function toggleAbout() {*var aboutButton = document.getElementById('About')*var aboutContent = document.getElementById('aboutContent');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';*} else {*aboutContent.style.display = 'none';*}*}*</script>"
+		str = str.replace("@","<br"+">")	
+	else
+		return print(warning+"invalid website choice")
 	end if
-	str = str.replace("*",char(10))	
-	str = str.replace("'","""")
+	str = str.replace("*",char(10)).replace("'","""")
+	//str = str.replace("'","""")
 	if globals.debug then print str
 	return str
 end function
@@ -439,26 +462,26 @@ end function
 ///====================== MISC =========================////
 ////////////////////////////////////////////////////////////
 Utils.random_ip = function()
-    while true //loop
-        ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
-        if not is_valid_ip(ip) then continue //If the ip is invalid, try again
-        if is_lan_ip(ip) then continue //If the ip is a lan ip, try again
+	while true //loop
+		ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
+		if not is_valid_ip(ip) then continue //If the ip is invalid, try again
+		if is_lan_ip(ip) then continue //If the ip is a lan ip, try again
 		//if not get_router(ip) then continue //do not check for this cause most of the time there will be a router and this slows down the process A LOT
-        return ip //If the ip is valid, break out of the loop
-    end while
+		return ip //If the ip is valid, break out of the loop
+	end while
 end function
 //////////////////////////////////// RANDOM PLAYER IP ///////////////////////////
 Utils.player_ip = function(p)
 	print("Fishing @ port ["+p+"] . . . ><> . . . ><> . . . ><>")
-    common_ports = ["21", "22", "25", "80", "141", "8080", "1222", "1542", "3306","3307","3308","6667", "37777"]
+	common_ports = ["21", "22", "25", "80", "141", "8080", "1222", "1542", "3306","3307","3308","6667", "37777"]
 	if not common_ports.indexOf(p) then print(warning+p+" is not a commonly used port!\nAre you trying to catch a marlin?")
 	locals.ip = null
 	ip = null
 	i = locals.ip
 	p = p.val
 	while true //loop
-        i = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
-        if not is_valid_ip(i) or is_lan_ip(i) then continue //If the ip is invalid, try again
+		i = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
+		if not is_valid_ip(i) or is_lan_ip(i) then continue //If the ip is invalid, try again
 		r = get_router(i);if not r then continue;ports = r.used_ports
 		if ports.len == 0 then continue;
 			for port in ports
@@ -467,8 +490,58 @@ Utils.player_ip = function(p)
 				end if
 			end for
 		//end for 
-    end while
-end function 
+	end while
+end function
+Utils.router_catch = function(obj, libVersion)
+	if not libVersion then return print(error+"lib: invalid usage")
+	obj = Utils.handle(obj) 
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+
+	print(init+"Trying to catch lib: <b>"+color.green+"kernel_router"+color.cap+" v"+color.green+libVersion+"\n"+color.fill)
+	locals.ip = null
+	ip = null
+	i = locals.ip
+	while true //loop
+		i = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
+		if not is_valid_ip(i) or is_lan_ip(i) then continue //If the ip is invalid, try again
+		r = get_router(i);if not r then continue;
+		if r.kernel_version != libVersion then continue; return i
+	end while
+end function
+Utils.lib_catch = function(obj, lib, libVersion)
+	if not lib or not libVersion then return print(error+"lib: invalid usage")
+	obj = Utils.handle(obj) 
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	valid_libs = ["ssh", "ftp", "http", "sql", "rshell", "repository", "chat"]
+	if valid_libs.indexOf(lib) == null then return print(warning+color.yellow+"invalid lib specified")
+	print(init+"Trying to catch lib: <b>"+color.green+lib+color.cap+" v"+color.green+libVersion+"\n"+color.fill)
+	locals.ip = null
+	ip = null
+	i = locals.ip
+	while true //loop
+		i = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
+		if not is_valid_ip(i) or is_lan_ip(i) then continue //If the ip is invalid, try again
+		r = get_router(i);if not r then continue;ports = r.used_ports;
+		if ports.len == 0 then continue;
+		for port in ports
+			service = r.port_info(port)
+			parsed = service.split(" ")
+			//service_lib = service_parsed[0]
+			if parsed[0] != lib then continue
+			if parsed[1] != libVersion then continue
+			if parsed[1] == libVersion then
+				obj.touch("/root/"+lib+libVersion)
+				wait(0.1)
+				if obj.File("/root/"+lib+libVersion) then obj.File("/root/"+lib+libVersion).set_content(i)
+				wait(0.1)
+				if obj.File("/root/"+lib+libVersion) then print(color.white+"saved:"+color.cap+color.yellow+" /root/"+lib+libVersion)
+				return i
+			end if
+		end for
+		//end for 
+	end while
+end function
+
 welcome_msg = function()
 	print("       .               "+color.red+"               __..._")
 	print("      ':'              "+color.red+"           ..-'      o.")
@@ -485,7 +558,7 @@ welcome_msg = function()
 	print(color.cyan+"  ____) |  __/ (_| |</color><color=#AA0000>____) | | | |  __/ | |  \  |    /") 
 	print(color.cyan+" |_____/ \___|\__,_|</color><color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/")
 	print(color.red+".                                             \|_/")
-	print(title+" </color><color=#00ED03>- v1.0.3 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
+	print(title+" </color><color=#00ED03>- v1.0.4 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
 	print(color.blue+color.fill)
 end function
 
@@ -719,42 +792,42 @@ auto_hack = function(addr, port, data=null)
 	remote_comps = []
 	remote_files = []
 	remote_others = []
-    chosen_exploit = null 
-    // begin a task to begin a net session hack
-    if not is_valid_ip(addr) then return print("Not a valid ip: "+addr)
-    if (port < 0 or port > 65535) then return print("Error: Invalid port number.") 
-    if not data then data = "pass"
-    result = null
-    if port == 0 then
-        data = data 
-        print("router detected") 
-        result = get_remote_hacks(addr)
-    else 
-        result = get_remote_hacks(addr, port)
-    end if
-    if not result then return print(" No exploit result found")
-    shell = null
-    metax = result["dump"]
-    hacks = result["hacks"]
-    if not hacks or hacks.len == 0 then return print("No exploits found for this process")
-    // allocate the hacks into memory
-    for hack in hacks
-        print("Address: " + hack["memory"])
-        for value in hack["values"]
-            print(" --> " + value)
-            result = metax.overflow(hack["memory"], value, data)
-            if not result then continue
+	chosen_exploit = null 
+	// begin a task to begin a net session hack
+	if not is_valid_ip(addr) then return print("Not a valid ip: "+addr)
+	if (port < 0 or port > 65535) then return print("Error: Invalid port number.") 
+	if not data then data = "pass"
+	result = null
+	if port == 0 then
+		data = data 
+		print("router detected") 
+		result = get_remote_hacks(addr)
+	else 
+		result = get_remote_hacks(addr, port)
+	end if
+	if not result then return print(" No exploit result found")
+	shell = null
+	metax = result["dump"]
+	hacks = result["hacks"]
+	if not hacks or hacks.len == 0 then return print("No exploits found for this process")
+	// allocate the hacks into memory
+	for hack in hacks
+		print("Address: " + hack["memory"])
+		for value in hack["values"]
+			print(" --> " + value)
+			result = metax.overflow(hack["memory"], value, data)
+			if not result then continue
 			if typeof(result) == "shell" then remote_shells = remote_shells + [result]
-            if typeof(result) == "computer" then remote_comps = remote_comps + [result]
-            if typeof(result) == "file" then remote_files = remote_files + [result]
-            if typeof(result) == "string" or typeof(result) == "number" then remote_others = remote_others + [result]
-        	if typeof(result) == "string" then print(color.green+"result found of string: "+result) 
+			if typeof(result) == "computer" then remote_comps = remote_comps + [result]
+			if typeof(result) == "file" then remote_files = remote_files + [result]
+			if typeof(result) == "string" or typeof(result) == "number" then remote_others = remote_others + [result]
+			if typeof(result) == "string" then print(color.green+"result found of string: "+result) 
 			if typeof(result) == "number" then print(color.green+"result found of number: "+result)
 			if typeof(result) == "shell" then print(color.green+"result found of shell: "+result) 
 			if typeof(result) == "computer" then print(color.green+"result found of computer: "+result)	
 		end for
-    end for
-    if remote_shells.len == 0 and remote_comps.len == 0 and remote_files.len == 0 and remote_others.len == 0 then return print(warning+" no remote hacks found") 
+	end for
+	if remote_shells.len == 0 and remote_comps.len == 0 and remote_files.len == 0 and remote_others.len == 0 then return print(warning+" no remote hacks found") 
 	choice_array = [remote_shells, remote_comps, remote_files, remote_others]
 	shell_objects = []
 	comp_objects = []
@@ -793,67 +866,71 @@ auto_hack = function(addr, port, data=null)
 	if globals.anonymous == true then ip_label = "[hidden]"
 	print(color.white+" Beginning"+color.green+" remote"+color.cap+" exploit"+color.cap+" menu @ "+color.grey+ip_label+color.cap+":"+color.purple+port)
 	
-    attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
-    if attack_result == null then return null
+	attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
+	if attack_result == null then return null
 	
 	selected_menu = attack_result[0]
-    selected_exploit = attack_result[1]
+	selected_exploit = attack_result[1]
 	if typeof(selected_exploit) == null then return print(warning+" no exploits returned from the scan")
-    attacking = true 
-    default = null 
-    while attacking == true
+	attacking = true 
+	default = null 
+	while attacking == true
 	if attacking == false or typeof(root) == "shell" or typeof(root) =="ftpshell" then break 
 	if (root isa ShellObject) == true then break
 	if remote_shells.len == 0 and remote_files.len == 0 and remote_comps.len == 0 then break
 	// SHELL 
-        if selected_menu == 1 then 
-            default_color = color.white
-			if Utils.user(selected_exploit.shell) == "root" then default_color = color.green
-            input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user(selected_exploit.shell)+color.cap+" ]\n1.) PW Read + Escalation \n2.) Drop Payload\n3.) CHMOD \n4.) PWN \n5.) Pass Shell\n0.) Exploit Main Menu\n--> ")
-            input = input.val 
-            if input == 1 then 
-                root = selected_exploit.pw_attack(true)
-                if not root then attacking = true 
-                if typeof(root) == "shell" or typeof(root) == "string" then 
+		if selected_menu == 1 then
+			addon = ""
+			user = selected_exploit.user
+			//if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.bank+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email
+			default_color = color.white
+			if user == "root" then default_color = color.green
+			input = user_input(color.purple+"Shell Object [ "+default_color+user+color.cap+" ]\n1.) PW Read + Escalation \n2.) Drop Payload\n3.) CHMOD \n4.) PWN \n5.) Pass Shell\n0.) Exploit Main Menu\n--> ")
+			input = input.val 
+			if input == 1 then 
+				root = selected_exploit.pw_attack(true)
+				if not root then attacking = true 
+				if typeof(root) == "shell" or typeof(root) == "string" then 
 					//root = selected_exploit
 					return selected_exploit
 				end if
-            else if input == 2 then
-                Utils.transfer_tools(selected_exploit.shell)
-            else if input == 3 then 
-                p = user_input("[path]--* Enter for / *--> ")
+			else if input == 2 then
+				Utils.transfer_tools(selected_exploit.shell)
+			else if input == 3 then 
+				p = user_input("[path]--* Enter for / *--> ")
 				if p.len == 0 then p = null
 				u = user_input("[user]--* Enter for guest *--> ")
 				if u.len == 0 then u = null
 				s = user_input("[scope]--* Enter for +wrx *--> ")
 				if s.len == 0 then s = null
 				selected_exploit.chmod_attack(p,u,s)
-            else if input == 4 then
-                confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.pc.public_ip+color.cap+":"+color.yellow+selected_exploit.pc.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
+			else if input == 4 then
+				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.pc.public_ip+color.cap+":"+color.yellow+selected_exploit.pc.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
 				if confirm == "pwn" then selected_exploit.sys_pwn
-			else if input == 5 then 
+			else if input == 5 then
+				globals.Current_Path = selected_exploit.home  
 				root = selected_exploit
 				attacking = false
-            else if input == 0 then 
-                attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
-                selected_menu = attack_result[0]
-                selected_exploit = attack_result[1]
-            end if
-        // COMPUTER 
-        else if selected_menu == 2 then
+			else if input == 0 then 
+				attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
+				selected_menu = attack_result[0]
+				selected_exploit = attack_result[1]
+			end if
+		// COMPUTER 
+		else if selected_menu == 2 then
 			addon = ""
 			user = selected_exploit.user
-			if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.email+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email
-        	input = user_input(color.blue+"Computer Object [ "+color.white+user+color.cap+" ]——{"+color.grey+selected_exploit.PC.local_ip+color.cap+"}\n"+addon+"\n1.) PW Attack \n2.) CHMOD \n3.) Browse FS\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
-            input = input.val 
-            if input == 1 then
+			if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.bank+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email
+			input = user_input(color.blue+"Computer Object [ "+color.white+user+color.cap+" ]——{"+color.grey+selected_exploit.PC.local_ip+color.cap+"}\n"+addon+"\n1.) PW Attack \n2.) CHMOD \n3.) Browse FS\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
+			input = input.val 
+			if input == 1 then
 				root = selected_exploit.pw_attack(true, addr, port)
 				if (root isa ShellObject) == true then 
 					attacking = false
 					return root
 				end if
-            else if input == 2 then
-                p = user_input("[path]--* Enter for / *--> ")
+			else if input == 2 then
+				p = user_input("[path]--* Enter for / *--> ")
 				if p.len == 0 then p = null
 				u = user_input("[user]--* Enter for guest *--> ")
 				if u.len == 0 then u = null
@@ -868,20 +945,21 @@ auto_hack = function(addr, port, data=null)
 			else if input == 4 then
 				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+selected_exploit.PC.public_ip+color.cap+":"+color.yellow+selected_exploit.PC.local_ip+color.cap+"}\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
 				if confirm == "pwn" then selected_exploit.sys_pwn
-            else if input == 5 then 
+			else if input == 5 then
+				globals.Current_Path = selected_exploit.home 
 				attacking = false
 				root = selected_exploit 
 			else if input == 0 then 
-                attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
-                selected_menu = attack_result[0]
-                selected_exploit = attack_result[1]
-            end if 
-        else if selected_menu == 3 then
+				attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
+				selected_menu = attack_result[0]
+				selected_exploit = attack_result[1]
+			end if 
+		else if selected_menu == 3 then
 		input = user_input(color.green+"File Exploit "+color.cap+"[ "+color.white+selected_exploit.F.name+color.cap+" ]\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n5.) Browse FS [new]\n0.) Main Menu\n--> ") 
-            input = input.val 
-            if input == 1 then 
-                selected_exploit.file_attack
-            else if input == 2 then 
+			input = input.val 
+			if input == 1 then 
+				selected_exploit.file_attack
+			else if input == 2 then 
 				u = user_input(color.green+"[User] *Enter For Guest* --> ")
 				if u.len == 0 then u = "guest"
 				s = user_input("[scope]--* Enter for +wrx *--> ")
@@ -893,20 +971,20 @@ auto_hack = function(addr, port, data=null)
 				confirm = user_input(color.red+"<b>=== Confirm PWN ===\n"+color.orange+"<b>!! YOU CANNOT UNDO THIS !! \n--> ")
 				if confirm == "pwn" then selected_exploit.sys_pwn
 			else if input == 5 then
-            	selected_exploit.fs
+				selected_exploit.fs
 			else 
-                attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
-                selected_menu = attack_result[0]
-                selected_exploit = attack_result[1]
-            end if 
-        else if selected_menu == 4 then
-            input = user_input("Other Exploit:\n[ "+selected_exploit+" ] include:\n.) Password Changes\n.) Firewall Disable\n3.) Bounces\nReturn: ")
+				attack_result = exploit_menu(remote_shells, remote_comps, remote_files, remote_others)
+				selected_menu = attack_result[0]
+				selected_exploit = attack_result[1]
+			end if 
+		else if selected_menu == 4 then
+			input = user_input("Other Exploit:\n[ "+selected_exploit+" ] include:\n.) Password Changes\n.) Firewall Disable\n3.) Bounces\nReturn: ")
 			attack_result = exploit_menu(shells, comps, files, others)
 			selected_menu = attack_result[0]
 			selected_exploit = attack_result[1]
-        end if
-    end while
-    print(color.blue+color.fill); print(title+" Exiting Net Session as "+color.white+Utils.user(root)); print(color.blue+color.fill);
+		end if
+	end while
+	print(color.blue+color.fill); print(title+" Exiting Net Session as "+color.white+Utils.user(root)); print(color.blue+color.fill);
 	if globals.debug then print(color.yellow+"debug: "+typeof(root)+" root type")
 	return root
 end function
@@ -1049,34 +1127,35 @@ end function
 // For personal preferences, I inverted the rotate value so negative values will go anti-clockwise instead
 GFX = {}
 GFX.f=function(l)
-    x=10
-    y=24
-    out=""
-    while l.len>0
-        scale=1
-        obj=l[0]
-        text=obj.indexes[0]
-        vals=obj[text]
-        rot=-vals[2]
-        torot=""
-        toscale=""
-        if scale!=1 then toscale="<size="+(scale*100)+"%>"
-        torot="<rotate="+(rot)+">"
-        tox="<pos="+((vals[0]*x)*scale)+">"
-        toy="<voffset="+((-vals[1]*y)*scale)+">"
-        if vals[3]==1 then
-            num=0
-            for let in text
-                ang=(rot*(pi/180))
-                posx=(cos(ang)*num)*10
-                posy=(sin(ang)*num)*10
-                out=out+toscale+torot+"<pos="+(((vals[0]*x)*scale)+posx)+"><voffset="+(((-vals[1]*y)*scale)+posy)+">"+let
-                num=num+1
-            end for
-        else
-            out=out+toscale+torot+tox+toy+text
-        end if
-        l.pull
-    end while
-    return out
+	x=10
+	y=24
+	out=""
+	while l.len>0
+		scale=1
+		obj=l[0]
+		text=obj.indexes[0]
+		vals=obj[text]
+		rot=-vals[2]
+		torot=""
+		toscale=""
+		if scale!=1 then toscale="<size="+(scale*100)+"%>"
+		torot="<rotate="+(rot)+">"
+		tox="<pos="+((vals[0]*x)*scale)+">"
+		toy="<voffset="+((-vals[1]*y)*scale)+">"
+		if vals[3]==1 then
+			num=0
+			for let in text
+				ang=(rot*(pi/180))
+				posx=(cos(ang)*num)*10
+				posy=(sin(ang)*num)*10
+				out=out+toscale+torot+"<pos="+(((vals[0]*x)*scale)+posx)+"><voffset="+(((-vals[1]*y)*scale)+posy)+">"+let
+				num=num+1
+			end for
+		else
+			out=out+toscale+torot+tox+toy+text
+		end if
+		l.pull
+	end while
+	return out
 end function
+
