@@ -28,13 +28,14 @@ ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 Once complete, the only required filed are ss, eel, and payload<br>
 <br>
 DELETE ALL SRC FILES ONCE YOU HAVE SUCCESFULLY RAN SS<br>
-<h2> Featurs </h2><br>
+<h2> Features </h2><br>
 1.) Manage multiple objects in a sandbox environment<br>
 2.) Capture net sessions remotely, return exploit objects from launched binaries<br>
-3.) Extensive surf mode which intends to replicate all vanilla commands<br>
-4.) Extended rshell-interface and commands<br>
-5.) FileSystem browser, editor, deleter ;)<br>
-6.) Service Manager & Site Builder<br>
+3.) Internal & External LAN bouncing <br>
+4.) Extensive surf mode which intends to replicate all vanilla commands<br>
+5.) Extended rshell-interface and commands<br>
+6.) FileSystem browser, editor, deleter ;)<br>
+7.) Service Manager & Site Builder<br>
 & More !<br>
 <br>This tool easily handles negative karma 0-2 missions, and while not inteded directly for PvP, is a valid option
 <br>
