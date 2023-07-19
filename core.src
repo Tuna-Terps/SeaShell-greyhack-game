@@ -616,23 +616,40 @@ end function
 // ======================= SCP =========================
 Core["scp"] = function(remote, type, origPath, destPath=null)
 	home_shell = null;remote_shell = null;
-	home_shell = globals.Shells[0][0];home_shell = Utils.handle(home_shell);
+	home_shell = globals.Shells[0][0];
+	home_shell = Utils.handle(home_shell);
+	if not destPath then destPath = Current_Path
+	if origPath[0] != "/" then origPath = Utils.pth(origPath)
 	if typeof(home_shell) == "ftpshell" then return print(warning+"object is of type ftpshell")
-	remote_shell = Utils.handle(remote_shell)
-	if type == "-u" then 
-		remote_shell.scp(origPath, Current_Path, home_shell)
-	else if type == "-d" then 
+	remote_shell = Utils.handle(remote)
+	if type == "-d" then 
+		remote_shell.scp(origPath, destPath, home_shell)
+	else if type == "-u" then 
 		home_shell.scp(origPath, destPath, remote_shell)
 	else 
 		return print("an error occured")
 	end if
 end function
-	// ======================= PUT =========================
+///============================
+// ======================= PUT =========================
+///============================
 Core["put"] = function(remote, origPath, destPath)
-	home_shell = null;remote_shell = null;
-	home_shell = globals.Shells[0][0];home_shell = Utils.handle(home_shell);
-	//if typoef(home_shell) == "ftpshell" then return print(warning+"object is of type ftpshell")
-	remote_shell = Utils.handle(remote_shell)
+	if typoef(remote) != "ftpshell" then return print(warning+"object is not of type ftpshell")
+	home_shell = null;
+	remote_shell = null;
+	home_shell = globals.Shells[0][0];
+	home_shell = Utils.handle(home_shell);
+	remote_shell = Utils.handle(remote)
+	home_shell.put(origPath, destPath, remote_shell)
+end function
+///============================
+// ======================= GET =========================
+///============================
+Core["get"] = function(remote, origPath, destPath)
+	if typoef(remote) != "ftpshell" then return print(warning+"object is not of type ftpshell")
+	home_shell = globals.Shells[0][0];
+	home_shell = Utils.handle(home_shell);
+	remote_shell = Utils.handle(remote)
 	remote_shell.put(origPath, destPath, home_shell)
 end function
 // ======================= SSH =========================
