@@ -1,8 +1,14 @@
+//////////////////////////////////////////////////////////////  
+///======================= PAYLOAD =======================///
+////////////////////////////////////////////////////////////
 globals.debug = null
-import_code("/home/2NA/src/bin/objects")
-import_code("/home/2NA/src/utils.src") 
-print(init+color.red+"~~~~^~~^~~^~ Beginning Auto Local ~^~~^~~^~~~~")
+globals.entry_objects = true
+import_code("/home/2NA/src/objects")
+globals.entry_util = true
 data = get_custom_object()
+import_code("/home/2NA/src/utils") 
+print(init+color.red+"~~~~^~~^~~^~ Beginning Auto Local ~^~~^~~^~~~~")
+if not data then exit("><> ><> ><>")
 shells = []
 comps = []
 files = []
@@ -10,7 +16,9 @@ others = []
 hacks = get_local_hacks()
 crypto = get_library("crypto.so")
 // we put the null switch here, and if we select a shell or etc we can go from there
-pass = "pass"
+pass = null
+if params.len == 0 then pass = "pass"
+if params.len == 1 then pass = params[0]
 
 if hacks.len == 0 then exit("Error: Could not get local hacks.")
 for hack in hacks
@@ -28,7 +36,6 @@ for hack in hacks
 		if typeof(result) == "number" then print(color.green+"result found of number: "+result)
 		if typeof(result) == "shell" then print(color.green+"result found of shell: "+result) 
 		if typeof(result) == "computer" then print(color.green+"result found of computer: "+result)
-			
 	end for
 end for
 if shells.len == 0 and comps.len == 0 and files.len == 0 and others.len == 0 then return print(warning+" no local hacks found") 
@@ -49,11 +56,11 @@ for choice in choice_array
 		a.init(exploit)
 		shell_objects = shell_objects + [ a ]
 	else if index == 1 then 
-		b = new CompObject
+		b = new data.co
 		b.init(exploit)
 		comp_objects = comp_objects + [ b ]
 	else if index == 2 then
-		c = new FileObject
+		c = new data.fo
 		c.init(exploit, null)
 		file_objects = file_objects + [ c ]
 	else if index == 3 then  
@@ -96,7 +103,9 @@ while attacking == true
 		default_color = color.white
 		default = selected_exploit.shell
 		if default == "root" then default_color = color.green
-        input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user(selected_exploit.shell)+color.cap+" ]\n1.) PW Read + Escalation \n2.) CHMOD\n3.) KILL \n4.) Pass the shell \n0.) Exploit Main Menu\n--> ")
+		if data.anon == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.bank+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email+"\n"+color.white+"Hash: "+color.cap+selected_exploit.pass
+
+		input = user_input(color.purple+"Shell Object [ "+default_color+Utils.user(selected_exploit.shell)+color.cap+" ]\n"+addon+"\n1.) PW Read + Escalation \n2.) CHMOD\n3.) PWN \n4.) Pass the shell \n0.) Exploit Main Menu\n--> ")
 		input = input.val 
 		if input == 1 then 
 			root = selected_exploit.pw_attack()
@@ -129,7 +138,7 @@ while attacking == true
 	else if selected_menu == 2 then 
         addon = ""
 		user = selected_exploit.user
-		if globals.anon == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.email+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email
+		if data.anon == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.bank+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email+"\n"+color.white+"Hash: "+color.cap+selected_exploit.pass
         input = user_input(color.blue+"Computer Object [ "+color.white+user+color.cap+" ]——{"+color.grey+selected_exploit.PC.local_ip+color.cap+"}\n"+addon+"\n1.) PW Attack \n2.) CHMOD \n3.) Cat Files\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
         input = input.val 
 		if input == 1 then 
@@ -243,3 +252,6 @@ return data
 	//	return root.launch("/home/guest/ss")
 	//end if
 //end while
+//////////////////////////////////////////////////////////////  
+///======================= PAYLOAD =======================///
+////////////////////////////////////////////////////////////
