@@ -25,9 +25,9 @@ ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 3.) utils.src --> ** MUST ALLOW IMPORTS **<br>
 4.) modules.src --> ** MUST ALLOW IMPORTS **<br>
 5.) main.src --> RENAME TO ss <br>
-<br> ESCALATION
+<br> ESCALATION <br><br>
 1.) eel.src<br>
-2.) payload.src <br>
+2.) payload.src (cargo coming soon)<br>
 
 Once complete, the only required filed are ss, eel, and payload<br>
 <br>
