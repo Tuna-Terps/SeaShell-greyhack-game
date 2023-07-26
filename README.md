@@ -19,7 +19,7 @@
 ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 # COMPILE #<br>
 -- You will need to compile the following files in this order, name the binary the same as the src<br><br>
-<br> MAIN PROGRAM
+<br> MAIN PROGRAM<br>
 1.) objects.src --> ** MUST ALLOW IMPORTS **<br>
 2.) core.src --> ** MUST ALLOW IMPORTS **<br>
 3.) utils.src --> ** MUST ALLOW IMPORTS **<br>
