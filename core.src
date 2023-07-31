@@ -42,9 +42,9 @@ Core.hasRequiredArgs = function(cmd, p)
 			parse = fcmd(cmdIndex)
 			if globals.debug then print(parse)
 			for parsed in parse
-				if globals.debug then print("parsed: "+parsed)
-				if globals.debug then print("p.indexOf(parsed): "+p.indexOf(parsed)+" TYPE: "+typeof(p.indexOf(parsed)))
-				if globals.debug then print("cmdIndex == * "+(parsed == "*"))
+				//if globals.debug then print("parsed: "+parsed)
+				//if globals.debug then print("p.indexOf(parsed): "+p.indexOf(parsed)+" TYPE: "+typeof(p.indexOf(parsed)))
+				//if globals.debug then print("cmdIndex == * "+(parsed == "*"))
 				if typeof(p.indexOf(parsed)) == "number" or (parsed == "*") then 
 					passed = passed+1
 					break
@@ -53,9 +53,9 @@ Core.hasRequiredArgs = function(cmd, p)
 		else 
 			if globals.debug then print("args: c3")
 			for argIndex in p
-				if globals.debug then print(color.white+"argIndex: "+argIndex)
-				if globals.debug then print("cmdIndex.indexOf(argIndex): "+cmdIndex.indexOf(argIndex)+" TYPE: "+typeof(cmdIndex.indexOf(argIndex)))
-				if globals.debug then print("cmdIndex == * "+(cmdIndex == "*"))
+				//if globals.debug then print(color.white+"argIndex: "+argIndex)
+				//if globals.debug then print("cmdIndex.indexOf(argIndex): "+cmdIndex.indexOf(argIndex)+" TYPE: "+typeof(cmdIndex.indexOf(argIndex)))
+				//if globals.debug then print("cmdIndex == * "+(cmdIndex == "*"))
 				if typeof(p.indexOf(argIndex)) == "number" or (cmdIndex == "*") then 
 					passed = passed+1
 				end if
@@ -68,7 +68,7 @@ Core.hasRequiredArgs = function(cmd, p)
 	if globals.debug then print("c6")
 	return null
 end function
-
+///======================= CMD =========================////
 Core["cmd"] = function(object, params)
 	error = null
 	result = null
@@ -85,9 +85,9 @@ Core["cmd"] = function(object, params)
 			if valid["name"] == "-g" then result = run
 			if not valid["name"] == "-g" then result = run(object, cmd[0])
 		else if valid["cb"] == "custom" then
-			data = get_custom_object()
-			data.so = @ShellObject
-			data.root = null
+			data.anon = globals.anonymous
+			//data.so = @ShellObject;data.co = @CompObject;data.fo = @FileObject;data.DB1 = globals.DB1;data.DB2 = globals.DB2;
+			data.root = null;
 			run(object, "-p")
 			if data.root != null then result = data.root
 		else if valid["cb"] == "Current_Path" then  
@@ -124,8 +124,7 @@ Core["cmd"] = function(object, params)
 			else if valid["cb"] == "general" then
 				run(cmd[0], cmd[1])
 			else if valid["cb"] == "custom" then
-				data = get_custom_object()
-				data.so = @ShellObject
+				//data.so = @ShellObject;data.co = @CompObject;data.fo = @FileObject;data.DB1 = globals.DB1;data.DB2 = globals.DB2;
 				data.root = null
 				run(object, cmd[0], cmd[1])
 				if data.root != null then result = data.root
@@ -143,8 +142,7 @@ Core["cmd"] = function(object, params)
 	end if
 	return result
 end function
-
-
+///============================
 // object: ShellObject: Map | CompObject: Map | FileObject: Map
 // global_path = out global path fool
 ///======================= PROMPT =========================////
@@ -166,7 +164,10 @@ Core.prompt = function(o, p, anonymous)
 	if user == "root" or user == "2NA" then user_color = color.green
 	if user == "guest" then user_color = color.orange
 	if user == "unknown" then user_color = color.red
+	ip = null; lan = null;
+	if (o isa FileObject) == false then 
 		ip = o.public_ip;lan = o.local_ip
+	end if
 	if anonymous == true then ip = "HIDDEN"
 	if anonymous == true then lan = "HIDDEN"
 		spacing = 3.9
@@ -176,7 +177,7 @@ Core.prompt = function(o, p, anonymous)
 	response = user_input(str)
 	return response
 end function
-
+///============================
 ///======================= CMD  LIST =========================////
 Core["cmd_list"] = function(usage = null)
 	p = null
@@ -190,7 +191,7 @@ Core["cmd_list"] = function(usage = null)
 			tData.push({c["params"]: [10,0,0,0]})
 			tData.push({color.grey+c["desc"]+"\n": [45,0,0,0]})
 		end for
-			print GFX.f(tData)
+		print GFX.f(tData)
 		p = true
 	else
 		locals.i = null
@@ -206,6 +207,7 @@ Core["cmd_list"] = function(usage = null)
 	print(color.white+"<b>-->"+color.cap+ " *</b><i>"+color.grey+" Represents a dynamic, or optional parameter.")
 	if p then print("*"+color.grey+"<i>DETAILS</i>"+color.cap+"*  Use cmd: "+color.white+"<b>-h [cmd_name]</b>"+color.cap+" for CMD usage")
 end function
+///============================
 ///======================= ANON MODE =========================////
 Core["anon"] = function()
 	g = true
@@ -213,16 +215,24 @@ Core["anon"] = function()
 	globals.anonymous = g
 	return globals.anonymous
 end function
+///============================
 ///======================= OBJECT POOL =========================////
-Core["objects"] = function()
+Core["objects"] = function(_, p = null)
 	objects = [globals.Shells, globals.Computers, globals.Files]
 	if objects.len == 0 or objects[0].len == 0 or objects[1].len == 0 or objects[2].len == 0 then return print(warning+" no object options found")
 	selected_obj = null
 	selecting = true
-	sm = 0 
+	sm = 0
+	if p  == "-c" then 
+		globals.Shells = [ [base_shell, "MAIN"] ] // our collection of global shell objects
+		globals.Computers = [ [base_pc, "MAIN"] ] // our collection of global computer objects
+		globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects
+		return
+	end if
 	while selecting == true 
 		if selecting == false then break
-		c = 1 // count
+		c = 1 // count			
+		addon = ""
 		menu = [color.white+"~^~^~^~ <u>Main</u> ~^~^~^~"+color.cap, color.purple+"~^~^~^~ Shells ~^~^~^~"+color.cap, color.blue+"~^~^~^~ Computers ~^~^~^~"+color.cap, color.green+"~^~^~^~ Files ~^~^~^~"+color.cap, color.grey+"~^~^~^~ Other ~^~^~^~"+color.cap]
 		if sm == 0 then 
 			options = [color.purple+" Shells "+color.cap+"(<b>"+color.white+globals.Shells.len+color.cap+"</b>)", color.blue+" Computers "+color.cap+"(<b>"+color.white+globals.Computers.len+color.cap+"</b>)", color.green+" Files "+color.cap+"(<b>"+color.white+globals.Files.len+color.cap+"</b>)",]
@@ -238,28 +248,31 @@ Core["objects"] = function()
 			else if sm == 1 then 
 				col = color.white
 				u = Utils.user(o[0].shell)
-				if @u == "root" then col = color.green
-				if @u == "guest" then col = color.orange
-				if @u == "unknown" then col = color.red
+				if @u == "root" then col = color.green;if @u == "guest" then col = color.orange;if @u == "unknown" then col = color.red;
+				if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+o[0].bank+"\n"+color.white+"Mail: "+color.cap+o[0].email+"\n"+color.white+"Hash: "+color.cap+o[0].pass
+				risk_color = color.white;if o[0].risk == 1 then risk_color = color.yellow;;if o[0].risk == 2 then risk_color = color.orange;if o[0].risk == 3 then risk_color = color.red;;if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+o[0].bank+"\n"+color.white+"Mail: "+color.cap+o[0].email+"\n"+color.white+"Hash: "+color.cap+o[0].pass
 				i = o[0].pc.public_ip
-				if globals.anonymous == true then i = "HIDDEN"
-				info = "[ " +col+ u +color.cap+ " ]<s>   </s>{" +color.white+i+color.cap+":"+color.grey+o[0].pc.local_ip+color.cap+"}"
+				l = o[0].pc.local_ip
+				if globals.anonymous == true then 
+					i = "x.x.x.x"
+					l = "x.x.x.x"
+				end if
+				info = "[ " +col+ u +color.cap+ " ]<s>   </s>{" +color.white+i+color.cap+":"+color.grey+l+color.cap+"}{"+risk_color+o[0].risk+color.cap+"}"+addon
 				in_main = false
 			else if sm == 2 then		// computer exploit
 				col = color.white
 				u = Utils.user(o[0].PC)
-				if @u == "root" then col = color.green
-				if @u == "guest" then col = color.orange
-				if @u == "unknown" then col = color.red
+				if @u == "root" then col = color.green;if @u == "guest" then col = color.orange;if @u == "unknown" then col = color.red;
+				if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+o[0].bank+"\n"+color.white+"Mail: "+color.cap+o[0].email+"\n"+color.white+"Hash: "+color.cap+o[0].pass
+				risk_color = color.white;if o[0].risk == 1 then risk_color = color.yellow;if o[0].risk == 2 then risk_color = color.orange;if o[0].risk == 3 then risk_color = color.red;;if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+o[0].bank+"\n"+color.white+"Mail: "+color.cap+o[0].email+"\n"+color.white+"Hash: "+color.cap+o[0].pass
+
 				i = o[0].PC.public_ip
 				if globals.anonymous == true then i = "HIDDEN"
-				info = " [ "+col+ u +color.cap+" ]<s>   </s>{" +color.white+i+color.cap+":"+color.grey+o[0].PC.local_ip+color.cap+"}"
+				info = " [ "+col+ u +color.cap+" ]<s>   </s>{" +color.white+i+color.cap+":"+color.grey+o[0].PC.local_ip+color.cap+"}{"+risk_color+o[0].risk+color.cap+"}"+addon
 				in_main = false
 			else if sm == 3 then 
 				lvl=""
-				if o[0].F.has_permission("r") then lvl = lvl+"r"
-				if o[0].F.has_permission("w") then lvl = lvl+"w"
-				if o[0].F.has_permission("x") then lvl = lvl+"x"
+				if o[0].F.has_permission("r") then lvl = lvl+"r";if o[0].F.has_permission("w") then lvl = lvl+"w";if o[0].F.has_permission("x") then lvl = lvl+"x"
 				info = format_columns(o[0].F.name+" "+o[0].F.owner+" "+o[0].F.group+" "+lvl+" "+o[0].F.permissions)
 				in_main = false
 		end if
@@ -305,13 +318,15 @@ Core["objects"] = function()
 				selecting = false
 				return selected_obj
 			else if attack_choice == 2 then 
-				Core["remove(sm, choice_response)"]
+				Core.remove(sm, choice_response)
 			end if
 		end if
 	end while
 end function
+///============================
 ///======================= OBJ ADD =========================////
-Core.add = function(object) // : map
+///============================
+Core.add = function(object, pass = null) // : map
 	if (object isa ShellObject) == true then 
 		globals.Shells = globals.Shells.push([object, "captured"])
 	else if (object isa CompObject) == true then 
@@ -321,9 +336,13 @@ Core.add = function(object) // : map
 	else 
 		return print(warning+" unable to add object to the pool: "+typeof(object))
 	end if
+	if pass then return
 	Current_Object = object
 end function
+//data.exports = @Core.add
+///============================
 ///======================= OBJ REMOVE  =========================////
+///============================
 Core.remove = function(type, index) // : number, : number
 	t = "unknown"
 	if type == 1 then 
@@ -340,7 +359,9 @@ Core.remove = function(type, index) // : number, : number
 	end if
 	
 end function
+///============================
 ///======================= cd  =========================////
+///============================
 Core["cd"] = function(obj, p)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
@@ -351,7 +372,8 @@ Core["cd"] = function(obj, p)
 		return globals.Current_Path
 	else
 		base = obj.File(globals.Current_Path)
-		if not base then return print("cd: path not found")
+		//if not base then base = user_input(">")
+		if not base then return obj.File("/")
 	end if
 	dir = null
 	if p == "./" then 
@@ -370,23 +392,42 @@ Core["cd"] = function(obj, p)
 	globals.Current_Path = dir.path
 	return globals.Current_Path
 end function
+///============================
 ///======================= me  =========================////
-Core["me"] = function(obj)
+///============================
+Core["me"] = function(obj,act, p2)
 	obj = Utils.handle(obj)
-	return print(Utils.user(obj))
+	if act != "-d" and act != "-a" then return print(Utils.user(obj))
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if typeof(obj) == "file" then return print(error+"invalid operation")
+	task = null
+	if not p2 then return print(warning+"no user specified")
+	label = "removed"
+	if act == "-d" then
+		task = obj.delete_user(p2, true)
+	else 
+		task = obj.create_user(p2, "tunafish")
+		label = "added"
+	end if
+	if typeof(task) == "string" then return print(task)
+	print(p2+" was "+label)
 end function
 
 ///=====================================================////
 ////////////////////////// SHELL ///////////////////////
 ///====================================================////
-
+///============================
 // =======================  terminal =======================
 Core["terminal"] = function(obj, _)
 	obj = Utils.handle(obj)
 	if typeof(obj) != "shell" and typeof(obj) != "ftpshell" then return print("-t cant launch")
-	return obj.start_terminal
+	obj.start_terminal
+	exit(); // ty tux
+	//return obj.start_terminal
 end function
+///============================
 // =======================  sudo =======================
+///============================
 Core["sudo"] = function(s = get_shell, arg, arg2=null, arg3=null)
 	if typeof(s) == "map" then s = Utils.handle(s)
 	computer = s.host_computer
@@ -407,7 +448,23 @@ Core["sudo"] = function(s = get_shell, arg, arg2=null, arg3=null)
 	end if
 	return so
 end function
+///============================
+// =======================  build =======================
+///============================
+Core["build"] = function(obj, pathFile, targFilePath, fileName)
+	if globals.debug then print("path: "+ pathFile+"\nfileName: "+fileName)
+	obj = Utils.handle(obj)
+	if typeof(obj) != "shell" then return print(error+"Only shells can build")
+	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
+	if targFilePath[0] != "/" then targFilePath = Utils.pth(targFilePath)
+	// single arg
+	create = obj.build(pathFile, targFilePath, fileName)
+	if create.len > 1 then return print(warning+create)
+	print(color.white+fileName+color.cap+" compiled at path "+color.yellow+pathFile)
+end function
+///============================
 // =======================  launch =======================
+///============================
 Core[".exe"] = function(obj, p, data = null)
 	obj = Utils.handle(obj)
 	if typeof(obj) != "shell" and typeof(obj) != "ftpshell" then return print(color.yellow+"exe: cant launch")
@@ -433,6 +490,9 @@ Core[".exe"] = function(obj, p, data = null)
 		if typeof(file) == "file" then 
 			if data then obj.launch(file.path, data)
 			if not data then obj.launch(file.path)
+		else
+			pth = user_input("path:")
+			obj.launch(pth)
 		end if
 	else if p == "-s" then 
 		for file in dirs 
@@ -456,7 +516,9 @@ Core[".exe"] = function(obj, p, data = null)
 	if file == null then print(warning+color.yellow+"<i>launch binary not found on target machine")
 	return data
 end function
+///============================
 // =======================  service =======================
+///============================
 Core["service"] = function(object, action, service = null, force = null)
 	print(init+color.yellow+"Service Manager")
 	obj = Utils.handle(object)
@@ -525,10 +587,10 @@ Core["service"] = function(object, action, service = null, force = null)
 	ports = router.device_ports(obj.host_computer.local_ip) // these appear to be forwarded ports ?
 	act_label = "install"
 	if action == "-i" and service then
-		print(color.white+"installing: <i>"+service) 
+		print(color.grey+"installing: <i>"+service) 
 		act = srv.install_service
 	else if action == "-s" and service then
-		print(color.white+"Starting: <i>"+service) 
+		print(color.grey+"Starting: <i>"+service) 
 		act = srv.start_service
 		act_label = "start"
 	else if action == "-k" and service then
@@ -549,15 +611,18 @@ end function
 ///=====================================================////
 ////////////////////////// COMPUTER ///////////////////////
 ///====================================================////
-
+///============================
 // =======================  ps =======================
+///============================
 Core["ps"] = function(obj)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	output = obj.show_procs
 	return print(format_columns(output))
 end function
+///============================
 // =======================  kill =======================
+///============================
 Core["kill"] = function(obj, pid)
 	obj = Utils.handle(obj)
 	pid = pid.to_int
@@ -566,20 +631,22 @@ Core["kill"] = function(obj, pid)
 	output = obj.close_program(pid)
 	if output == true then return print("Process " + pid + " closed");
 	if output then return print(output)
-	print("Process " + pid + " not found")
 end function
+///============================
 // =======================  pw =======================
+///============================
 Core["pw"] = function(obj, user)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	inputMsg = "Changing password for user " + user +".\nNew password:"
 	inputPass = user_input(inputMsg, true)
 	output = obj.change_password(user, inputPass)
-	if output == true then return print(user+" password modified OK")
-	if output then return print(output)
-	print(warning+" password not modified, are you root?")
+	if typeof(output) != "string" then return print(user+" password modified OK")
+	return print(output)
 end function
+///============================
 // =======================  touch =======================
+///============================
 Core["touch"] = function(obj, pathFile, fileName)
 	if globals.debug then print("path: "+ pathFile+"\nfileName: "+fileName)
 	obj = Utils.handle(obj)
@@ -597,7 +664,9 @@ Core["touch"] = function(obj, pathFile, fileName)
 	if file == null then return print(warning+"touch: failed")
 	print(color.white+fileName+color.cap+" created at path "+color.yellow+pathFile)
 end function
+///============================
 // =======================  mkdir =======================
+///============================
 Core["mkdir"] = function(obj, pathFile, fileName)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
@@ -609,11 +678,13 @@ Core["mkdir"] = function(obj, pathFile, fileName)
 		pathFile = destParent.split(fileName)[0] // use name to get parent
 	end if
 	file = obj.create_folder(pathFile, fileName)
-	if file == false then return print("mkdir: failed")
+	result = obj.File(pathFile+"/"+fileName)
+	if not result then return print("mkdir: failed")
 	print(fileName+" created at path "+ pathFile)
 end function
-
+///============================
 // ======================= SCP =========================
+///============================
 Core["scp"] = function(remote, type, origPath, destPath=null)
 	home_shell = null;remote_shell = null;
 	home_shell = globals.Shells[0][0];
@@ -652,7 +723,9 @@ Core["get"] = function(remote, origPath, destPath)
 	remote_shell = Utils.handle(remote)
 	remote_shell.put(origPath, destPath, home_shell)
 end function
+///============================
 // ======================= SSH =========================
+///============================
 Core["ssh"] = function(shell, connect_string, ip, port = 22)
 	object = Utils.handle(shell)
 	if typeof(object) != "shell" then return print(" no shell detected")
@@ -666,7 +739,9 @@ Core["ssh"] = function(shell, connect_string, ip, port = 22)
 	end if 
 	return so
 end function
+///============================
 // ======================= FTP =========================
+///============================
 Core["ftp"] = function(object, connect_string, ip, port = 21)
 	object = Utils.handle(object)
 	if typeof(object) != "shell" or typeof(object) == "ftpshell" then return print(" no shell detected")
@@ -681,7 +756,9 @@ Core["ftp"] = function(object, connect_string, ip, port = 21)
 	end if 
 	return so
 end function
+///============================
 // ======================= SECURE =========================
+///============================
 Core["secure"] = function(obj, type = "-h")
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
@@ -699,9 +776,9 @@ Core["secure"] = function(obj, type = "-h")
 		mail = obj.File("/root/Config/Mail.txt")
 		bnk = obj.File("/root/Config/Bank.txt")
 		if obj.File("/home") then obj.File("/home").delete
-		
-		
-		
+	else if type == "-p" then
+		Utils.patch_sys(obj)
+		return 
 	else 
 		cfg = obj.File("/home/2NA/Config")
 		if cfg then
@@ -741,7 +818,7 @@ end function
 ///=====================================================////
 ///////////////////////////// FILE /////////////////////////
 ///====================================================////
-
+///============================
 // =======================  ls =======================
 Core["ls"] = function(obj)
 	p = globals.Current_Path
@@ -752,9 +829,11 @@ Core["ls"] = function(obj)
 		folder = obj.host_computer.File(p)
 	else if typeof(obj) == "computer" then 
 		folder = obj.File(p)
+	else if typeof(obj) == "file" then 
+		folder = obj
 	end if
 	if folder == null then return print("ls no file or directory found")
-	if not folder.has_permission("r") then return print("You do not have read access for "+folder)
+	//if not folder.has_permission("r") then return print("You do not have read access for "+folder)
 	folder_path = p
 	sub_files = folder.get_folders + folder.get_files
 	output = ""
@@ -777,7 +856,7 @@ Core["ls"] = function(obj)
 	if not sub_files then return print(output)
 	print(format_columns(output))
 end function
-
+///============================
 // =======================  chmod =======================
 Core["chmod"] = function(obj, recursive, perms, path_to_file)
 	rec = false
@@ -794,6 +873,7 @@ Core["chmod"] = function(obj, recursive, perms, path_to_file)
 	output = file.chmod(perms, rec)
 	if output.len > 1 then print(output)
 end function
+///============================
 // =======================  chgrp =======================
 Core["chgrp"] = function(obj, recursive, perms, path_to_file)
 	if perms == null or path_to_file == null then return print(warning+"invalid usage")
@@ -807,6 +887,7 @@ Core["chgrp"] = function(obj, recursive, perms, path_to_file)
 	output = file.set_group(perms, rec)
 	if output.len > 1 then print(output)
 end function
+///============================
 // =======================  chown =======================
 Core["chown"] = function(obj, recursive, perms, path_to_file)
 	if perms == null or path_to_file == null then return print(warning+"invalid usage")
@@ -821,7 +902,7 @@ Core["chown"] = function(obj, recursive, perms, path_to_file)
 	wait(0.1)
 	if output then print(output)
 end function
-
+///============================
 // =======================  cat =======================
 Core["cat"] = function(obj, pathFile)
 	obj = Utils.handle(obj)
@@ -833,33 +914,47 @@ Core["cat"] = function(obj, pathFile)
 	if not file.has_permission("r") then return print("cat: permission denied")
 	print(file.get_content)
 end function
+///============================
 // =======================  mvdir =======================
+///============================
 Core["move"] = function(obj, targFilePath, pathFile, fileName)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	
+	if targFilePath[0] != "/" then targFilePath = Utils.pth(targFilePath)
+	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
+	if typeof(obj) == "file" then return obj.move(targFilePath, fileName)
+
 	targ = obj.File(targFilePath)
 	if targ == null then return print("mv: no file found")
 	file = targ.move(pathFile, fileName)
 	if typeof(file) == "string" then return print(file)
 	print(fileName+" created at path "+ pathFile)
 end function
+///============================
 // =======================  copy =======================
 Core["copy"] = function(obj, targFilePath, pathFile, fileName)
+
 	obj = Utils.handle(obj)
+
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	
 	if targFilePath[0] != "/" then targFilePath = Utils.pth(targFilePath)
 	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
-	
+	if typeof(obj) == "file" then return obj.copy(pathFile, fileName)
+
 	targ = obj.File(targFilePath)
 	if targ == null then return print("mv: no file found")
 	file = targ.copy(pathFile, fileName)
 	if file == false then return print("mv: failed to move")
 	print(fileName+" created at path "+ pathFile)
 end function
+///============================
 // =======================  rm =======================
+///============================
 Core["rm"] = function(obj, pathFile)
 	obj = Utils.handle(obj)
+	if typeof(obj) == "file" then return obj.delete
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	if pathFile[0] != "/" then pathFile = Utils.pth(pathFile)
 	file = obj.File(pathFile)
@@ -876,7 +971,6 @@ end function
 ////////////////////////////////////////////////////
 inputs = {}
 inputs.pos = {}
-
 inputs.pos.setY = function(lineIndex, data)
 	current_line = inputs.pos.y
 	length = data.len-1
@@ -892,7 +986,6 @@ inputs.pos.setY = function(lineIndex, data)
 	inputs.pos.x = 0
 	return inputs.pos.y
 end function
-
 inputs.pos.setX = function(linePos, data)
 	current_position = data[inputs.pos.y-1] // gets the line we are editing
 	print("SET X line: "+current_position)
@@ -907,7 +1000,6 @@ inputs.pos.setX = function(linePos, data)
 	//if globals.debug == true then print("setX: input "+linePos+"\nglobal: "+inputs.pos.x+"\n-----")
 	return inputs.pos.x
 end function
-
 Core["edit"] = function(obj, pathFile, clean = null)
 	inputs.pos.x = 0;inputs.pos.y = 0;cI = 0;bool = false;f=null;
 	if clean == "-c" then bool = true
@@ -1031,6 +1123,7 @@ Core["edit"] = function(obj, pathFile, clean = null)
 end function
 // =======================  move =======================
 
+///============================
 // =======================  ping =======================
 Core["ping"] = function(shell, ip)
 	obj = Utils.handle(shell)
@@ -1047,7 +1140,7 @@ Core["ping"] = function(shell, ip)
 end function
 
 // ======================= SERVICES =========================
-
+///============================
 // ======================= sniff =========================
 Core["sniff"] = function()
 	if globals.Mode then return print(warning+"program is operating at cfg:"+globals.Mode)
@@ -1055,7 +1148,9 @@ Core["sniff"] = function()
 	output = meta.sniffer
 	print(output)
 end function
+///============================
 // =======================  iwlist =======================
+///============================
 Core["iwlist"] = function(obj, net)
 	obj = Utils.handle(obj)
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
@@ -1069,7 +1164,9 @@ Core["iwlist"] = function(obj, net)
 	end for
 	print(format_columns(info))
 end function
+///============================
 // =======================  ifconfig =======================
+///============================
 // Usage: ifconfig [net interface] [ip address] gateway [ip address]
 Core["ifconfig"] = function(obj, addr = null, gate = null, device = null)
 	obj = Utils.handle(obj)
@@ -1100,21 +1197,11 @@ Core["ifconfig"] = function(obj, addr = null, gate = null, device = null)
 		if output.len > 0 then print(output)
 	end if
 end function
-// =======================  iwlist =======================
-//Usage: iwconfig [net device] [bssid] [essid name] [pass key]
-Core["iwlist"] = function(obj, net)
-	obj = Utils.handle(obj)
-	
-	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
-	if net == "eth" then return print(warning+"iwlist: ethernet cards not supported for this command")
-	//command: iwconfig
-	devices = obj.network_devices
-	if devices == null or devices.indexOf(net) == null then return print(warning+"iwconfig: Network device not found")
-	status = computer.connect_wifi(net, bss, ess, pass)
-	if typeof(status) == "string" then print(status)
-end function
 
+
+///============================
 // =======================  iWconfig =======================
+///============================
 //Usage: iwconfig [net device] [bssid] [essid name] [pass key]
 Core["iwconfig"] = function(obj, net, bss, ess, pass)
 	obj = Utils.handle(obj)
@@ -1125,7 +1212,9 @@ Core["iwconfig"] = function(obj, net, bss, ess, pass)
 	status = computer.connect_wifi(net, bss, ess, pass)
 	if typeof(status) == "string" then print(status)
 end function
+///============================
 // =======================  airmon =======================
+///============================
 Core["airmon"] = function(obj, option, device)
 	if not crypto then return print("Error: Missing crypto library")
 	obj = Utils.handle(obj)
@@ -1137,14 +1226,18 @@ Core["airmon"] = function(obj, option, device)
 	if typeof(output) == "string" then return print(output)
 	print(format_columns(formatOutput + obj.network_devices))
 end function
+///============================
 // =======================  aireplay =======================
+///============================
 Core["aireplay"] = function(bssid, essid)
 	if not bssid or not essid then return print(error+" invalid usage")
 	if not crypto then return print(error+"Missing crypto library")
 	result = crypto.aireplay(bssid, essid)
 	if typeof(result) == "string" then return print(result)
 end function
+///============================
 // =======================  aireplay =======================
+///============================
 Core["aircrack"] = function(obj, pathFile)
 	//command: aircrack
 	if not crypto then return print(error+"Missing crypto library")
@@ -1174,8 +1267,9 @@ Core["lib_catch"] = function(obj, lib, libVersion)
 	if ip then return Core.Probe(obj, ip)
 	return print(error+"with cmd: lib")
 end function
-
+///============================
 // =======================  apt-get =======================
+///============================
 PendingUpdating = function(obj, folderPath)
 	pc = obj.host_computer
 	apt = include_lib("/lib/aptclient.so")
@@ -1203,8 +1297,10 @@ end function
 // (lib) p2: string | null
 // (force) p3: boolean | null
 
-// i dont even want to look at this pos 
+// i dont even want to look at this pos
+///============================ 
 // =======================  apt-get =======================
+///============================
 Core["git"] = function(shell, cmd, param=null)
 	shell = Utils.handle(shell)
 	aptclient = include_lib("/lib/aptclient.so")
@@ -1248,9 +1344,9 @@ Core["git"] = function(shell, cmd, param=null)
 			if output == true then print(param + " installed")
 			print(output)
 		else if cmd == "search" then 
-			print(aptclient.search(p2));
+			print(aptclient.search(param));
 		else if cmd == "show" then		
-			print(aptclient.show(p2));
+			print(aptclient.show(param));
 		else if cmd == "addrepo" then
 			port = 1542
 			output = aptclient.add_repo(param)
@@ -1269,8 +1365,8 @@ end function
 //////////////////////////////////////////////////////////////////////////////  
 ///======================== NET SESSION =================================///
 //////////////////////////////////////////////////////////////////////////
-///============================ PROBE =====================///
-
+///============================
+///============================ HANDLER =====================///
 // obj: shellobject , p1: --|ip|domain, p2: *|port
 Core["Entry"] = function(obj, p1, p2 = null)
 	if globals.Mode then return print(warning+"program is operating cfg: <b>"+color.white+globals.Mode)
@@ -1278,6 +1374,7 @@ Core["Entry"] = function(obj, p1, p2 = null)
 	port = null
 	// reg, random,
 	if not p2 then
+		if p1 == "dungeonseeker" then return NPC.dungeon_seeker
 		print("p1: "+p1)
 		if p1 == "-r" then 
 			addr = Utils.random_ip
@@ -1292,8 +1389,56 @@ Core["Entry"] = function(obj, p1, p2 = null)
 	end if
 	return Core.Probe(obj, addr)
 end function
-
-Core["Probe"] = function(object, addr)
+///============================
+///============================ MAP =====================///
+///============================
+Core.map = function(addr)
+	isDomain = null
+	if not is_valid_ip(addr) or not is_lan_ip(addr) then
+		isDomain = nslookup(addr)
+		if is_valid_ip(isDomain) then addr = isDomain
+	end if
+	if not isDomain and not is_valid_ip(addr) then return print(warning+" not a valid IP")
+	addr_label = "HIDDEN"
+	if globals.anonymous == false then addr_label = addr
+	router = null;ports = null;isLanIp = is_lan_ip(addr);info = null;num = 0;
+	if isLanIp then 
+		print("lan detected")
+		router = get_router;
+		if not router then return print(error+" An error occured")
+		ports = router.device_ports(addr) // these appear to be forwarded ports ?
+	else 
+		router = get_router(addr); 
+		if not router then return print(error+" An error occured")
+		ports = router.used_ports
+	end if
+		devices = router.devices_lan_ip 	// any machine on the network reachable by ping on this address 
+	//optional router attack
+	if not ports or ports.len == 0 then return print(warning+"no ports found")
+	for port in ports
+		service = router.port_info(port)
+		if not service then continue
+		service_parsed = service.split(" ")
+		service_lib = service_parsed[0]
+		service_version = service_parsed[1]
+		status = color.green+"open"+color.cap
+		lan = port.get_lan_ip
+		number = port.port_number
+		if (port.is_closed and not isLanIp) then status = color.red+"closed"+color.cap
+		//choices = choices + "\n"+color.cyan + num+".) "+color.cap+color.purple+ lan +color.cap+color.white+ " " + number +color.cap+color.green +" " + service_lib
+		num = num+1	
+		info = info + color.cyan+service_lib+color.cap + " " + status + " " +color.grey+service_version+color.cap + " " + color.purple+lan+color.cap+color.white+" "+number+"\n"
+	end for
+	print(color.blue+color.fill+"\n"+color.blue+"><>"+color.cap+" "+addr_label+color.cap+" "+color.grey+number+color.cap+" Router: <b>v"+color.white+router.kernel_version)
+	if globals.anonymous == false then Utils.who(addr)
+	print(color.green+"><> "+color.cap+format_columns("LIB STATE VERSION LAN PORT")+color.green+" ><>")
+	print(format_columns(info))
+	//print(color.blue+color.fill); print(format_columns(choices)); print(color.blue+color.fill)
+end function
+///============================
+///============================ PROBE =====================///
+///============================
+Core["Probe"] = function(object, addr, extended = null)
 	isDomain = null
 	if not is_valid_ip(addr) or not is_lan_ip(addr) then
 		isDomain = nslookup(addr)
@@ -1315,7 +1460,7 @@ Core["Probe"] = function(object, addr)
 		if not router then return print(error+" An error occured")
 		ports = router.used_ports
 	end if
-		devices = router.devices_lan_ip 	// any machine on the network reachable by ping on this address 
+	devices = router.devices_lan_ip 	// any machine on the network reachable by ping on this address 
 	//optional router attack
 	if not ports or ports.len == 0 then 
 		input = user_input(title+color.orange+"[Alert] No forward ports found\n"+color.yellow+"[SELECT]\n1.) Exploit the router \n0.) Exit\n--> ")
@@ -1358,14 +1503,22 @@ Core["Probe"] = function(object, addr)
 	print(format_columns(info))
 	print(color.blue+color.fill); print(format_columns(choices)); print(color.blue+color.fill)
 	response = user_input(title+color.green+"-- "+color.white+"Select Entry"+color.cap+color.grey+" * Enter to Return *"+color.cap+color.green+" --> "+color.cap+color.white)
-	if response.len == 0 then return
+	if response.len == 0 then return	
 	response = response.val
-	if response == 0 then return Core.RouterEntry(addr, devices)
 	lan = fwd_machines[response - 1][0]
 	port = fwd_machines[response - 1][1]
-	return Core.NetEntry(addr, lan, port)
+	attack_choice = user_input(color.white+"--> "+color.cap)
+	if attack_choice == "+" then 
+		return Core.Inject_w_Save(addr, port)
+	else if response == 0 then 
+		return Core.RouterEntry(addr, devices)
+	else 
+		return Core.NetEntry(addr, lan, port)
+	end if
 end function
+///============================
 ///============================ ROUTER ENTRY =====================///
+///============================
 Core.RouterEntry = function(addr, devices)
 	// begin a task to begin a net session hack
 	addr_label = "HIDDEN"
@@ -1380,20 +1533,26 @@ Core.RouterEntry = function(addr, devices)
 	end for
 	options = options + "\n0.)"+color.purple+" Net Router Entry\n"+color.yellow+"LAN"+color.cap+" Bounce Other Machine\n|| Return to Main\n"+color.green+"[Select] --> "+color.cap
 	choice = user_input(options)
-	if choice == "||" then return print("Returning . . .")
-	if is_lan_ip(choice) then 
+	inject = user_input("Press * to inject --> ")
+	if choice == "||" then return print("Returning . . .")	
+	if is_lan_ip(choice) then
+		if inject == "*" then return Core.Inject_w_Save(addr, "0", choice)
 		hacked_object = auto_hack(addr, 0, choice)
 	else 
 		choice = choice.val
 		if choice == 0 then 
+			if inject == "*" then return Core.Inject_w_Save(addr, "0")
 			hacked_object = auto_hack(addr, 0)
-		else 
+		else
+			if inject == "*" then return Core.Inject_w_Save(addr, "0", devices[choice-1])
 			hacked_object = auto_hack(addr, 0, devices[choice-1])
 		end if
 	end if
 	return hacked_object
 end function
+///============================
 ///============================ NET ENTRY =====================///
+///============================
 Core.NetEntry = function(ip, lan, port)
 	ip_label = "HIDDEN"
 	if globals.anonymous == false then ip_label = ip
@@ -1433,6 +1592,129 @@ Core.NetEntry = function(ip, lan, port)
 	if globals.debug then print("we are expecting hacked_object to be map and its a : "+ typeof(hacked))
 	return hacked
 end function
+///============================
+///============================ DICTIONARY =====================///
+///============================
+// data:
+// 
+Core.Inject = function(entry, port, data = null, apt = null)
+	print(init+"injecting . . .")
+	if globals.Mode then return print(warning+"program is operating cfg: <b>"+color.white+globals.Mode)
+	//if apt then result = get_local_hacks(true)
+	//if not apt and port != 0 then result = get_remote_hacks(entry, port)
+	//if port == 0 then result = get_remote_hacks(entry)
+	if globals.debug then print(entry+" "+port)
+	if not is_valid_ip(entry) then return print(warning+"invalid ip specified")
+	if not port then return print(warning+"invalid port specified")
+	if typeof(port) != "number" then port = port.to_int
+	netsession = meta.net_use(entry, port)
+	if not netsession then return print(error+"cannot establish net session")
+	dump = netsession.dump_lib
+	if not dump then return print(error+"failed to dump contents")
+	lib = dump.lib_name
+	libV = dump.version
+	libName = lib+"_v"+libV
+	query = Core.exp.search2(lib, libV)
+	if not query then return print(warning+"invalid query")
+	if query.len < 1 then return print(warning+"invalid db data")
+	hacks = Core.exp.get_format(query)	
+	types = ["shell", "computer","file","string","number",]
+	if not data then data = "pass"
+	for hack in hacks
+		result = null
+		if hack.len < 2 then continue
+		result = dump.overflow(hack[1]["memory"], hack[2]["string"], data)
+		type = typeof(result)
+		if result == null then
+			str = color.white+"overflow result --> "+color.cap+color.red+"FAIL"
+			if hack.len > 3 then str = str+"\n"+color.grey+"><> ><> ><>\n"+hack[3]["requirements"]+"\n"+color.grey+"><> ><> ><>"
+			print(str)
+			continue
+		end if
+		print(color.white+"<i>overflow resulted in: </i><b>"+color.cap+color.green+type)
+		a = null
+		if type == "shell" then
+			a = new ShellObject
+			a.init(result);Core.add(a)
+		else if type == "computer" then 
+			a = new CompObject
+			a.init(result);Core.add(a)
+		else if type == "file" then 
+			a = new FileObject
+			a.init(result);Core.add(a)
+		else if type == "string" then 
+			continue
+		else if type == "number" then
+			Others.push(1)
+			continue 
+		end if
+	end for
+
+end function
+// force - allow to save the exploits automatically for mass crack'n
+Core.Inject_w_Save = function(entry, port, data = null, force = null)
+	print(init+"injecting . . .")
+	if globals.Mode then return print(warning+"program is operating cfg: <b>"+color.white+globals.Mode)
+	if globals.debug then print(entry+" "+port)
+	if not is_valid_ip(entry) then return print(warning+"invalid ip specified")
+	if not port then return print(warning+"invalid port specified")
+	if typeof(port) != "number" then port = port.to_int
+	netsession = meta.net_use(entry, port)
+	if not netsession then return print(error+"cannot establish net session")
+	dump = netsession.dump_lib
+	if not dump then return print(error+"failed to dump contents")
+	lib = dump.lib_name
+	libV = dump.version
+	libName = lib+"_v"+libV
+	query = Core.exp.search2(lib, libV)
+	hacks = []
+	if not query then 
+		choice = 1
+		if not force then choice = user_input(warning+"<i>Library not found, press 1 to manually scan & save\n--> ").to_int
+		res = null
+		if choice == 1 then 
+			res = Tuxploit.scan(dump) 
+		else 
+			return print(warning+"invalid query")
+		end if
+		query = Core.exp.search2(lib, libV)
+	end if
+	if not query then return print(error+"invalid query")
+	if query.len < 1 then return print(warning+"invalid db data")	
+	hacks = Core.exp.get_format(query)	
+	types = ["shell", "computer","file","string","number",]
+	if not data then data = "pass"
+	for hack in hacks
+		result = null
+		if hack.len < 2 then continue
+		result = dump.overflow(hack[1]["memory"], hack[2]["string"], data)
+		type = typeof(result)
+		if result == null then
+			str = color.white+"overflow result --> "+color.cap+color.red+"FAIL"
+			if hack.len > 3 then str = str+"\n"+color.grey+"><> ><> ><>\n"+hack[3]["requirements"]+"\n"+color.grey+"><> ><> ><>"
+			print(str)
+			continue
+		end if
+		print(color.white+"<i>overflow resulted in: </i><b>"+color.cap+color.green+type)
+		a = null
+		if type == "shell" then
+			a = new ShellObject
+			a.init(result);Core.add(a)
+		else if type == "computer" then 
+			a = new CompObject
+			a.init(result);Core.add(a)
+		else if type == "file" then 
+			a = new FileObject
+			a.init(result);Core.add(a)
+		else if type == "string" then 
+			continue
+		else if type == "number" then
+			Others.push(1)
+			continue 
+		end if
+	end for
+
+end function
 
 // EXPLOITS
 // 1. checkLib
@@ -1441,86 +1723,532 @@ end function
 // 3. update
 
 Core.exp = {}
-Core.exp["get_format"] = function(data)
-// take file content from library file, and format it into valid params
-
+///============================
+///============================ LOAD DICT =====================///
+Core.load_exploits = function()
+	o = null
+	if globals.DB1 then 
+		return globals.DB1
+	else if data then 
+		if data.DB1 then o = data.DB1
+	else 
+		return null
+	end if
+	return o
 end function
+///============================
+///============================ LOAD HASHES =====================///
+Core.load_rainbow = function()
+	o = null
+	if globals.DB2 then
+		return globals.DB2
+	else if data then 
+		if data.DB1 then o = data.DB2
+	else 
+		return null
+	end if
+	return o
+end function
+///============================
+///============================ RAINBOW ROAD =====================///
+///============================
 
+arr = [color.red+"R"+color.cap,color.orange+"A"+color.cap,color.yellow+"I"+color.cap,color.green+"N"+color.cap, color.cyan+"B"+color.cap, color.blue+"O"+color.cap, color.purple+"W"+color.cap]
+rCount = 0
+Core.rainbow_road = function(rHash, cute = null)
+	//if typeof(object) == "shell" and typeof(object) == "ftpshell" then return print(warning+"can only go down rainbow road on a shell")
+	hasHash = null 
+	db_folder = Core.load_rainbow
+	if not db_folder then return print(error+"no exploit folder found") 
+	for files in db_folder.get_files
+		for each in files.get_content.split("\n")//.split(":")
+			if each.split(":") == null or each.split(":").len == 1 then continue
+			if each.split(":")[1] == rHash then hasHash = each.split(":")[0]
+			if hasHash then break	
+		end for
+	end for
+	if not hasHash and (Hashes.indexOf(rHash) == null) then 
+		hasHash = Utils.cipher(null, rHash)
+		label = null
+		label = hasHash+":"+rHash
+		Hashes.push(rHash)
+		Cracked.push(label)
+	end if
+	print(color.rainbow+" "+hasHash)
+	return hasHash
+end function
+///============================
+///============================ FORMAT FROM DICT =====================///
+Core.exp["get_format"] = function(data)
+	hacks = []
+	for parse in data.split("\n")
+		values = []
+		for s in parse.split(":::")
+			pair = {}
+			if s.split("::")[0] == "requirements" then 				
+				pair["requirements"] = s.split("::")[1].replace(":", char(10))
+			else if s.split("::")[0] == "exploit" then
+				pair["exploit"] = s.split("::")[1]
+			else if s.split("::")[0] == "memory" then
+				pair["memory"] = s.split("::")[1]
+			else if s.split("::")[0] == "string" then			
+				pair["string"] = s.split("::")[1]
+			else
+				continue
+			end if
+			values = values + [pair]
+		end for
+		hacks = hacks+[values]
+	end for
+	return hacks
+end function
+data.get_format = @Core.exp.get_format
+///============================
+///============================ FORMAT TO DICT =====================///
 Core.exp["set_format"] = function(data)
 // take raw data from gethacks, and format it into parsable txt
 
 end function
+///============================
+///============================ BROWSE DICT =====================///
+Core["browse_exploits"] = function(object, library, libVersion)
+	object  = Utils.handle(object)
+	if typeof(object) == "shell" or typeof(object) =="ftpshell" then object = object.host_computer
+	db_home = object.File("/home/"+Utils.user(object)+"/dict/exploits")
+	if not db_home then db_home = globals.DB1
+	if (db_home == null) and (data and data.DB1) then db_home = data.DB1
+	if not db_home then 
+		return print(error+"db main not found")
+	end if
+	db_sub = object.File("/home/"+Utils.user(object)+"/dict/exploits/"+library)
+	if not db_sub then return print(error+"db sub not found")
 
-Core.exp["search"] = function(library)
+	if libVersion == "-d" then
+		// dump all content
+		for file in db_sub.get_files
+			print color.blue+color.fill
+			print(color.green+"<b>"+file.name)
+			hacks = Core.exp.get_format(file.get_content)
+			for exploit in hacks
+				if exploit.len == 0 then continue
+				print color.blue+color.fill
+				type = color.white+exploit[0]["exploit"]+color.cap
+				memory = color.white+exploit[1]["memory"]+color.cap
+				value = color.white+exploit[2]["string"]+color.cap
+				print "Exploit: "+type+"\nAddress: "+memory+"\nValue: "+value
+				if exploit.len > 3 then 
+					print(color.grey+"><> ><> ><>\n"+color.yellow+"Requirements:"+color.cap+char(10)+exploit[3]["requirements"]+char(10)+color.grey+"><> ><> ><>")
+				end if
+			end for
+		end for
+	else if libVersion == "-l" then
+		for file in db_sub.get_files
+			print(color.white+file.name)
+		end for
+	else 
+		db_file = object.File("/home/"+Utils.user(object)+"/dict/exploits/"+library+"/"+library+".so_v"+libVersion+".db")
+		if not db_file then return print(warning+"db file not found")
+		data = db_file.get_content
+		hacks = Core.exp.get_format(data)
+		print color.blue+color.fill
+		print(color.green+"<b>"+db_file.name)
+		for exploit in hacks
+			if exploit.len == 0 then continue
+			print color.blue+color.fill
+			type = color.white+exploit[0]["exploit"]+color.cap
+			memory = color.white+exploit[1]["memory"]+color.cap
+			value = color.white+exploit[2]["string"]+color.cap
+			print "Exploit: "+type+"\nAddress: "+memory+"\nValue: "+value
+			if exploit.len > 3 then 
+				print(color.grey+"><> ><> ><>\n"+color.yellow+"Requirements:"+color.cap+char(10)+exploit[3]["requirements"]+char(10)+color.grey+"><> ><> ><>")
+			end if
+		end for
+
+	end if	
+end function
+///============================
+///============================ SEARCH EXTENSIVE =====================///
+
+Core.exp["search2"] = function(library, libVersion)
+	if not library or not libVersion then return print(warning+"search: invalid args provided")
+	print(init+color.grey+"<i>searching db for "+library+" "+libVersion)
 	exploits = null
-	base = globals.Shells[0][0]
-	user = base.user
-	base = Utils.handle(base)
-	//if typeof(base) == "shell" or typeof(base) == "ftpshell" then base = base.host_computer
-	// check base shell dir
-	fsPath = ["/home/"+user+"/src", "/home/"+user+"/src/dict", "/home/"+user+"/src/dict/exploits"]
-	for file in fsPath
-		f = base.host_computer.File(file)
-		if f == null then
-			return print("Missing "+file)
-		else if f.name == "exploits" then 
-			break
-		end if
+	db_folder = data.DB1
+	if not db_folder then return print(error+"no exploit folder found") 
+	for folder in db_folder.get_folders
+		if (folder.name != library.split(".")[0]) and (library != "kernel_router" and (folder.name != "kernelrouter" and folder.name != "kernelrouter1")) then continue
+		for file in folder.get_files
+			if file.name == (library+"_v"+libVersion+".db") then
+			exploits = file.get_content
+			break 
+			end if
+		end for
 	end for
-	depot = base.host_computer.File("/home/"+user+"/src/dict/exploits")
-	if not depot then return print(error+" no exploit folder found") 
-	for file in home.get_files
-		if globals.debug then print("file: "+file.name)
-		if file == null or file.is_binary then 
-			print("Missing "+file)
-		else if file.name == library then
-			exploits = file.get_content 
-			break
-		end if
-	end for
-	// return info
-	return explpoits
+	if not exploits then return print(warning+"<i>failed to load requested vulnerabilities file")
+	print(title+color.green+"<i>loading vulnerabilities from</i> "+color.cap+color.red+library+"_v"+libVersion)
+	return exploits
 end function
 
-
-Core.exp["create"] = function(object, library, data)
+data.query = @Core.exp.search2 // exportable query
+Core.exp["create"] = function(object, library, libVersion, data)
 	exploits = null
 	valid_path = null
+
 	// check base shell dir
-	fsPath = ["/home/"+user+"/src", "/home/"+user+"/src/dict", "/home/"+user+"/src/dict/exploits"]
-	for file in fsPath
-		f = base.host_computer.File(file)
-		if f == null then
-			return print("Missing "+file)
-		else if f.name == "exploits" then
-			valid_path = true 
-			break
-		end if
+	if not db_folder then return print(error+"no exploit folder found") 
+	for folder in db_folder.get_folders
+		if (folder.name != library.split(".")[0]) and (library != "kernel_router" and (folder.name != "kernelrouter" and folder.name != "kernelrouter1")) then continue
+		valid_path = folder.path
 	end for
 	//depot = base.host_computer.File("/home/"+user+"/src/dict/exploits")
 	if not valid_path then return print(error+" no exploit folder found") 
-	exploit_file = base.host_computer.File("/home/"+user+"/src/dict/exploits/"+library)
+	exploit_file = base.host_computer.File(valid_path+"/"+library+"_v"+libVersion)
 	formatted = @Core.exp["set_format"]
 	content = formatted(data)
 	
-	
 	if exploit_file == null then
 		if globals.debug then print("exp: create c1")  
-		create = base.host_computer.touch("/home/"+user+"/src/dict/exploits", library)
-		verify = base.host_computer.File("/home/"+user+"/src/dict/exploits/"+library)
-		if verify then
+		create = base.host_computer.touch("/home/"+user+"/dict/exploits/"+library, library+"_v"+libVersion+".db")
+		if typeof(create) != "string" then
 			edit = exploit_file.set_content(content)
 			if typeof(edit) == "string" then return print(warning+"failed to set file content")
-			if edit == 1 then print(color.green+" Exploit Save --> <b>OK</b>"+color.cap+" Library: "+color.white+library) 
+			if edit == 1 then return print(color.green+" Exploit Save --> <b>OK</b>"+color.cap+" Library: "+color.white+library) 
 		end if
-	else 
-		if globals.debug then print("exp: create c2") 
-		content = exploit_file.get_content
-		if content.len > 1 then
-		if globals.debug then print("exp: create c2a")  
-		edit = exploit_file.set_content(data)
-		if typeof(edit) == "string" then return print(warning+"failed to set file content")
-		if edit == 1 then print(color.green+" Exploit Save --> <b>OK</b>"+color.cap+" Library: "+color.white+library) 
+		return print(create)
 	end if
-	return true
+	print(library+"_v"+libVersion+" already exists")
 end function
+///============================
+///============================ MASS LOOP =====================///
+///============================
+///============================
+///============================ SAVE DATA =====================///
+Core.exp["save_data"] = function(obj, data)
+	print(init+"attempting to save results:")
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	l = obj.File("/home/2NA/dict/dump").get_files.len
+	file = obj.touch("/home/2NA/dict/dump", "data"+str(l))
+	if file != 1 then return print(warning+color.grey+"<i>failed to save file")
+	lines = ""
+	for d in data
+		lines = lines + d + char(10)
+	end for
+	save = obj.File("/home/2NA/dict/dump/data"+str(l)).set_content(lines)
+	if save == 1 then return print(color.white+"/home/2NA/dict/dump/data"+str(l)+" was saved successfully")
+end function
+///============================
+///============================ SAVE RAINBOW =====================///
+Core.exp["save_rainbow"] = function(obj)
+	if globals.Cracked.len == 0 then return
+	print(init+"updating --> "+color.rainbow)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	l = obj.File("/home/2NA/dict/data/rainbow").get_files.len
+	file = obj.touch("/home/2NA/dict/data/rainbow/", "r"+str(l))
+	if file != 1 then return print(warning+color.grey+"<i>failed to create rainbow file")
+	lines = ""
+	for d in globals.Cracked
+		lines = lines + d + char(10)
+	end for
+	save = obj.File("/home/2NA/dict/data/rainbow/r"+str(l)).set_content(lines)
+	globals.Cracked = []
+	if save == 1 then return print(color.white+"/home/2NA/dict/data/rainbow/r"+str(l)+" was saved successfully")
+	print(warning+"failed to save rainbow file")
+end function
+//*obj: ShellObject
+//*action: string [-r: router entry, -f:fwd port entry]
+//*recon: string [ pw: etc only, -b: bank only, -m: mail only]| null: all hashes
+//*offense: string [ BAM: name ] | null
+
+Core.exp["mass_loop"] = function(obj, action, recon = null, offense = null)
+	amount = user_input(title+"How far should we sail? --> ").to_int
+	if amount < 0 or amount > 500 then amount = 250 end if
+	start = time
+	reconType = [ {"pw": "/etc/passwd"}, {"-b": "/Bank.txt"}, {"-m": "/Mail.txt"} ] 
+	obj = Utils.handle(obj);
+	completed_networks = [] // amount of networks we have crawled
+	completed_tasks_label = [] // amount of machines we have crawled
+	completed_tasks = [] // individual amount of tasks we performed
+	binaries_launched = [] // amount of machines we launched binaries on 
+	failed_machines = [] // amount of machines we failes
+	interesting_machines = [] // machines worth revisitng
+	scanning = true
+	depot_folder = obj.host_computer.File("/root")
+	if Utils.user(obj) != "root" then depot_folder = obj.host_computer.File("/home/"+Utils.user(obj))
+	while scanning == true
+		if scanning == false then break
+		// random ip 
+		public = Utils.random_ip
+		router = get_router(public)
+		if not router then continue
+		print init+"\nscanning: "+color.white+public+"\ncaptured networks: [ "+color.white+completed_networks.len+color.cap+" ]\ncaptured machines: [ "+color.white+completed_tasks_label.len+color.cap+" ]\ncaptured objects:  [ "+color.white+completed_tasks.len+color.cap+" ]\n",1
+		wait(1.8)
+		ports = router.used_ports
+		devices = router.devices_lan_ip			
+		tasks = []
+		if not ports or ports.len == 0 or action == "-r" then 
+			// enter via router
+			Core.Inject(public, "0", "pass")
+		else 			
+			// enter via open ports 
+			for port in ports
+				lan = port.get_lan_ip
+				number = port.port_number
+				//if completed_tasks.indexOf(public+":"+s.local_ip+":"+s.user+":"+typeof(s)) then continue
+				//if taks.indexOf(lan) == null then tasks.push(lan)
+				// fwd port attack
+				Core.Inject_w_Save(public, str(number), "pass", true)
+			end for
+			// bounce?
+		end if
+		for device in devices
+			Core.Inject_w_Save(public, "0", device, true)
+		end for
+		if globals.Shells.len == 1 and globals.Computers.len == 1 and globals.Files.len == 1 then continue
+		// sort the objects gathered
+		objects = [globals.Shells, globals.Computers, globals.Files]
+		// begin to use said objects
+		
+		// tasks: 1.) get root, 
+		
+		for o in objects
+			for obj_ in o
+				task_notes = [] // keep track of some results ig
+				if obj_[1] == "MAIN" then continue				
+				if (obj_[0] isa FileObject) == false then 
+					u = obj_[0].user
+					b = obj_[0].bank
+					m = obj_[0].email
+					h = obj_[0].pass
+					r = obj_[0].risk
+					if u == "root" and (self.pass != "!/etc" and self.pass!="!r/etc" and self.pass!="!/passwd_content") then h = h.split("/n")[0].split(":")[0]+":"+Core.rainbow_road(h.split("/n")[0].split(":")[1])
+					if b != "void" then
+						b_mut = b.split(":")[0]
+						b = b_mut+":"+Core.rainbow_road(b.split(":")[1])
+					end if
+					if m != "null" then 
+						m_mut = m.split(":")[0]
+						m = m_mut+":"+Core.rainbow_road(m.split(":")[1])
+					end if
+				else
+						par = obj_[0].F.parent
+						if not par then par = "/"
+						n = obj_[0].F.name
+						p = obj_[0].F.path
+						o = obj_[0].F.owner
+						r = obj_[0].F.has_permission("r")
+						w = obj_[0].F.has_permission("w")	
+						x = obj_[0].F.has_permission("x")
+						s = obj_[0].scope
+						c = ""
+						etc = "!/etc"
+						pw = "!/pw"
+						if completed_tasks.indexOf(typeof(obj_[0].F)+"::"+n+"::"+s+"::"+p+"::"+c+"::"+public+"::"+o+"::*"+c) then continue
+						if r == false then
+							completed_tasks.push(typeof(obj_[0].F)+"::"+n+"::"+s+"::"+p+"::"+public+"::"+o+"::*!/r")
+							continue
+						end if
+						if obj_[0].F.is_folder then 
+							batch = obj_[0].F.get_files+ obj_[0].F.get_folders
+							for b in batch 
+								if obj_[0].F == "etc" and b.name == "passwd" then 
+									c = c+b.get_content.replace("\n", "&")
+									break
+								else if obj_[0].F == "root" or obj_[0].F  == "home" then 
+									for dir in par.get_folders
+										if dir.name == "etc" then 
+											for fi in dir.get_files
+												if fi.name == "passwd" and fi.has_permission("r") then 
+													c = c+fi.get_content.replace("\n", "&")
+													break
+												end if
+											end for
+										end if	
+									end for
+								end if
+							end for
+						end if
+						completed_tasks.push(typeof(obj_[0].F)+"::"+n+"::"+s+"::"+p+"::"+c+"::"+public+"::"+o+"::*"+c)
+					continue
+				end if
+				s = Utils.handle(obj_[0])
+				s_mut = null
+				if typeof(s) == "shell" or typeof(s) == "ftpshell" then 
+					s_mut = s.host_computer
+				else 
+					s_mut = s // mutate it so we can keep the original
+				end if
+				// if we hacked this machine we skip
+				if completed_tasks_label.indexOf(public+"::"+s_mut.local_ip) == null then completed_tasks_label.push(public+"::"+s_mut.local_ip)
+				if completed_tasks.indexOf(typeof(s)+"::"+u+"::"+b+"::"+m+"::"+public+"::"+s_mut.local_ip+"::"+h) then continue
+				// add the notes etc
+				if BAM.isValid(offense) and typeof(s_mut) == "shell" then 
+					// launch the specified binary
+					BAM.handle(s, s.home, offense)
+					binaries_launched.push(public+":"+s.local_ip+":"+u+":"+offense)
+				end if
+				//print("CAPTURED: "+typeof(s)+"::"+u+"::"+b+"::"+m+"::"+public+"::"+s_mut.local_ip+"::"+h)
+				completed_tasks.push(typeof(s)+"::"+u+"::"+b+"::"+m+"::"+public+"::"+s_mut.local_ip+"::"+h)
+			end for
+		end for
+		// SAVE
+		// clear global object
+		globals.Shells = [ [base_shell, "MAIN"] ] // our collection of global shell objects
+		globals.Computers = [ [base_pc, "MAIN"] ] // our collection of global computer objects
+		globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects
+		completed_networks.push(public)
+		if completed_networks.len == amount then scanning = false
+	end while
+	completion = time
+	res = str(completion - start)
+	print(init+"RESULT:\ncaptured networks: [ "+color.white+completed_networks.len+color.cap+" ]\ncaptured machines: [ "+color.white+completed_tasks_label.len+color.cap+" ]\ncaptured objects:  [ "+color.white+completed_tasks.len+color.cap+" ]\nElapsed:"+res+"\n", 1)
+	wait(1.5)
+	Core.exp.save_rainbow(obj)
+	return Core.exp.save_data(obj, completed_tasks)
+end function
+Tuxploit={"exploits":[]}
+Tuxploit.get=function(m)
+	if not m.lib_name then return null
+	c=null
+	p=null
+	n=m.lib_name+"_v"+m.version+".db"
+	x=m.lib_name.replace("_","").split(".").pull
+	c = globals.Shells[0][0].shell.host_computer
+	p = data.DB1.path
+	
+	l=c.File(p+"/"+x+"/"+n)
+	if l then return l
+	l=c.File(p+"/"+x+"1"+"/"+n)
+	if l then return l
+	if c.File(p+"/"+x) then
+		r=c.touch(p+"/"+x,n)
+		if r isa string then
+			c.create_folder(p,(x+"1"))
+			c.touch(p+"/"+(x+"1"),n)
+			return c.File(p+"/"+(x+"1")+"/"+n)
+		else
+			return c.File(p+"/"+x+"/"+n)
+		end if
+	else
+		c.create_folder(p,x)
+		c.touch(p+"/"+x,n)
+		return c.File(p+"/"+x+"/"+n)
+	end if
+end function
+Tuxploit.write=function(z,m)
+	if self.exploits then self.exploits=[]
+	f=self.get(m)
+	if not f then return print(error+"File IO","Write Exploits")
+  	s=[]
+	for e in z
+		c=e.indexes.len
+		for k in e.indexes
+			c=c-1
+			if not c then s.push k+"::"+e[k] else s.push k+"::"+e[k]+":::"
+		end for
+		s.push NL
+	end for
+	test = f.set_content(s.join(""))
+	return test
+end function
+Tuxploit.load=function(m)
+	v=[]
+	a=self.get(m)
+	if not a then return v
+	for i in a.get_content.split(NL)
+		if not i.len then continue
+		k={}
+		j=i.split(":::")
+		if not j.len then continue
+		for e in j
+			if not e.len then continue
+			e=e.split("::")
+			A=e.pull
+			B=e.pull
+			if A=="exploit" then
+				k["exploit"]=B
+				continue
+			end if
+			if A=="memory" then
+				k["memory"]=B
+				continue
+			end if
+			if A=="string" then
+				k["string"]=B
+				continue
+			end if
+			if A=="user" then
+				k["user"]=B
+				continue
+			end if
+			if A=="parameters" then
+				k["parameters"]=B
+				continue
+			end if
+			if A=="requirements" then
+				k["requirements"]=B
+				continue
+			end if
+		end for
+		if k then v.push k
+	end for
+	return v
+end function
+Tuxploit.scan=function(t)
+	_r=function(z)
+		a=-1
+		for e in z
+			a=a+1
+			b=z.len-1
+			while b>a
+				if e.memory==z[b].memory and e.string==z[b].string then z.remove(b)
+				b=b-1
+			end while
+		end for
+		return z
+	end function
+	q=[]
+	x=null
+	r=null
+	for a in meta.scan(t)
+		for l in meta.scan_address(t,a).split(NL)
+			if not l.len then continue
+			if l.indexOf("Unsafe check")==0 then
+				if x then
+					if r then x["requirements"]=r
+					q.push x
+				end if
+				s=l.indexOf("<b>")+3
+				d=l.indexOf("</b>")
+				x={"exploit":"Unknown","string":l[s:d],"memory":a,"user":""}
+				r=null
+				continue
+			end if
+			if l[0]=="*" then
+				if r then r=r+":"+l else r=l
+			end if
+		end for
+	end for
+	if x then
+		if r then x["requirements"]=r
+		q.push x
+	end if
+	c=[]
+	h=self.get(t)
+	if not h then return c
+	for e in q
+		if t.lib_name=="kernel_router.so" then e.exploit="Router"
+		c.push "exploit::"+e.exploit+":::"
+		c.push "memory::"+e.memory+":::"
+		c.push "string::"+e.string+":::"
+		c.push "user::"+"Unknown"
+		if e.hasIndex("requirements") then c.push ":::requirements::"+e.requirements
+		c.push NL
+	end for
+	h.set_content(h.get_content+c.join(""))
+	return self.write(_r(self.load(t)),t)
+end function
+//////////////////////////////////////////////////////////////  
+///======================= CORE =========================////
+////////////////////////////////////////////////////////////
