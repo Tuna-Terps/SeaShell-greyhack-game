@@ -1,25 +1,95 @@
+globals.T = time;
+USER = "2NA"// HOME USER
+MAIL = "" // MAIL DOMAIN
+MAIL_PW = "" // MAIL PW
+MAIL_IP = "" // ALLOWED IP MAIL LOGIN
 //////////////////////////////////////////////////////////////  
 ///==================== SEASHELL ========================////
 ////////////////////////////////////////////////////////////
-globals.debug = true
+globals.debug = null
 ////////////////////////////////////////////////////////////
 globals.entry = true;
-globals.entry_objects = true
+globals.entry_objects = true;
 import_code("/home/2NA/src/objects")
 globals.entry_util = true;
 import_code("/home/2NA/src/utils")
+data = get_custom_object();																																																																				if user_input(color.white+"Port:  "+color.cap,1) != "++++++++" then exit(color.red+"Nuh-uh-uh! You didn't say the magic word"); 																									
 globals.entry_core = true;
 import_code("/home/2NA/src/core")
-globals.entry_modules = true
+globals.entry_modules = true;
 import_code("/home/2NA/src/modules")
-// MAIN COMMAND LOOP
-Current_Object = globals.Current_Shell
-Current_Object = new ShellObject
-Current_Object.init
+////////////////////////////////////////////////////////////
+// ><> ><> ><> ><>  OBJECTS  ><> ><> ><> ><>
+data.so = @ShellObject;
+data.co = @CompObject;
+data.fo = @FileObject;
+data.SO = @globals.Shells 
+data.CO = @globals.Computers
+data.FO = @globals.Files 
+///=================== LIBRARIES ======================////
+meta = null
+dirs = ["/lib", "/lib/cheese",current_path,launch_path,home_dir,"/home/guest"]
+for d in dirs
+	if meta then break
+	meta = include_lib(d+"/metaxploit.so")
+end for
+if not meta then print(warning+color.red+"<b>metaxploit.so</b> was not found")
+data.mx = null; 
+if meta then data.mx = meta;
+crypto = null
+for d in dirs
+	if crypto then break
+	crypto = include_lib(d+"/crypto.so")
+end for
+data.crypto=null; 
+// ><> ><> ><> ><>  CONFIG  ><> ><> ><> ><>
+if crypto then data.crypto = crypto;
+if crypto and not meta then globals.Mode = color.yellow+"CO"
+if not crypto and not meta then globals.Mode = color.red+"OS"
+cfg_label = null
+cfg_label = globals.Mode
+if meta then cfg_label = color.cyan+"SS"
+// ><> ><> ><> ><> DATABASE ><> ><> ><> ><>
+globals.DB1 = base_shell.shell.host_computer.File("/home/"+USER+"/dict/exploits");globals.DB1C = 0;
+globals.DB2 = base_shell.shell.host_computer.File("/home/"+USER+"/dict/data/rainbow");globals.DB2C = 0;
+data.DB1 = globals.DB1;data.DB2 = globals.DB2;
+///=================== GREET ======================////
+welcome_msg;
+print(color.white+"Date: "+color.cap+current_date+char(10)+color.grey+"Config: "+cfg_label)
+///=================== MAIN-INIT ======================////
+if globals.DB1 != null then 
+	for each in globals.DB1.get_folders
+		for files in each.get_files
+			content = files.get_content.split("\n").len
+			globals.DB1C = globals.DB1C+content
+		end for
+	end for
+	print("<b>"+color.red+"Exploits"+color.cap+"</b>"+color.green+" initialized! "+color.cap+"["+color.white+str(globals.DB1C)+color.cap+"] vulnerabilities found")
+	data.DB1 = globals.DB1
+else if (globals.DB1 and data) and data.DB1 != null then 
+	print(color.red+"<b>Exploits</b>"+color.cap+color.green+" loaded!")
+else
+	print(color.grey+"<i>DB not found")
+end if
+if globals.DB2 != null then
+	for each in globals.DB2.get_files
+		content = each.get_content.split("\n").len
+		globals.DB2C = globals.DB2C+content
+	end for 
+	print("<b>"+color.rainbow+"</b>"+color.cap+color.green+" initialized! "+color.cap+"["+color.white+str(globals.DB2C)+color.cap+"] passwords found")
+	data.DB2 = globals.DB2
+else if (globals.DB2 and data) and data.DB2 != null then 
+	print("<b>"+color.rainbow+color.cap+color.green+"</b> loaded! ")
+else
+	print(color.grey+"<i>Rainbow not found")
+end if
+///=================== MAIN ======================////
+Current_Object = globals.Current_Shell;Current_Object = new ShellObject;Current_Object.init;
 Main = {}
 // object: ShellObject | CompObject | FileObject*
+// ><> ><> ><> ><> EVAL ><> ><> ><> ><>
 Main.eval = function(object, data)
-	if (data isa ShellObject) == true or (data isa CompObject) == true then
+	if (data isa ShellObject) == true or (data isa CompObject) == true or (data isa FileObject) == true then
 		print(color.fill+"\n"+title+color.green+" New Object detected!")
 		confirm = user_input(color.white+"1.) Add to Object Pool \n"+color.green+"2.) Surf Mode \n"+color.grey+"3.) Pass Object\n--> ")
 		confirm = confirm.val
@@ -27,10 +97,10 @@ Main.eval = function(object, data)
 		if confirm == 2 then Main.surf_mode(data)
 	end if
 end function
-
+// ><> ><> ><> ><> SURF MODE ><> ><> ><> ><>
 Main.surf_mode = function(object)
 	surfing = true
-	print(title+color.blue+"<b>~~^~^~^~^~^~"+color.cyan+"SURF MODE"+color.cap+color.blue+"~"+color.cap+color.cyan+"[ "+color.green+"ENABLED"+color.cap+color.cyan+" ]"+color.cap+color.blue+"~^~^~^~^~^~~") 
+	print(title+color.blue+"<b>~^~~~^~~^~"+color.cyan+"SURF MODE"+color.cap+color.blue+"~"+color.cap+color.cyan+"[ "+color.green+"ENABLED"+color.cap+color.cyan+" ]"+color.cap+color.blue+"~^~~~^~~~^~") 
 	while surfing == true 
 		if surfing == false then break
 		obj =  object
@@ -46,13 +116,16 @@ Main.surf_mode = function(object)
 		if result then Main.eval(obj, result)
 		
 	end while
-	return print(title+color.blue+"~~^~^~^~^~^~"+color.cyan+"SURF MODE"+color.cap+color.blue+"~"+color.cap+color.cyan+"[ "+color.red+"DISABLED"+color.cap+color.cyan+" ]"+color.cap+color.blue+"~^~^~^~^~^~~")
+	return print(title+color.blue+"~^~~~^~~^~"+color.cyan+"SURF MODE"+color.cap+color.blue+"~"+color.cap+color.cyan+"[ "+color.red+"DISABLED"+color.cap+color.cyan+" ]"+color.cap+color.blue+"~^~~~^~~~^~")
 end function
-
-welcome_msg;print(color.white+"Initializing with cfg: "+cfg_label)
+// ><> ><> ><> ><>  PARAMS  ><> ><> ><> ><>
 if params.len == 0 then 
 	Main.surf_mode(globals.Current_Object)
 else if params.len == 1 and params[0] == "-a" then 
 	globals.anonymous = true
 	Main.surf_mode(globals.Current_Object)
 end if
+
+//////////////////////////////////////////////////////////////  
+///==================== SEASHELL ========================////
+////////////////////////////////////////////////////////////
