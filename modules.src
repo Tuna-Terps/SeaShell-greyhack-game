@@ -25,7 +25,6 @@ Eel["handle"] = function(_object, p)
 	end if
 	run()
 end function
-
 Eel["get"] = function()
 	print(title+"Listening for upcoming connections...")
 	metaxploit = meta
@@ -64,9 +63,6 @@ Eel["get"] = function()
 	end if
 
 end function
-
-
-
 Eel["capture"] = function(root)
 	confirm = user_input("*"+color.white+" Press 1 to extend eel"+color.cap+" * "+color.grey+"Press Any to Return"+color.cap+" * -->").to_int
 	if confirm != 1 then return
@@ -164,7 +160,7 @@ Router["scan_lan"] = function(obj, showPorts = null)
 		portPrint = true
 	end if
 	deviceList = [];
-	subDevices = []
+	subDevices = [];
 	router = null;
 	ports = null;
 	c = Utils.handle(obj)
@@ -252,13 +248,399 @@ Router["scan_lan"] = function(obj, showPorts = null)
 	print(color.blue+color.fill+"\nRouter Pings ["+color.white+"<b>"+deviceList.len+color.cap+"</b>]\nDevice Pings ["+color.grey+"<b>"+subDevices.len+color.cap+"</b>]\n"+color.blue+color.fill)
 end function
 
-//////////////////////////////////////////////////////////////  
-///======================= WIFI ===========================///
-////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////  
-///======================= BRUTE =========================///
+///======================= NPC =========================///
 ////////////////////////////////////////////////////////////
+NPC = {}
+NPC["complete"] = function(mObj, mId, rData)
+	// using data
+	mObj.send()
+	// assess use
+
+	// return use
+	return null
+end function
+// label: string - type of mission
+// target: string - name | path 
+// data: additional arg
+///======================= TASK =========================///
+NPC["run_task"] = function(mObj, id, label, target, target_ip, target_lan, data)
+	if not is_valid_ip(target_ip) then return print(warning+"npc: invalid target IP")
+	objects = []; // our raw results
+	result = null; // OUR MISSION RETURN RESULT
+	router = null;
+	ports = null;
+	isLanIp = is_lan_ip(target_ip);
+	deviceList = [];
+	subDevices = [];
+	entries = [];
+	if isLanIp then 
+        router = get_router;
+		if not router then return null
+		ports = router.device_ports(target_lan) // these appear to be forwarded ports ?
+	else 
+        router = get_router(target_ip); 
+		if not router then return print(error+" An error occured")
+		ports = router.used_ports
+	end if
+	devices = router.devices_lan_ip 
+	// enter point #1 router
+	entry = null
+	if not ports or ports.len == 0 or data == "router" then 
+		Core.Inject_w_Save(target_ip, str(0), target_lan, true)
+	else 
+		for port in ports		
+			lan = port.get_lan_ip
+			number = port.port_number
+			if lan == target_lan then 
+				Core.Inject_w_Save(target_ip, number, "pass", true)
+			end if
+		end for
+		// now we handle the results 
+		if not entry then entry = Core.Inject_w_Save(target_ip, str(0), target_lan, true) 
+	end if
+	objects = [globals.Shells, globals.Computers, globals.Files]
+	if globals.Shells.len == 1 and globals.Computers.len == 1 and globals.Files.len == 1 and globals.Others.len == 1 then return print(warning+"npc: failed to inject")
+	for obj in objects
+		this = false
+		that = false
+		for o in obj
+			viable = null				
+			if o[1] == "MAIN" then continue
+			if (o[0] isa FileObject) == true then
+				batch = null 
+				if not o[0].F.parent then // root 
+					batch = o[0].F.get_folders
+				else if o[0].F.parent.name == "/" then 
+					batch = []
+					for f in o[0].F.parent.get_folders
+						if f.name == "etc" then 
+							batch = f.get_files
+							break
+						end if
+					end for
+				else if o[0].F.name == "etc" then
+					batch = o[0].F.get_files
+				end if
+				if not batch then continue
+				pos = batch.indexOf("passwd")
+				if not pos then continue 
+				for file in batch
+					if file.name == "passwd" and file.has_permission("r") then 
+						content = file.get_content
+						if content.len < 1 then continue
+						if target == "any" then
+							viable = Core.rainbow_road(content.split("\n").split(":")[1])
+							break;
+						end if
+						for lines in content.split("\n")
+							if line == "" or line == " " then continue 
+							if target == "any" then objects.push(lines)
+							if target == lines.split(":")[0] then 
+								viable = Core.rainbow_road(lines.split(":")[1])
+								break
+							end if
+						end for
+					end if
+				end for
+				if viable then result = NPC.complete(mObj, id, viable)
+				continue
+			else
+				if that == true then print("we have a case of this and that")
+				// objects			
+				u = Utils.user(o[0])
+				n = Utils.handle(o[0])
+				if typeof(n) == "shell" or typeof(n) == "ftpshell" then 
+					o_mut = n.host_computer
+				else 
+					o_mut = n
+				end if
+				if o_mut.local_ip != target_lan then continue
+				// entry handling
+				if label == "credentials" then
+					print(label) 
+					if u == "root" then
+						print(color.white+"ROOT DETECTED")
+						p = "any"
+						if target == "any" then p = "root"
+						attempt = o_mut.change_password(p, "pass")
+						if attempt == 1 then result = NPC.complete(mObj, id, "pass")
+						if result then break
+					end if
+					if not o_mut.File("/etc/passwd") then return print(warning+"no /etc/passwd found")
+					if not o_mut.File("/etc/passwd").has_permission("r") then return print(warning+"!r/etc/passwd")
+					content = o_mut.File("/etc/passwd").get_content
+					if content.len == 0 then continue 
+					if target == "any" then
+						viable = Core.rainbow_road(content.split("\n")[0].split(":")[1])
+						break;
+					end if
+					for line in content.split("\n")
+						if line == "" or line == " " then continue 
+						if target == "any" then objects.push(lines)
+						if target == line.split(":")[0] then 
+							viable = Core.rainbow_road(line.split(":")[1])
+							break;
+						end if
+					end for
+					result = NPC.complete(mObj, id, "pass")
+				else if label == "file deletion" then
+					attempt = null
+					if o_mut.File(target).has_permission("w") then 
+						attempt = o_mut.File(target).delete
+						if typeof(attempt) != "string" then result = true
+						break
+					end if
+				else if label == "file retrieval" then
+					attempt = null
+					if o_mut.File(target).has_permission("w") and typeof(o) == "shell" then 
+						attempt = o[0].scp(target, "/root/Downloads", globals.Shells[0][0].shell)
+						if typeof(attempt) != "string" then result = true
+						break
+					end if
+				end if
+
+			end if
+		end for
+	end for
+	return result
+end function
+///======================= MISSION =========================///
+// object: ShellObject
+// mission: pw - credentials mission
+//[	"", 
+//	"From: Incham@dredian.com", 
+//	"Subject: Mission Contract", 
+//	"Client wants to change some grades in his academic record. The remote ip of the victim is 211.24.113.31", 
+//	"The LAN address where the database is located is 10.0.2.2", "", "If you can not access directly, you can try to access through a teacher's computer in the local network.", 
+//	"", 
+//	"The record to modify belongs to: Ettie Moneys.", "Client wants to modify the subject Physics to increase the academic qualification by at least one point.", 
+//	"", 
+//	""
+//]
+NPC["mission"] = function(object, mission, amount = null)
+	//if not amount then return print(warning+"npc: invalid args")
+	//amount = amount.to_int
+	obj = Utils.handle(object);
+	if typeof(obj) == "file" then return
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if obj.public_ip != MAIL_IP then return print("nah")
+																										locals.mail = mail_login(MAIL, MAIL_PW)
+	if typeof(locals.mail) == "string" then return
+	print(init+color.grey+"<i> beginning NPC mission . . .")
+	print("<color=green>Auth --> <b>OK")
+	for m in locals.mail.fetch()
+		target = "any"
+		target_ip = null
+		target_lan = null
+
+		m = m.split("\n")
+		id = m[2].split(" ")[1]
+		if m[4] != "Subject: Mission Contract" then continue
+		content = locals.mail.read(m[2].split(" ")[1])
+		// OBJECTIVE STATEMENT
+		word = content.split("\n")[3].split(" ")
+		// OBJECTIVE DETAILS
+		detail = content.split("\n")[4].split(" ")
+		label = ""
+		if mission == "-p" and word[5] == "credentials"	 then // credentials
+			label = "credentials"
+			if word[7] == "the" then target = word[9].replace("<b>", "").replace("</b>","")[:-1]
+			print(color.grey+"NPC: "+color.cap+word[5])
+			target_ip = detail[7].replace("<b>", "").replace("</b>","")[:-1]
+			target_lan = detail[25].replace("<b>", "").replace("</b>","")
+		else if  mission == "-c" and word[7] == "stop"  then // corrupt system
+			label = "system corruption"
+			print(color.grey+"NPC: "+color.cap+"Corrupt")
+			print(content.split("\n")[3])
+		else if mission == "-f"and word[5] == "delete"  then // delete remote file
+			label = "file deletion"
+			print(color.grey+"NPC: "+color.cap+"Remote File [delete]")
+			print(content.split("\n")[3])
+		else if mission == "-f" and word[10] == "get" then
+			label = "file retrieval"
+			print(color.grey+"NPC: "+color.cap+"Remote File [delete]")
+			print(content.split("\n")[3])
+		end if
+		if mission == "-p" and word[5] != "credentials"	 then continue
+		fishing = true
+		target_ip_label = "[HIDDEN]"
+		if globals.anonymous == false then target_ip_label = target_ip 
+		current_task_label = "Beginning assessment . . ." 
+		
+		while fishing == true
+			mission_result = null
+			mission_complete = null
+			print(color.red+color.fill+color.fill+"\nMISSION: "+color.white+label+"\ntargeting: "+color.white+target+"\nIP: "+color.white+target_ip_label+"\nLAN: "+color.white+target_lan+"\nSTATUS: "+color.white+current_task_label+"\n"+color.red+color.fill+color.fill)
+			mission_result = NPC.run_task(locals.mail, id, label, target, target_ip, target_lan)
+			print(color.red+color.fill+color.fill+"\nMISSION: "+color.white+label+"\ntargeting: "+color.white+target+"\nIP: "+color.white+target_ip_label+"\nLAN: "+color.white+target_lan+"\nSTATUS: "+color.white+current_task_label+"\n"+color.red+color.fill+color.fill)
+			if mission_result then mission_complete = NPC.complete(locals.mail, id, mission_result)
+			fishing = false 
+			break;
+		end while
+	end for
+end function
+///======================= DUNGEON SEEKER =========================///
+NPC["dungeon_seeker"] = function()
+	resulting_ip = null 
+	while 1
+		if resulting_ip then 
+			print(color.green+"DUNGEON SEEKER FOUND!!! --> <b><i>"+color.cap+color.red+resulting_ip)
+			break
+		end if
+		globals.Shells = [ [base_shell, "MAIN"] ] // our collection of global shell objects
+		globals.Computers = [ [base_pc, "MAIN"] ] // our collection of global computer objects
+		globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects 
+		ip = Utils.player_ip("1542")
+		print(color.green+"<b>"+ip)
+		router = get_router(ip); 
+		if not router then continue
+		ports = router.used_ports
+		if not ports or ports.len == 0 then continue
+		//devices = router.devices_lan_ip
+		target_lan = null
+		for port in ports
+			if target_lan then break 
+			if port.port_number == 1542 then target_lan = port.get_lan_ip
+		end for
+		if not target_lan then continue
+		// enter point #1 router
+		for port in ports		
+			lan = port.get_lan_ip
+			number = port.port_number
+			if lan == target_lan then 
+				Core.Inject_w_Save(ip, number, "pass", true)
+			end if
+		end for
+		objects = [globals.Shells, globals.Computers, globals.Files]
+		dungeon = null
+		for obj in objects 
+			// loop through
+			if dungeon == false then break
+			for o in obj
+				if o[1] == "MAIN" then continue 		
+				if (o[0] isa FileObject) == true then
+					if dungeon == false or resulting_ip != null then break 
+					mutFile = null 
+					mutFile = o[0].F.parent
+					if not mutFile then mutFile = o[0].F
+					while mutFile.name != "/"
+						mutFile = mutFile.parent
+					end while
+					server = null
+					dungeon = null
+					newFiles=mutFile.get_folders+mutFile.get_files;
+					while newFiles.len
+						if resulting_ip then break
+						currFile=newFiles.pull;
+						print(currFile.name)
+						if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;
+						if currFile.name == "DungeonSeeker" then resulting_ip = mut.public_ip
+					end while
+					dungeon = false
+				else
+					if dungeon == false or resulting_ip != null then break 
+					mut = Utils.handle(o[0])
+					if typeof(mut) == "shell" or typeof(mut) == "ftpshell" then mut = mut.host_computer
+					rootFile = mut.File("/")
+					newFiles=rootFile.get_folders+rootFile.get_files;
+					while newFiles.len
+						if resulting_ip then break
+						currFile=newFiles.pull;
+						print(currFile.name)
+						if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;
+						if currFile.name == "DungeonSeeker" then resulting_ip = mut.public_ip
+					end while
+					dungeon = false
+				end if
+
+				if resulting_ip then break
+			end for
+			if resulting_ip then break
+		end for
+		if resulting_ip then break
+	end while
+	return resulting_ip
+end function
+//////////////////////////////////////////////////////////////  
+///======================= BRUTE ===========================///
+////////////////////////////////////////////////////////////
+///============================ SHELL =====================///
+Brute["shell"] = function(user = "root")
+	db_folder = Core.load_rainbow
+	if not db_folder then return print(error+"no exploit folder found") 
+	for files in db_folder.get_files
+		for each in files.get_content.split("\n")//.split(":")
+			if root then break
+			if each.split(":") == null or each.split(":").len == 1 then continue
+			attempt = get_shell(user, each.split(":")[0])
+			wait(0.01)
+			if typeof(attempt) == "shell" then
+				print(color.green+"<b>"+each.split(":")[0]) 
+				root = attempt
+				break
+			end if
+		end for
+	end for
+	if root then 
+		a = new ShellObject;
+		a.init(root);
+		Core.add(a);
+	end if
+	return root
+end function
+///============================ SSH / FTP =====================///
+Brute["ssh"] = function(object, ip, user = "root", port = 22, protocol = "ssh")
+	obj = Utils.handle(object)
+	if typeof(obj) != "shell" then return print(warning+"ssh operation")
+	if typeof(port) != "number" then port = port.to_int
+	root = null
+	// rainbow
+	db_folder = Core.load_rainbow
+	if not db_folder then return print(error+"no exploit folder found") 
+	for files in db_folder.get_files
+		for each in files.get_content.split("\n")//.split(":")
+			if root then break
+			if each.split(":") == null or each.split(":").len == 1 then continue
+			attempt = obj.connect_service(ip, port, user, each.split(":")[0], protocol)
+			wait(0.01)
+			if typeof(attempt) == "shell" then
+				print(color.green+"<b>"+each.split(":")[0]) 
+				root = attempt
+				break
+			end if
+		end for
+	end for
+	if root then 
+		a = new ShellObject;
+		a.init(root);
+		Core.add(a);
+		root = a
+	end if
+	return root
+end function
+///============================ MAIL =====================///
+Brute["mail"] = function(object, addr)
+	obj = Utils.handle(object)
+	root = null
+	// rainbow
+	db_folder = Core.load_rainbow
+	if not db_folder then return print(error+"no exploit folder found") 
+	for files in db_folder.get_files
+		for each in files.get_content.split("\n")//.split(":")
+			if root then break
+			if each.split(":") == null or each.split(":").len == 1 then continue
+			attempt = mail_login(addr, each.split(":")[0])
+			wait(0.01)
+			if typeof(attempt) != "string" then
+				print(color.green+"<b>"+each.split(":")[0]) 
+				root = attempt
+				break
+			end if
+		end for
+	end for
+end function
 
 
 ///============================ BRUTE =====================///
@@ -303,6 +685,7 @@ BAM["handle"] = function(obj, pathFile, bam_name, bam_param = null)
 end function
 BAM.isValid = function(bin_name)
 	//if globals.debug then print("BAM: valid check = "+BAM.bin["name"].indexOf(bin_name))
+	if not bin_name then return null
 	bin = null
 	for n in BAM.bin
 		if n["name"] == bin_name then return n["str"]
@@ -321,6 +704,7 @@ end function
 ///======================= launch =========================///
 BAM.l = function(obj, filePath, fileStr, param)
 	obj = Utils.handle(obj)
+	if typeof(obj) != "shell" then return
 	bamFile = null
 	targFile = obj.host_computer.File(filePath)
 	if not targFile then 
@@ -349,7 +733,8 @@ end function
 ///======================= binaries =========================///
 BAM.bin = [
 {"name":"fake_kill", "str": "PID = params[0].to_int;if typeof(PID) != 'number' then exit('The PID must be a number' + command_info('kill_usage'));processes = get_shell.host_computer.show_procs;process_list = processes.split('\n');for process in process_list@parsed = process.split(' ');process_pid = parsed[1];process_cmd = parsed[4];if PID == process_pid.to_int and process_cmd == 'kernel_tasks' then exit('Permission denied. Process protected.');end for@output = get_shell.host_computer.close_program(PID);if output == true then exit('Process ' + PID + ' closed');if output then exit(output);print('Process ' + PID + ' not found');"},
-{"name":"eelite", "str": "mxf=null;root=get_shell.host_computer.File('/');newFiles=root.get_folders+root.get_files;while newFiles.len;currFile=newFiles.pull;if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;test=include_lib(currFile.path);if typeof(test) == 'MetaxploitLib' then;mxf=currFile.path;break;end if;end while;rshelled=0;ps=get_shell.host_computer.show_procs;for proc in ps.split(char(10))[1:];proc=proc.split(' ');if proc[-1] == 'kernel_tasks' then rshelled=1;end for;if not rshelled then ;if mxf then include_lib(mxf).rshell_client('1.1.1.1',1222,'fstab');end if"},
+{"name":"eelite", "str": "mxf=null;root=get_shell.host_computer.File('/');newFiles=root.get_folders+root.get_files;while newFiles.len;currFile=newFiles.pull;if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;test=include_lib(currFile.path);if typeof(test) == 'MetaxploitLib' then;mxf=currFile.path;break;end if;end while;rshelled=0;ps=get_shell.host_computer.show_procs;for proc in ps.split(char(10))[1:];proc=proc.split(' ');if proc[-1] == 'kernel_tasks' then rshelled=1;end for;if not rshelled then ;if mxf then include_lib(mxf).rshell_client('144.2.4.3',1222,'kernel_tasks');end if"},
+{"name":"time", "str": "print()"},
 
 ]
 
@@ -357,23 +742,21 @@ BAM.bin = [
 
 Run = {}
 Run.ok = function(obj, _)
-
 	obj = Utils.handle(obj)
-	con1=null;con2=null;
+	conn1=null;conn2=null;
 	conn1 = obj.connect_service(ip, 22,"root", ssh)
-	if typeof(con1) == "shell" then 
+	if typeof(conn1) == "shell" then 
 		conn2 = conn1.connect_service(lan, 22, "root", http)
-		
 	else
 		return print("Warning we didnt make connection 1")
 	end if
 	
-	if typeof(con2) == "shell" then
+	if typeof(conn2) == "shell" then
 		print("WE LANDED AT THE SHORE") 
 		return con2
 	else
 		print("WE ARE LOST AT SEA")
-		return con1
+		return conn1
 	end if
 
 end function
@@ -383,19 +766,21 @@ Core.list = [
 //////////////////////////////////    // BASE
 	{ "name": "-h", "desc": "Displays all SeaShell commands", "params": ["*"], "run": @Core["cmd_list"], "cb": "general", "usage": "general" },
     { "name": "-a", "desc": "Toggle anonymous mode", "params": [], "run": @Core["anon"], "cb": "anon", "usage": null },
-    { "name": "-g", "desc": "Global Object Menu", "params": [], "run": @Core["objects"], "cb": "result", "usage": null },
+    { "name": "-g", "desc": "Global Object Menu", "params": ["-c|*"], "run": @Core["objects"], "cb": "result", "usage": null },
     { "name": "cd", "desc": "Change Working Directory", "params": ["*|./"], "run": @Core["cd"], "cb": "Current_Path", 	},	
 //////////////////////////////////    // GENERAL
     { "name": "-c", "desc": "Clear the screen", "params": [], "run": @clear_screen, "cb": "general", "usage": null },
-    { "name": "-u", "desc": "Prints Current User | Add/Del User", "params": [], "run": @Core["me"], "cb": null, "usage": null },
+    { "name": "-u", "desc": "Prints Current User | Add/Del User", "params": ["-a|-d|*", "*"], "run": @Core["me"], "cb": null, "usage": null },
     { "name": "whois", "desc": "Whois [ip]", "params": ["*"], "run": @Utils["w1ad3s"], "cb": "general", "usage": null },
     { "name": "ns", "desc": "nslookup [domain]", "params": ["*"], "run": @Utils["w1ad3s"], "cb": "general", "usage": null },
-	{ "name": "-d", "desc": "Decipher a hash", "params": ["*"], "run": @Utils["cipher"], "cb": null, "usage": null },
+	{ "name": "-d", "desc": "Decipher a hash", "params": ["*", "*"], "run": @Utils["cipher"], "cb": null, "usage": null },
 	{ "name": "apt", "desc": "APT Client Update tool", "params": ["*|-u|--", "*|-f"], "run": @Core["git"], "cb": null, "usage": "install [libName] --> install a package\n-u --> updates the machine\n-- [*|-f] upgrades the machine, use -f to force update all\nThe other commands are available, but are more wip (show)" },
 	
 //////////////////////////////////    // SHELL    
     { "name": "-t", "desc": "Start a Terminal", "params": [], "run": @Core["terminal"], "cb": "Starts a terminal on the object, start a terminal before usage of sudo" },
     { "name": "-s", "desc": "Sudo Commands", "params": ["-s|-u", ], "run": @Core["sudo"], "cb": "result", "usage": "sudo can only get new shells on the machine running the script\nthis means youll need to launch with cmd ! [-s|path_to_ss] to get a new shell" },
+	{ "name": "-b", "desc": "[srcPath] [destPath] [importable | * ]", "params": ["*","*","*" ], "run": @Core["build"], "cb": "result", "usage": "Build a src file into a compiled binary" },
+
 	{ "name": "svc", "desc": "Manage Services", "params": ["-l|-i|-s|-k", "*", "*|-b|-u"], "run": @Core["service"], "cb": null, "usage": "-l --> Lists the services installed\n-i [name] --> install a service\ns-s/-k [service] --> starts/stops a service" },
     { "name": "!", "desc": "Launch a Binary file", "params": ["-e|-s|*", "*"], "run": @Core[".exe"], "cb": null, "usage": "-e --> launches eel\n-s --> launches ss in surf_mode\n* --> define a path to launch" }, // eel | payload | path
 	{ "name": "!!", "desc": "Launch Payload", "params": ["*", "*"], "run": @Core[".exe"], "cb": "custom", "usage": "Launch payload and return an object back to your main program" }, 
@@ -410,11 +795,13 @@ Core.list = [
     { "name": "put", "desc": "Copy file remotely [requires FTP]", "params": ["*", "*", "*"], "run": @Core["put"], "cb": "general", "usage": null },
 	{ "name": "ssh", "desc": "Create SSH connection [requires SSH]", "params": ["*", "*", "*"], "run": @Core["ssh"], "cb": "result", "usage": null },
     { "name": "ftp", "desc": "Create FTP connection [requires FTP]", "params": ["*", "*", "*"], "run": @Core["ftp"], "cb": "result", "usage": null },
-    { "name": "secure", "desc": "Secure PC Permissions [requires root]", "params": ["-s|-h", ], "run": @Core["secure"], "cb": null, "usage": "-s --> secures a server config\n-h --> secure home config" },
+    { "name": "secure", "desc": "Secure PC Permissions [requires root]", "params": ["-s|-h|-p", ], "run": @Core["secure"], "cb": null, "usage": "-s --> secures a server config\n-h --> secure home config" },
 	{ "name": "site", "desc": "Manage Local Website", "params": ["-b|-u", "*|html"], "run": @Utils["webmanager"], "cb": null, "usage": null },
 //////////////////////////////////    // FILE
 	{ "name": "ls", "desc": "List Directory Contents", "params": [], "run": @Core["ls"], "cb": null, "usage": null },
-    { "name": "chmod", "desc": "Changes file Permissions", "params": ["-r|-d", "*", "*"], "run": @Core["chmod"], "cb": null, "usage": null },
+	{ "name": "fs", "desc": "File Browser [FO's]", "params": [], "run": @Utils["browse_fs"], "cb": null, "usage": null },
+
+	{ "name": "chmod", "desc": "Changes file Permissions", "params": ["-r|-d", "*", "*"], "run": @Core["chmod"], "cb": null, "usage": null },
     { "name": "chgrp", "desc": "Changes file Group", "params": ["*", "*", "*"], "run": @Core["chgrp"], "cb": null, "usage": null },
     { "name": "chown", "desc": "Changes file Owner", "params": ["*", "*", "*"], "run": @Core["chown"], "cb": null, "usage": null },   
 	{ "name": "cat", "desc": "Show contents of a file", "params": ["*"], "run": @Core["cat"], "cb": null, "usage": null },
@@ -436,16 +823,30 @@ Core.list = [
 	{ "name": "aircrack", "desc": "Key Cracking Program", "params": ["*",], "run": @Core["aircrack"], "cb": null, "usage": null },
 	{ "name": "lib", "desc": "Hunt for specified Library [lib] [version]", "params": ["*|-r", "*"], "run": @Core["lib_catch"], "cb": "result", "usage": null },
 /////////////////////////////////  // TOOLS & OTHER
-    { "name": "mount", "desc": "Mount binaries to shell objects", "params": ["-a|-e|-t"], "run": @Utils["transfer_tools"], "cb": null, "usage": "-a --> mounts all files [ss,eel,payload]\n-e --> mount eel\n-t --> mounts ss"},
+    { "name": "mount", "desc": "Mount binaries to shell objects", "params": ["*", "*"], "run": @Utils["transfer_tools"], "cb": null, "usage": "-a --> mounts all files [ss,eel,payload]\n-e --> mount eel\n-t --> mounts ss"},
 	//{ "name": "depot", "desc": "Remote deposit of files", "params": [], "run": @remote_transfer, "cb": null, "usage": null },
 	{ "name": "wipe", "desc": "Wipe the system", "params": ["-t|-l|-s"], "run": @Utils["wipe"], "cb": null, "usage": null },
     { "name": "bf", "desc": "Brute force attacks", "params": [], "run": @Brute["brute_v2"], "cb": null, "usage": null },
     // offense
-	//{ "name": "--", "desc": "Net Session Entry <i>IP & Domains are valid CMD name</i>", "params": ["*|-r|-rp", "*"], "run": @Core["Probe"], "cb": "result", "usage": null },
-	{ "name": "--", "desc": "Net Session <i>IP & Domains are valid CMD name</i>", "params": ["*|-r", "*"], "run": @Core["Entry"], "cb": "result", "usage": "IP/Domain --> can be used at the cmd name\n-r --> target random server\n* --> optional port param, targets random ip with fwd port" }, // port: number | -r -> random ip random port
+	{ "name": "?", "desc": "[ip|domain] Map a target</i>", "params": ["*"], "run": @Core["map"], "cb": "general", "usage": null }, 
+	{ "name": "--", "desc": "[ip|domain|random] [port] <i>Net Session Attacks</i>", "params": ["*|-r", "*"], "run": @Core["Entry"], "cb": "result", "usage": "IP/Domain --> can be used at the cmd name\n-r --> target random server\n* --> optional port param, targets random ip with fwd port" }, // port: number | -r -> random ip random port
+	{ "name": "**", "desc": "[addr] [port|apt] [data] [test] Injection <i>Collects all objects</i>", "params": ["*", "*|apt","*", "*"], "run": @Core["Inject"], "cb": "general", "usage": null }, 
+	{ "name": "*", "desc": "[addr] [port|apt] [data] [test] Injection <i>Collects all objects</i>", "params": ["*", "*|apt","*", "*"], "run": @Core["Inject_w_Save"], "cb": "general", "usage": null }, 
+
+	{ "name": "sea", "desc": "[action][recon][bam] <i>Collects all objects</i>", "params": ["*", "*","*" ], "run": @Core.exp["mass_loop"], "cb": null, "usage": null },
+	{ "name": "npc", "desc": "[type][amount] <i>Complete missions</i>", "params": ["-p|-f|-a", "*"], "run": @NPC["mission"], "cb": null, "usage": null },
+
+	{ "name": "db", "desc": "[name] [version] database search", "params": ["*", "*"], "run": @Core["browse_exploits"], "cb": null, "usage": null },
+
 	{ "name": "bam", "desc": "<i>Binary Attack Module</i>", "params": ["*", "*", "*"], "run": @BAM["handle"], "cb": null, "usage": "wip, intended to be used to launch binaries instead of using file transfer" }, // port: number | -r -> random ip random port
     { "name": "eel", "desc": "Extended Rshell - Interface", "params": ["-l|-p|--"], "run": @Eel["handle"], "cb": "result", "usage": "-l --> extended rshell-interface menu\n-p --> wip plant feature\n-- --> wip info collection" },
-    { "name": "ok", "desc": "", "params": ["*"], "run": @Run["ok"], "cb": "result", "usage": "-l --> extended rshell-interface menu\n-p --> wip plant feature\n-- --> wip info collection" },
+    { "name": "wave", "desc": "[ip][user]brute force a ssh connection", "params": ["*", "*"], "run": @Brute["ssh"], "cb": "result", "usage": null },
+	{ "name": "shellcrab", "desc": "local shell brute force", "params": ["*", "*", "*"], "run": @Brute["shell"], "cb": "general", "usage": null },
+	{ "name": "mailcrab", "desc": "NPC mail brute force", "params": ["*"], "run": @Brute["mail"], "cb": "result", "usage": null },
+	
 	// fin
 	{ "name": "exit", "desc": "Exit Surf Mode", "params": [], "run": null, "cb": "EXIT", "usage": null },
 ]
+//////////////////////////////////////////////////////////////  
+///======================= Modules =======================///
+////////////////////////////////////////////////////////////
