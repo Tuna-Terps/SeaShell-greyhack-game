@@ -9,6 +9,7 @@ USER = "2NA"// HOME USER
 MAIL = "2NA@mail.com" // MAIL DOMAIN
 MAIL_PW = "password" // MAIL PW
 MAIL_IP = "1.1.1.1" // ALLOWED IP MAIL LOGIN
+RSHELL = "123.4.5.6" // RSHELL IP
 // ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>
 globals.debug = null
 ////////////////////////////////////////////////////////////
