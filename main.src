@@ -25,8 +25,7 @@ globals.entry_modules = true;
 import_code("/home/2NA/src/modules") // CHANGE ME
 ////////////////////////////////////////////////////////////
 // ><> ><> ><> ><>  OBJECTS  ><> ><> ><> ><>
-data.so = @ShellObject;data.co = @CompObject;data.fo = @FileObject;data.SO = @globals.Shells data.CO = @globals.Computersdata.FO = @globals.Files 
-///=================== LIBRARIES ======================////
+data.so = @ShellObject;data.co = @CompObject;data.fo = @FileObject;data.SO = @globals.Shells; data.CO = @globals.Computers;data.FO = @globals.Files; ///=================== LIBRARIES ======================////
 meta = null
 dirs = ["/lib", "/lib/cheese",current_path,launch_path,home_dir,"/home/guest"]
 for d in dirs
