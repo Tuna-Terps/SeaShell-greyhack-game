@@ -3,6 +3,7 @@ USER = "2NA"// HOME USER
 MAIL = "" // MAIL DOMAIN
 MAIL_PW = "" // MAIL PW
 MAIL_IP = "" // ALLOWED IP MAIL LOGIN
+authPass = "++++++++" // login 
 //////////////////////////////////////////////////////////////  
 ///==================== SEASHELL ========================////
 ////////////////////////////////////////////////////////////
@@ -13,7 +14,7 @@ globals.entry_objects = true;
 import_code("/home/2NA/src/objects")
 globals.entry_util = true;
 import_code("/home/2NA/src/utils")
-data = get_custom_object();																																																																				if user_input(color.white+"Port:  "+color.cap,1) != "++++++++" then exit(color.red+"Nuh-uh-uh! You didn't say the magic word"); 																									
+data = get_custom_object();																																																																				if user_input(color.white+"Port:  "+color.cap,1) != authPass then exit(color.red+"Nuh-uh-uh! You didn't say the magic word"); 																									
 globals.entry_core = true;
 import_code("/home/2NA/src/core")
 globals.entry_modules = true;
