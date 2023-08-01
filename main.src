@@ -1,32 +1,31 @@
-globals.T = time;
-USER = "2NA"// HOME USER
-MAIL = "" // MAIL DOMAIN
-MAIL_PW = "" // MAIL PW
-MAIL_IP = "" // ALLOWED IP MAIL LOGIN
-authPass = "++++++++" // login 
 //////////////////////////////////////////////////////////////  
 ///==================== SEASHELL ========================////
 ////////////////////////////////////////////////////////////
+// ~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~
+// ><> ><> ><> ><> ><> USER CONFIG ><> ><> ><> ><> ><> ><>
+// ** change these variables to have a good time **
+authPass = "++++++++" // SCRIPT LAUNCH PASSWORD
+USER = "2NA"// HOME USER
+MAIL = "2NA@mail.com" // MAIL DOMAIN
+MAIL_PW = "password" // MAIL PW
+MAIL_IP = "1.1.1.1" // ALLOWED IP MAIL LOGIN
+// ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>
 globals.debug = null
 ////////////////////////////////////////////////////////////
+if user_input(color.white+"Port:  "+color.cap,1) !=  then exit(color.red+"Nuh-uh-uh! You didn't say the magic word"); 																									
+data = get_custom_object();
 globals.entry = true;
 globals.entry_objects = true;
-import_code("/home/2NA/src/objects")
+import_code("/home/2NA/src/objects") // CHANGE ME
 globals.entry_util = true;
-import_code("/home/2NA/src/utils")
-data = get_custom_object();																																																																				if user_input(color.white+"Port:  "+color.cap,1) != authPass then exit(color.red+"Nuh-uh-uh! You didn't say the magic word"); 																									
+import_code("/home/2NA/src/utils") // CHANGE ME
 globals.entry_core = true;
-import_code("/home/2NA/src/core")
+import_code("/home/2NA/src/core") // CHANGE ME
 globals.entry_modules = true;
-import_code("/home/2NA/src/modules")
+import_code("/home/2NA/src/modules") // CHANGE ME
 ////////////////////////////////////////////////////////////
 // ><> ><> ><> ><>  OBJECTS  ><> ><> ><> ><>
-data.so = @ShellObject;
-data.co = @CompObject;
-data.fo = @FileObject;
-data.SO = @globals.Shells 
-data.CO = @globals.Computers
-data.FO = @globals.Files 
+data.so = @ShellObject;data.co = @CompObject;data.fo = @FileObject;data.SO = @globals.Shells data.CO = @globals.Computersdata.FO = @globals.Files 
 ///=================== LIBRARIES ======================////
 meta = null
 dirs = ["/lib", "/lib/cheese",current_path,launch_path,home_dir,"/home/guest"]
