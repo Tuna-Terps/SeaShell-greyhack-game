@@ -26,7 +26,7 @@ import_code("/home/2NA/src/modules") // CHANGE ME
 ////////////////////////////////////////////////////////////
 if user_input(color.white+"Port:  "+color.cap,1) != authPass then exit(color.red+"Nuh-uh-uh! You didn't say the magic word");
 // ><> ><> ><> ><>  OBJECTS  ><> ><> ><> ><>
-data.so = @ShellObject;data.co = @CompObject;data.fo = @FileObject;data.SO = @globals.Shells data.CO = @globals.Computersdata.FO = @globals.Files 
+data.so = @ShellObject;data.co = @CompObject;data.fo = @FileObject;data.SO = @globals.Shells; data.CO = @globals.Computers; data.FO = @globals.Files; 
 ///=================== LIBRARIES ======================////
 meta = null
 dirs = ["/lib", "/lib/cheese",current_path,launch_path,home_dir,"/home/guest"]
