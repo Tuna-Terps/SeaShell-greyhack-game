@@ -785,7 +785,7 @@ Core.list = [
     { "name": "secure", "desc": "Secure PC Permissions [requires root]", "params": ["-s|-h|-p", ], "run": @Core["secure"], "cb": null, "usage": "-s --> secures a server config\n-h --> secure home config" },
 	{ "name": "site", "desc": "Manage Local Website", "params": ["-b|-u", "*|html"], "run": @Utils["webmanager"], "cb": null, "usage": null },
 //////////////////////////////////    // FILE
-	{ "name": "ls", "desc": "List Directory Contents", "params": [], "run": @Core["ls"], "cb": null, "usage": null },
+	{ "name": "ls", "desc": "[path] List Directory Contents", "params": ["*"], "run": @Core["ls"], "cb": null, "usage": null },
 	{ "name": "fs", "desc": "File Browser [FO's]", "params": [], "run": @Utils["browse_fs"], "cb": null, "usage": null },
 
 	{ "name": "chmod", "desc": "Changes file Permissions", "params": ["-r|-d", "*", "*"], "run": @Core["chmod"], "cb": null, "usage": null },
@@ -817,17 +817,17 @@ Core.list = [
     // offense
 	{ "name": "?", "desc": "[ip|domain] Map a target</i>", "params": ["*"], "run": @Core["map"], "cb": "general", "usage": null }, 
 	{ "name": "--", "desc": "[ip|domain|random] [port] <i>Net Session Attacks</i>", "params": ["*|-r", "*"], "run": @Core["Entry"], "cb": "result", "usage": "IP/Domain --> can be used at the cmd name\n-r --> target random server\n* --> optional port param, targets random ip with fwd port" }, // port: number | -r -> random ip random port
-	{ "name": "**", "desc": "[addr] [port|apt] [data] [test] Injection <i>Collects all objects</i>", "params": ["*", "*|apt","*", "*"], "run": @Core["Inject"], "cb": "general", "usage": null }, 
+	//{ "name": "**", "desc": "[addr] [port|apt] [data] [test] Injection <i>Collects all objects</i>", "params": ["*", "*|apt","*", "*"], "run": @Core["Inject"], "cb": "general", "usage": null }, 
 	{ "name": "*", "desc": "[addr] [port|apt] [data] [test] Injection <i>Collects all objects</i>", "params": ["*", "*|apt","*", "*"], "run": @Core["Inject_w_Save"], "cb": "general", "usage": null }, 
 
-	{ "name": "sea", "desc": "[action][recon][bam] <i>Collects all objects</i>", "params": ["*", "*","*" ], "run": @Core.exp["mass_loop"], "cb": null, "usage": null },
-	{ "name": "npc", "desc": "[type][amount] <i>Complete missions</i>", "params": ["-p|-f|-a", "*"], "run": @NPC["mission"], "cb": null, "usage": null },
+	{ "name": "sea", "desc": "[action] [recon] [bam] <i>Collects all objects</i>", "params": ["*", "*","*" ], "run": @Core.exp["mass_loop"], "cb": null, "usage": null },
+	{ "name": "npc", "desc": "[type] [amount] <i>Complete missions</i>", "params": ["-p|-f|-a", "*"], "run": @NPC["mission"], "cb": null, "usage": null },
 
 	{ "name": "db", "desc": "[name] [version] database search", "params": ["*", "*"], "run": @Core["browse_exploits"], "cb": null, "usage": null },
 
 	{ "name": "bam", "desc": "<i>Binary Attack Module</i>", "params": ["*", "*", "*"], "run": @BAM["handle"], "cb": null, "usage": "wip, intended to be used to launch binaries instead of using file transfer" }, // port: number | -r -> random ip random port
     { "name": "eel", "desc": "Extended Rshell - Interface", "params": ["-l|-p|--"], "run": @Eel["handle"], "cb": "result", "usage": "-l --> extended rshell-interface menu\n-p --> wip plant feature\n-- --> wip info collection" },
-    { "name": "wave", "desc": "[ip][user]brute force a ssh connection", "params": ["*", "*"], "run": @Brute["ssh"], "cb": "result", "usage": null },
+    { "name": "wave", "desc": "[ip][user][port][protocol] brute force connection", "params": ["*", "*", "*", "*"], "run": @Brute["ssh"], "cb": "result", "usage": null },
 	{ "name": "shellcrab", "desc": "local shell brute force", "params": ["*", "*", "*"], "run": @Brute["shell"], "cb": "general", "usage": null },
 	{ "name": "mailcrab", "desc": "NPC mail brute force", "params": ["*"], "run": @Brute["mail"], "cb": "result", "usage": null },
 	
