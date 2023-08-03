@@ -4,7 +4,7 @@ if not globals.entry_util then exit("><> ><> ><>")
 ////////////////////////////////////////////////////////////
 
 // ><> ><> ><> ><> VARIABLES ><> ><> ><> ><>
-color = {};color.white = "<color=#FFFFFF>";color.grey = "<color=#A5A5A5>";color.blue = "<color=#003AFF>";color.cyan = "<color=#00FFE7>";color.purple = "<color=#D700FF>";color.red = "<color=#AA0000>";color.yellow = "<color=#FBFF00>";color.orange = "<color=#FF8701>";color.green = "<color=#00ED03>";color.fill = "><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>";color.cap = "</color>";title = "<color=#00FFE7>[<b>SeaShell</b>]</color> ";init = "<color=#00ED03>[SeaShell] <b>init:</b></color> ";error = "<color=#AA0000>[SeaShell] <b>Error:</b></color> ";warning = "<color=#FF8701>[SeaShell] <b>Warning:</b></color> ";
+color = {};color.white = "<color=#FFFFFF>";color.grey = "<color=#A5A5A5>";color.blue = "<color=#003AFF>";color.cyan = "<color=#00FFE7>";color.purple = "<color=#D700FF>";color.red = "<color=#AA0000>";color.yellow = "<color=#FBFF00>";color.orange = "<color=#FF8701>";color.green = "<color=#00ED03>";color.fill = "><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>";color.cap = "</color>";title = "<color=#00FFE7>[<b>SeaShell</b>]</color> ";init = "<color=#00ED03>[SeaShell] <b>init:</b></color> ";error = "<color=#AA0000>[SeaShell] <b>Error:</b></color> ";warning = "<color=#FF8701>[SeaShell] <b>Warning:</b></color> ";color.rainbow = color.red+"R"+color.cap+color.orange+"A"+color.cap+color.cap+color.yellow+"I"+color.cap+color.cap+color.green+"N"+color.cap+color.cap+color.cyan+"B"+color.cap+color.cap+color.blue+"O"+color.cap+color.cap+color.purple+"W"+color.cap;
 // ><> CORE OBJECTS ><>
 base_shell = new ShellObject;base_shell.init();
 base_pc = new CompObject;base_pc.init(get_shell.host_computer);
@@ -13,11 +13,14 @@ base_file = new FileObject;base_file.init(get_shell.host_computer.File("/"));
 globals.Shells = [ [base_shell, "MAIN"] ] // our collection of global shell objects
 globals.Computers = [ [base_pc, "MAIN"] ] // our collection of global computer objects
 globals.Files = [ [base_file, "MAIN"] ] // our collection of global file objects
+globals.Others = [] // a simple count of how many password modifications we have performed
 // ><> ><> ><> ><> ><> GLOBAL VARIABLES
 globals.anonymous = false
 globals.Current_Path = current_path // a path for more specific commands
 globals.Mode = null // basic: no crypto/mx | crypto: crypto, no mx | null: crpto, mx
-Current_Shell = get_shell // mutable shell
+globals.Hashes = [] // list of hashes we will keep in memory, to save into the database
+globals.Cracked = [] // list of hashes we will keep in memory, to save into the database
+Current_Shell = base_shell // mutable shell
 // ><> ><> ><> ><> ><> todo
 globals.Exploits = [] // our collection of global exploit objects
 globals.Global_Path = "/home" // our mutable path for 1 or more? objects
@@ -25,29 +28,9 @@ Current_Computer = @host_computer // well see how it goes
 // ATTACKS 
 fwd_machines = [] // collection of machines from a probe with open, fwd ports
 local_machines = [] // machines found by ping
-// ><> ><> ><> ><> LIBRARIES ><> ><> ><> ><>
-meta = null
-dirs = ["/lib/metaxploit.so", "/lib/cheese/metaxploit.so",current_path+"/metaxploit.so",launch_path+"/metaxploit.so",home_dir+"/metaxploit.so","/home/guest/metaxploit.so"]
-for d in dirs
-	meta = include_lib(d)
-	if meta then break
-end for
-if not meta then print(warning+color.red+"<b>metaxploit.so</b> was not found")
 
-dirs = ["/lib/crypto.so", "/lib/cheese/crypto.so",current_path+"/crypto.so",launch_path+"/crypto.so",home_dir+"/crypto.so","/home/guest/crypto.so"]
-crypto = null
-for d in dirs
-	crypto = include_lib(d)
-	if crypto then break
-end for
-if crypto and not meta then globals.Mode = color.yellow+"CO"
-if not crypto and not meta then globals.Mode = color.red+"OS"
-cfg_label = null
-if meta then 
-	cfg_label = color.cyan+"SS"
-else 
-	cfg_label = globals.Mode
-end if
+// MISC
+NL=@char(10)
 // ><> ><> ><> ><> ><> ><> ><> ><>
 // ><> ><> ><>  UTILS  ><> ><> ><>
 // ><> ><> ><> ><> ><> ><> ><> ><>
@@ -66,7 +49,7 @@ Utils.pth = function(p)
 	if p[0] != "/" and Current_Path == "/" then p = Current_Path+p
 	if p == "./" and Current_Path != "/" then 
 		parse = p.split("/")
-		print(parse)
+		//print(parse)
 		p = parse[0]+"/"
 	end if
 	return p
@@ -75,12 +58,17 @@ end function
 ///==================== USERS =======================////
 ////////////////////////////////////////////////////////////
 
+
+
+
+
 ////////////////////////////// USER /////////////////////
 Utils.user = function(object)
 	object = Utils.handle(object)
+	if typeof(object) == "file" then return object.name
 	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
 	if not object then return print("User check error, no object found")
-	if object.File("/root").has_permission("r") and object.File("/root").has_permission("w") and object.File("/root").has_permission("x") then return object.File("/root").name
+	if object.File("/root") and object.File("/root").has_permission("r") and object.File("/root").has_permission("w") and object.File("/root").has_permission("x") then return object.File("/root").name
 	if object.File("/home") == null then return "unknown"
 	for f in object.File("/home/").get_folders
 		if f.name=="guest" then continue
@@ -98,7 +86,7 @@ end function
 ///////////////////////////// CHANGE PW ////////////////////
 Utils.change_pw = function(object, user="root", password)
 	object = Utils.handle(object)
-	if typeof(object) == "shell" then object = object.host_computer
+	if typeof(object) == "shell" or typeof(object) == "ftpshell" then object = object.host_computer
 	inputMsg = "Changing password for user " + user +".\nNew password:"
 	inputPass = user_input(inputMsg, true)
 	output = object.change_password(user, inputPass)
@@ -109,9 +97,15 @@ end function
 ////////////////////////////////////////////////////////////
 
 //////////////////////////////////// DEHASH ///////////////////////////
-Utils["cipher"] = function(_, userPass)
-	password = crypto.decipher(userPass)
-	print(password)
+Utils["cipher"] = function(_, userPass, rainbo = null)
+	password = null
+	if rainbo then 
+		password = Core.rainbow_road(userPass)
+	else
+		if userPass.indexOf("&") then userPass = userPass.split("&")[0]
+		password = crypto.decipher(userPass)
+		if _ then print(password)
+	end if
 	return password
 end function
 //////////////////////////////////// FILE DEHASH ///////////////////////////
@@ -167,6 +161,16 @@ Utils["wipe"] = function(obj, param)
 	end if
 end function
 //////////////////////////////////// TOOL TRANSFER ///////////////////////////
+Utils.cache = function(obj)
+	obj = Utils.handle(obj)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	obj.create_folder("/home/guest/Desktop", ".cache")
+end function
+Utils.browse_fs = function(obj)
+	if (obj isa FileObject) == false then return print(color.grey+"<i>only files can use this function")
+	return obj.fs
+end function
+
 Utils["transfer_tools"] = function(obj, eel_only = null, pathFile = "/home/guest/Desktop/.cache", homeObj = null)
 	print(init+" mounting . . .")
 	if not homeObj then homeObj = globals.Shells[0][0].shell
@@ -174,7 +178,7 @@ Utils["transfer_tools"] = function(obj, eel_only = null, pathFile = "/home/guest
 	obj = Utils.handle(obj)
 	files = []
 	filenames = ["metaxploit.so", "crypto.so", "payload", "eel", "ss"]
-	if eel_only == "-e" then filenames = ["metaxploit.so","eel"];if eel_only == "-t" then filenames = ["metaxploit.so","ss", "crypto.so"]
+	if eel_only == "-e" then filenames = ["metaxploit.so","eel"];if eel_only == "-t" then filenames = ["metaxploit.so","ss", "crypto.so"];if eel_only == "-c" then filenames = ["ss","cargo", "metaxploit.so"];
 	dirs = ["/lib/", "/bin/", parent_path(launch_path) + "/", parent_path(program_path) + "/", launch_path+"/", "/lib/cheese/", "/home/guest/"]
 	// if you chmod your system you will likely run into errors running this from home pc as non root
 	for filename in filenames
@@ -269,7 +273,7 @@ Utils.wipe_logs = function(obj)
 	if copied == 1 then print(title+" system.log was [ "+status+" ]")
 	return copied
 end function
-
+//////////////////////////////////// SYS WIPE ///////////////////////////
 Utils.wipe_sys = function(object)
 	obj = Utils.handle(object)
 	if Utils.user(obj) != "root" then return print("You must run as root.")
@@ -311,7 +315,86 @@ Utils.wipe_sys = function(object)
 	print("Please reboot the machine now.")
 
 end function
-
+//////////////////////////////////// SYS PATCH ///////////////////////////
+Utils.patch_sys = function(object)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	folders = ["boot", "sys"]
+	if user_input("> ") != "" then return
+	for folder in folders
+		if object.File("/"+folder) == null then 
+			print(warning+"creating "+folder)
+			create = object.create_folder("/", folder)
+			files = ["xorg.sys", "config.sys", "network.cfg"]
+			if folder == "boot" then files = ["System.map","initrd.img", "kernel.img"]
+			for file in files
+				t = object.touch("/"+folder, file)
+				if t == 1 then print("patched: "+file)
+				if typeof(t) == "string" then print t
+			end for
+		else
+			files = ["xorg.sys", "config.sys", "network.cfg"]
+			if folder == "boot" then files = ["System.map","initrd.img", "kernel.img"]
+			for file in files
+				t = object.touch("/"+folder, file)
+				if t == 1 then print("patched: "+file)
+				if typeof(t) == "string" then print t
+			end for
+		end if
+	end for
+end function
+//////////////////////////////////// METALIB CRAWL /////////////////////////// here forcefully
+// object: SO|CO|FO
+// metaObject: passed mx
+// fileName: str
+// MX: boolean
+Utils.ml_crawl = function(object, metaObject, fileName) // : lib
+	if globals.Mode then return print("program is operating under cfg: "+globals.Mode)
+	print(init+color.grey+"<i>ML crawling filesystem . . .")
+	obj = Utils.handle(object)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if typeof(obj) == "file" then obj = obj
+	if not obj then return print(warning+"couldnt crawl fs")
+	root = obj.File("/")
+	newFiles=root.get_folders+root.get_files;
+	mxf = null
+	while newFiles.len
+		currFile=newFiles.pull;
+		if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;
+		//if currFile.parent.name == "lib" then continue
+		ml=metaObject.load(currFile.path);
+		if typeof(ml) == "MetaLib" and fileName == currFile.name then
+			print(color.white+"found library: "+color.cap+color.green+currFile.name)
+			//ml = ml.scan(ml)
+			mxf=ml;
+			break;
+		end if
+	end while
+	return mxf
+end function
+//////////////////////////////////// MX CRAWL /////////////////////////// here forcefully
+// object: SO|CO|FO
+// fileName: str
+// MX: boolean
+Utils.mx_crawl = function(object) // : lib
+	print(init+color.grey+"<i>MX crawling filesystem . . .")
+	obj = Utils.handle(object)
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
+	if typeof(obj) == "file" then obj = obj
+	if not obj then return print(warning+"couldnt crawl fs")
+	root = obj.File("/")
+	newFiles=root.get_folders+root.get_files;
+	mfx = null
+	while newFiles.len
+		currFile=newFiles.pull;
+		if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;
+		test=include_lib(currFile.path);
+		if typeof(test) == "MetaxploitLib" then
+			mfx=test;
+			break;
+		end if
+	end while
+	return mfx
+end function
 //////////////////////////////////////////////////////////////  
 ///==================== CONNECTION =======================////
 ////////////////////////////////////////////////////////////
@@ -362,7 +445,12 @@ Utils.connect = function(object, username = "root", password, addr, port)
 
 	return connection
 end function
+//////////////////////////////////// SERVER CONNECTOR ///////////////////////////
+Utils.vServer = function(obj, a)
 
+
+
+end function
 //////////////////////////////////////////////////////////////  
 ///================== WEB SERVICE =====================////
 ////////////////////////////////////////////////////////////
@@ -558,7 +646,7 @@ welcome_msg = function()
 	print(color.cyan+"  ____) |  __/ (_| |</color><color=#AA0000>____) | | | |  __/ | |  \  |    /") 
 	print(color.cyan+" |_____/ \___|\__,_|</color><color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/")
 	print(color.red+".                                             \|_/")
-	print(title+" </color><color=#00ED03>- v1.0.4 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
+	print(title+" </color><color=#00ED03>- v1.0.5 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
 	print(color.blue+color.fill)
 end function
 
@@ -634,6 +722,7 @@ end function
 // Get local library.
 // Returns: Metalib library.
 ///////////////////////////////////////////
+
 get_library = function(libname = "metaxploit.so")
 	mx = null
 	libpaths = ["/lib/", parent_path(program_path) + "/", "/lib/cheese/", "/home/guest/"]
@@ -734,8 +823,9 @@ end function
 // Description: Get all local hacks.
 // Returns: Hacks
 //////////////////////////////////////
-get_local_hacks = function()
-	filenames = ["net.so", "init.so", "kernel_module.so", "kernel_router.so"]
+get_local_hacks = function(onlyApt = null)
+	filenames = ["aptclient.so"]
+	if not onlyApt then filenames = ["net.so", "init.so", "kernel_module.so", "kernel_router.so", "aptclient.so"]
 	hacks = []
 
 	mx = get_library()
@@ -846,9 +936,6 @@ auto_hack = function(addr, port, data=null)
 				b.init(exploit)
 				comp_objects = comp_objects + [ b ]
 			else if index == 2 then
-				c = new FileObject
-				c.init(exploit)
-				file_objects = file_objects + [ c ]
 			else if index == 3 then  
 				//d = new OtherObject
 				//d.init(exploit)
@@ -879,13 +966,17 @@ auto_hack = function(addr, port, data=null)
 	if (root isa ShellObject) == true then break
 	if remote_shells.len == 0 and remote_files.len == 0 and remote_comps.len == 0 then break
 	// SHELL 
+		print(color.fill)
 		if selected_menu == 1 then
 			addon = ""
 			user = selected_exploit.user
-			//if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.bank+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email
+			if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.bank+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email+"\n"+color.white+"Hash: "+color.cap+selected_exploit.pass
 			default_color = color.white
 			if user == "root" then default_color = color.green
-			input = user_input(color.purple+"Shell Object [ "+default_color+user+color.cap+" ]\n1.) PW Read + Escalation \n2.) Drop Payload\n3.) CHMOD \n4.) PWN \n5.) Pass Shell\n0.) Exploit Main Menu\n--> ")
+			risk_color = color.white;if selected_exploit.risk == 1 then risk_color = color.yellow;;if selected_exploit.risk == 2 then risk_color = color.orange;if selected_exploit.risk == 3 then risk_color = color.red;;if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.bank+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email+"\n"+color.white+"Hash: "+color.cap+selected_exploit.pass
+
+			
+			input = user_input(color.purple+"Shell Object { "+default_color+user+color.cap+" }:{ <b>"+risk_color+selected_exploit.risk+color.cap+"</b> }"+addon+"\n1.) PW Read + Escalation \n2.) Drop Payload\n3.) CHMOD \n4.) PWN \n5.) Pass Shell\n0.) Exploit Main Menu\n--> ")
 			input = input.val 
 			if input == 1 then 
 				root = selected_exploit.pw_attack(true)
@@ -920,8 +1011,8 @@ auto_hack = function(addr, port, data=null)
 		else if selected_menu == 2 then
 			addon = ""
 			user = selected_exploit.user
-			if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.bank+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email
-			input = user_input(color.blue+"Computer Object [ "+color.white+user+color.cap+" ]——{"+color.grey+selected_exploit.PC.local_ip+color.cap+"}\n"+addon+"\n1.) PW Attack \n2.) CHMOD \n3.) Browse FS\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
+			risk_color = color.white;if selected_exploit.risk == 1 then risk_color = color.yellow;;if selected_exploit.risk == 2 then risk_color = color.orange;if selected_exploit.risk == 3 then risk_color = color.red;;if globals.anonymous == false then addon = "\n"+color.white+"Bank: "+color.cap+selected_exploit.bank+"\n"+color.white+"Mail: "+color.cap+selected_exploit.email+"\n"+color.white+"Hash: "+color.cap+selected_exploit.pass
+			input = user_input(color.blue+"Computer Object [ "+color.white+user+color.cap+" ]——{"+color.grey+selected_exploit.PC.local_ip+color.cap+"}——{<b>"+risk_color+selected_exploit.risk+color.cap+"</b>}"+addon+"\n1.) PW Attack \n2.) CHMOD \n3.) Browse FS\n4.) PWN\n5.) Pass Computer Object\n0.) Main Menu\n--> ")
 			input = input.val 
 			if input == 1 then
 				root = selected_exploit.pw_attack(true, addr, port)
@@ -1158,4 +1249,6 @@ GFX.f=function(l)
 	end while
 	return out
 end function
-
+//////////////////////////////////////////////////////////////  
+///======================= UTILS =========================////
+////////////////////////////////////////////////////////////
