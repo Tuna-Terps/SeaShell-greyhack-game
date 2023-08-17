@@ -1,57 +1,176 @@
 // wip install script
-
-if params.len == 0 then exit("SEASHELL INSTALL: usage install [-i|-b]\n<b>-i</b> Initial Install\n<b>-b</b> Build All\n* Run install, copy sorce code into each file & save. Then run install -b")
-
+// this script assumes it has perms to perform its tasks . . . so yeah
+if params.len == 0 then exit("<color=green>SEASHELL INSTALL:"+char(10)+"usage: <color=white>"+program_path+" -a</color> 			  --> Full installation"+char(10)+"usage: <color=white>"+program_path+" [-i|-b|-db]</color> --> Install each portion in stages"+char(10)+"*<color=grey><i> For full installation, use command:"+char(10)+program_path+"<color=white> -a"+char(10)+"* <color=grey><i>To install in stages, use commands: "+char(10)+program_path+"<color=white> -i"+char(10)+program_path+"<color=white> -b"+char(10)+program_path+"<color=white> -db")
+fill = "<color=blue>><> ><> ><>  ><> ><> ><>  ><> ><> ><>  ><> ><> ><>  ><> ><> ><> "+char(10)
+data = get_custom_object
+data.cb = false
 // INSTALL
-files = [ "main.src", "core.src", "cargo.src", "utils.src", "modules.src", "objects.src" ]
+files = [ "objects.src", "utils.src", "core.src", "modules.src","main.src",  "cargo.src",]
 base = get_shell
-dirs = base.host_computer.File(home_dir)
-has_src = null
-check_src = function
-	ssFile = null 
-	cargoFile = null
+PC = base.host_computer
+HOME = home_dir
+dirs = base.host_computer.File(HOME)
+p1 = HOME+"/dict/builder.src"
+
+check_src = function(targ = "src")
+	print("<color=green>[init]</color> Checking key directories . . .") 
 	for dir in dirs.get_folders
-		if dir.name == "src" then 
-			has_src = true
-			print(home_dir+"/src already exists !")
-			return
+		if dir.name == targ then 
+			return print(HOME+"/"+targ+" already exists !")
 		end if
 	end for	
-	base.host_computer.create_folder(home_dir, "src")
+	PC.create_folder(HOME, targ)
 end function
-check_src
+check_src // check for src
+check_src("dict") // check for dict
 // check src folder
-folder = base.host_computer.File(home_dir+"/src")
+folder = PC.File(HOME+"/src")
 if not folder or not folder.is_folder then return print("no src folder found")
-if params[0] == "-i" then 
+
+install_src = function
+	print("<color=green>[init]</color> Bulding source files . . .")  
 	for file in files
-		test = base.host_computer.File(home_dir+"/src/"+file)
+		test = PC.File(HOME+"/src/"+file)
 		if test == null then 
-			print("<color=grey><i>Creating: "+file[0])
-			base.host_computer.touch(home_dir+"/src", file)
+			print("<color=grey><i>Creating: "+file)
+			if PC.touch(HOME+"/src", file) == 1 then 
+				print(file+" creation --> OK")
+				//content = user_input("<color=yellow>[Action required]</color> Paste contents for <color=yellow>"+file+"</color> > ")
+				//if PC.File(HOME+"/src/"+file).set_content(content) == 1 then print("Successfully saved <color=green>"+HOME+"/src/"+file)
+				continue
+			else 
+				print("<color=yellow>Warning</color> Failed to create "+file)
+			end if
 		else 
-			print("<color=white><b>Already Exists: "+file[0])
+			print("Already Exists: <b><color=white>"+file)
 		end if
 	end for
-else if params[0] == "-b" then 
+end function 
+build_src = function
+	print("<color=green>[init]</color> Compiling source files . . .") 
 	for file in files
-		test = base.host_computer.File(home_dir+"/src/"+file)
+		test = PC.File(HOME+"/src/"+file)
 		if test then
-			file_path = home_dir+"/src/"
-			imports = false
-			if file == "main.src" or file[0] == "cargo.src" then continue
-			print("Compiling: "+file+" @ "+file_path)
+			//if file == "main.src" or file == "cargo.src" then continue
+			file_path = HOME+"/src/"
+			print("Compiling: "+file+" @ <color=purple>"+file_path)
 			targ = file_path+file
 			compile = base.build(targ, file_path, 1)
 			if compile.len < 1 then 
-				print("<color=green>Compiled: "+file)
+				print("<color=green>Compiled: "+file[:-3])
+				wait(0.03)
+				if test.delete.len > 1 then print("<color=green>Deleted: "+file)
 				continue
 			end if
-            print("<color=yellow>"+compile)
+			print("<color=yellow>"+compile)
 		end if
 	end for
-	if base.build(home_dir+"/src/main.src", "/bin/ss", 0).len < 1 then print("<color=green>Compiled: SeaShell")
-	if base.build(home_dir+"/src/cargo.src", "/bin/", 0).len < 1 then print("<color=green>Compiled: cargo")
-else 
-	exit("install - invalid usgage")
+	//if base.build(HOME+"/src/main.src", "/bin/", 0).len < 1 then print("<color=green>Compiled: SeaShell</color> --> Use command ss to run SeaShell")
+	if PC.File(HOME+"/src/main") then 
+		PC.File(HOME+"/src/main").move("/bin", "ss")
+		print("<color=green>Compiled: SeaShell</color> --> Use command ss to run SeaShell")
+	end if
+	if PC.File(HOME+"/src/cargo") then PC.File(HOME+"/src/cargo").move("/bin","cargo")
+	wait(0.1)
+	//if base.build(HOME+"/src/cargo.src", "/bin/", 0).len < 1 then print("<color=green>Compiled: cargo")
+	if PC.File(HOME+"/src").get_files.len == 0 then PC.File(HOME+"/src").delete
+end function
+build_db = function 
+	print("<color=green>[init]</color> Building exploit table structure . . .")
+	if not PC.File(HOME+"/dict") then PC.create_folder(HOME, "dict")
+	if not PC.File(HOME+"/dict/data") then PC.create_folder(HOME+"/dict", "data")
+	if not PC.File(HOME+"/dict/data/exploits") then PC.create_folder(HOME+"/dict/data", "exploits")
+	if not PC.File(HOME+"/dict/data/rainbow") then PC.create_folder(HOME+"/dict/data", "rainbow")
+
+	db_folders = ["libssh", "libftp", "libhttp", "libsql", "librepository", "libchat", "librshell", "kernelrouter", "kernelrouter1", "init"]
+	for folder in db_folders 
+		if PC.create_folder(HOME+"/dict/data/exploits", folder) == 1 then print("Created exploit folder for library: <color=green>"+folder)
+	end for
+	if PC.File(HOME+"/dict/data/exploits").get_folders.len == db_folders.len then print("Exploit DB structure --> OK !")
+	print("<color=green>[init]</color> Building hash table structure . . .")
+	for i in range(1,7)
+		if PC.File(HOME+"/dict/brute"+str(i)+".src") then 
+			validate = user_input("<color=yellow>[Action required]</color> <color=yellow>"+HOME+"/dict/brute"+str(i)+".src </color>already exists."+char(10)+"Press 1 to paste SRC into file, 0 to skip --> ").to_int
+			content = null
+			if validate == 1 then content = user_input("<color=yellow>[Action required]</color> Paste contents for brute"+str(i)+".src > ")
+			if not content then continue
+			if PC.File(HOME+"/dict/brute"+str(i)+".src").set_content(content) == 1 then print("Successfully saved <color=green>"+HOME+"/dict/brute"+str(i)+".src")
+			continue
+		end if
+		if PC.touch(HOME+"/dict", "brute"+str(i)+".src") == 1 then 
+			print("brute"+str(i)+" creation --> OK")
+			content = user_input("<color=yellow>[Action required]</color> Paste contents for brute"+str(i)+".src > ")
+			if PC.File(HOME+"/dict/brute"+str(i)+".src").set_content(content) == 1 then print("Successfully saved <color=green>"+HOME+"/dict/brute"+str(i)+".src")
+			continue
+		end if
+		print("There was an issue with <color=yellow>"+HOME+"/dict/brute"+str(i)+".src")
+	end for
+end function
+build_hashes = function
+	print("<color=green>[init]</color> Building hash files . . .")  
+	username = user_input("<color=yellow>[Action required]</color> Specify user for builder's path >")
+	p = "/home/"+username
+	if username == "root" then p = "/root"
+	builder_src = "data = get_custom_object;import_"+"code('"+p+"/dict/brute1.src');import_"+"code('"+p+"/dict/brute2.src');import_"+"code('"+p+"/dict/brute3.src');import_"+"code('"+p+"/dict/brute4.src');import_"+"code('"+p+"/dict/brute5.src');import_"+"code('"+p+"/dict/brute6.src');import_"+"code('"+p+"/dict/brute7.src');;Crack={'isNum':['0','1','2','3','4','5','6','7','8','9'],'alpha':'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789','max':64,'classID':'CrackLib','Version':'2.5.1-rc.1'}; Crack.dump = function;print 'Building the rainbow tables ...';l=[];l=brute1+brute2+brute3+brute4+brute5+brute6+brute7;r=[];a=0;c=get_shell.host_computer;p=c.File('"+p+"/dict/data/rainbow').path;for b in l;if self.isNum.indexOf(b[0])!=null then ;r.push b+':'+md5(b);continue;end if;r.push b+':'+md5(b);r.push b.lower+':'+md5(b.lower);if r.len>3792 then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));r=[];a=a+1;end if;end for;if r.len then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));data.cb = true;exit('completed build process');end if;end function;Crack.dump"
+	if typeof(PC.touch(HOME+"/dict", "builder.src")) != "string" then 
+		print(fill+"Builder src created! --> compiling . . .") 
+		wait(1)
+		if typeof(PC.File(HOME+"/dict/builder.src").set_content(builder_src.replace("'", """").replace(";", char(10)))) == "string" then exit("Failed to set builder content")
+		compile = base.build(p1, p1[:-11], 0)
+		if compile.len > 1 then print(compile);
+		wait(0.5);
+		base.launch(p1[:-4]);
+		if data.cb == true then 
+			print(fill+"Builder return --> OK !"+char(10)+"Starting cleanup . . .");
+			for file in PC.File(HOME+"/dict").get_files
+				if file.indexOf("brute") or file.indexOf("builder") then 
+					f = file.name
+					print("Deleting: <color=yellow>"+file.name)
+					if file.delete.len < 1 then print("<color=green>Successfully deleted "+f) 
+				end if
+			end for
+			if PC.File(HOME+"/dict").get_files.len == 0 then exit("Builder cleanup --> OK !")
+		end if
+	else
+		if PC.File(HOME+"/dict/builder") then
+			print(fill+"Builder found! --> launching . . .") 
+			base.launch(p1[:-4]);
+			if data.cb == true then 
+				print("Builder return --> OK !"+char(10)+"Starting cleanup . . .");
+				for file in PC.File(HOME+"/dict").get_files
+						f = file.name
+						print("Deleting: <color=yellow>"+file.name)
+						if file.delete.len < 1 then print("Successfully deleted "+f) 
+				end for
+				if PC.File(HOME+"/dict").get_files.len == 0 then exit("Builder cleanup --> OK !")
+			end if
+		else  
+			print(fill+"Warning: an error occured during the build process.")
+		end if
+	end if
+end function 
+
+
+if params[0] == "-i" then
+	install_src
+else if params[0] == "-b" then 
+	build_src
+else if params[0] == "-db" then
+	build_db 
+	build_hashes
+else if params[0] == "-a" then
+	// shrug, you can just do it all !
+	if user_input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 to build src, hashes, and exploits --> ").to_int != 1 then exit("Exiting install . . .")
+	install_src
+	print("Install --> Ok !"+char(10)+"<color=yellow>Warning!</color> Before you continue to compile"+char(10)+"1.) paste the required content to the newly created files @ <color=purple>"+HOME+"/src</color>"+char(10)+"2.) then <b>SAVE</b> in code editor")
+	if user_input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 compile, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
+	build_src
+	print("Multitool build --> Ok !")
+	if user_input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 build exploit tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
+	build_db
+	print("Exploit table --> Ok !")
+	if user_input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 build hash tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
+	build_hashes
 end if
+
+// rainbow build
