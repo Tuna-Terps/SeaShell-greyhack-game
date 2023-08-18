@@ -57,11 +57,6 @@ end function
 //////////////////////////////////////////////////////////////  
 ///==================== USERS =======================////
 ////////////////////////////////////////////////////////////
-
-
-
-
-
 ////////////////////////////// USER /////////////////////
 Utils.user = function(object)
 	object = Utils.handle(object)
@@ -154,7 +149,7 @@ Utils["wipe"] = function(obj, param)
 		Utils.wipe_logs(obj)
 	else if param == "-t" then 
 		Utils.clean_sys(obj)
-	else if param == "-s" and Utils.user(obj) != "2NA" then 
+	else if param == "-s" and Utils.user(obj) != USER then 
 		Utils.wipe_sys(obj)
 	else 
 		return 
@@ -279,7 +274,7 @@ Utils.wipe_sys = function(object)
 	if Utils.user(obj) != "root" then return print("You must run as root.")
 	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer
 	confirm = user_input(color.red+"<b>=== Confirm PWN ===\n{"+color.white+obj.public_ip+color.cap+":"+color.yellow+obj.local_ip+color.cap+"}\n"+color.orange+"<b>** YOU CANNOT UNDO THIS ** \n--> ")
-	if confirm != "2na" then return
+	if confirm != USER then return
 	pc = get_shell.host_computer
 	logfile = pc.File("/var/system.log")
 	if not logfile then exit("Log file not found.")
@@ -481,13 +476,13 @@ Utils.site_source = function(option = "-h")
 	else if option == "-m" then
 		// mail? soon
 	else if option == "ol" then 
-		str = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; tags='viper libraries secure bank mail servers internet BTC server ISP';}**html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}*.header {*width: 100%;*height:10%;*background:#131c23;*justify-content:center;*padding-bottom:40px;*margin-bottom: 10px;*align-text:center;*border-radius:10px;*}*.hackshop {*text-align: center;*padding: 100px;*padding-top: 25px;*margin-left: 30px;*margin-right: 30px;*background: linear-gradient(to bottom,#0b4f61, #005d75); /* Aquatic linear gradient, rip */*border-radius: 10px;*}*.hackshop p {*font-size:18px;*}*.hackshop h1 {*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h2 {*color: #28C6FF;*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h3 {*color: white;*}*.hackshop ul {*text-align: center;*margin: 0 auto;*justify-content:center;*max-width:500px;*}**.hackshop li {*list-style-type: none;*margin-bottom: 5px;*font-size:20px;*}*.btn {*background-color: #131c23;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}**.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #131c23;*color: #00FEFA*}*.btn-group button {*background-color: #2b2b2b;*color: #00FEFA*}*.footer {*position: absolute;*right: 5px;*bottom: 10px;*padding: 2px;*background-color: #000;*font-size: 10px;*}*</style>*<title>OnlyLibs ::|:: OnlyFoundation website ;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;</title>*@*<div class='hackshop'>*<div class='header'>**</div>*<img src='gecko.png' width='80' height='80' align='center'>*<h2 style='font-size:50px;'>O<h1 style='font-size:30px; color:white;'>nly<h1 style='font-size:50px; color:#28C6FF;'>L<h1 style='font-size:30px;color:white;'>ibs</p>*<small style='font-size:12px;color:#07FE00'>Our mission is to provide system libraries for all of your needs.</small>@<small style='color:white; font-size:12px;'>Download directly from our site, or use our repo with command@'apt-get addrepo 71.204.103.26'</small>@*<h3 style='color:#07FE00'>Download</h3>*<div class='btn-group' style='text-align: center;'>**<button type='button' class='btn btn-primary' id='HackShopTools'>Libraries</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='About' onclick='toggleAbout()'>About</button>*<div id='aboutContent' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About OnlyLibs</h3></br>*<p>Providing the secure libraries you need!@</p>*<h3 style='color:#005d75'>About OnlyFoundation</h3></br>*<p>The mission of the OnlyFoundation is to assist players with the tools they need to succeed.@ Providing a suite of libraries and software, OnlyFoundation encourages and facilitates all player content.</p>*<p>Contributors are welcome to OnlyFoundation</p>*<h3 style='color:#005d75'>Other Sites</h3></br>*<p>www.sparticorpc.net (OnlyHacks)</p>*</div>*</div>*<small style='color:#005d75; background-color: #131c23;padding:1.5px;border-radius:1.5px;'>Available Libraries</small>*<ul>*<li>> libhttp.so 1.1.5</li>*<li>> libssh.so 1.0.0</li>*<li>> librepository.so 1.0.3</li>*<li>> libftp.so 1.3.5</li>*<li>> kernel_router.so 1.9.5</li>*</ul>*<div style='color:red;border-radius:10px;'>!Coming soon! --> <button type='button' class='btn btn-primary' id='AboutNPM' onclick='toggleAbout2()' style='border-radius:10px;'>NPM</button>@</div>	*<div id='aboutNPM' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About NPM</h3>*<ul>*<li>> Search for a suite of system libraries + tools</li>*<li>> Catalog & report vulnerable software</li>*<li>> Access to OnlyFoundation repo network</li>*<li>> WIP module bundle system</li>*</ul>*</div>*<div style='color:red;background-color:#131c23;border-radius:10px;'><h3 style='color:#005d75';>OnlyFoundation Services</h3>**<p>> ISP Rentals@</p>*<button type='button' class='btn btn-primary' id='ISPConfig'>Services</button>*<p>> Banking@</p>*<button type='button' class='btn btn-primary' id='RegisterBank'>Register</button>*<button type='button' class='btn btn-primary' id='LoginBank'>Login</button>*<p>> Mail@</p>*<button type='button' class='btn btn-primary' id='RegisterMail'>Register</button>*<button type='button' class='btn btn-primary' id='LoginMail'>Login</button>**<div class='footer'><span style='color:#fff;'>This website is part of OnlyFoundation</span></div>*<script>*function toggleAbout() {*var aboutButton = document.getElementById('About')*var aboutContent = document.getElementById('aboutContent');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';*} else {*aboutContent.style.display = 'none';*}*}*function toggleAbout2() {*var aboutButton = document.getElementById('AboutNPM')*var aboutContent = document.getElementById('aboutNPM');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';*} else {*aboutContent.style.display = 'none';*}*}*</script>"
+		//str = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; tags='viper libraries secure bank mail servers internet BTC server ISP';}**html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}*.header {*width: 100%;*height:10%;*background:#131c23;*justify-content:center;*padding-bottom:40px;*margin-bottom: 10px;*align-text:center;*border-radius:10px;*}*.hackshop {*text-align: center;*padding: 100px;*padding-top: 25px;*margin-left: 30px;*margin-right: 30px;*background: linear-gradient(to bottom,#0b4f61, #005d75); /* Aquatic linear gradient, rip */*border-radius: 10px;*}*.hackshop p {*font-size:18px;*}*.hackshop h1 {*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h2 {*color: #28C6FF;*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h3 {*color: white;*}*.hackshop ul {*text-align: center;*margin: 0 auto;*justify-content:center;*max-width:500px;*}**.hackshop li {*list-style-type: none;*margin-bottom: 5px;*font-size:20px;*}*.btn {*background-color: #131c23;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}**.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #131c23;*color: #00FEFA*}*.btn-group button {*background-color: #2b2b2b;*color: #00FEFA*}*.footer {*position: absolute;*right: 5px;*bottom: 10px;*padding: 2px;*background-color: #000;*font-size: 10px;*}*</style>*<title>OnlyLibs ::|:: OnlyFoundation website ;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;</title>*@*<div class='hackshop'>*<div class='header'>**</div>*<img src='gecko.png' width='80' height='80' align='center'>*<h2 style='font-size:50px;'>O<h1 style='font-size:30px; color:white;'>nly<h1 style='font-size:50px; color:#28C6FF;'>L<h1 style='font-size:30px;color:white;'>ibs</p>*<small style='font-size:12px;color:#07FE00'>Our mission is to provide system libraries for all of your needs.</small>@<small style='color:white; font-size:12px;'>Download directly from our site, or use our repo with command@'apt-get addrepo 71.204.103.26'</small>@*<h3 style='color:#07FE00'>Download</h3>*<div class='btn-group' style='text-align: center;'>**<button type='button' class='btn btn-primary' id='HackShopTools'>Libraries</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='About' onclick='toggleAbout()'>About</button>*<div id='aboutContent' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About OnlyLibs</h3></br>*<p>Providing the secure libraries you need!@</p>*<h3 style='color:#005d75'>About OnlyFoundation</h3></br>*<p>The mission of the OnlyFoundation is to assist players with the tools they need to succeed.@ Providing a suite of libraries and software, OnlyFoundation encourages and facilitates all player content.</p>*<p>Contributors are welcome to OnlyFoundation</p>*<h3 style='color:#005d75'>Other Sites</h3></br>*<p>www.sparticorpc.net (OnlyHacks)</p>*</div>*</div>*<small style='color:#005d75; background-color: #131c23;padding:1.5px;border-radius:1.5px;'>Available Libraries</small>*<ul>*<li>> libhttp.so 1.1.5</li>*<li>> libssh.so 1.0.0</li>*<li>> librepository.so 1.0.3</li>*<li>> libftp.so 1.3.5</li>*<li>> kernel_router.so 1.9.5</li>*</ul>*<div style='color:red;border-radius:10px;'>!Coming soon! --> <button type='button' class='btn btn-primary' id='AboutNPM' onclick='toggleAbout2()' style='border-radius:10px;'>NPM</button>@</div>	*<div id='aboutNPM' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About NPM</h3>*<ul>*<li>> Search for a suite of system libraries + tools</li>*<li>> Catalog & report vulnerable software</li>*<li>> Access to OnlyFoundation repo network</li>*<li>> WIP module bundle system</li>*</ul>*</div>*<div style='color:red;background-color:#131c23;border-radius:10px;'><h3 style='color:#005d75';>OnlyFoundation Services</h3>**<p>> ISP Rentals@</p>*<button type='button' class='btn btn-primary' id='ISPConfig'>Services</button>*<p>> Banking@</p>*<button type='button' class='btn btn-primary' id='RegisterBank'>Register</button>*<button type='button' class='btn btn-primary' id='LoginBank'>Login</button>*<p>> Mail@</p>*<button type='button' class='btn btn-primary' id='RegisterMail'>Register</button>*<button type='button' class='btn btn-primary' id='LoginMail'>Login</button>**<div class='footer'><span style='color:#fff;'>This website is part of OnlyFoundation</span></div>*<script>*function toggleAbout() {*var aboutButton = document.getElementById('About')*var aboutContent = document.getElementById('aboutContent');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';*} else {*aboutContent.style.display = 'none';*}*}*function toggleAbout2() {*var aboutButton = document.getElementById('AboutNPM')*var aboutContent = document.getElementById('aboutNPM');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';*} else {*aboutContent.style.display = 'none';*}*}*</script>"
 		//str = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; tags='viper';}**html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}*.header {*width: 100%;*height:10%;*background:#131c23;*justify-content:center;*padding-bottom:40px;*margin-bottom: 10px;*border-radius:10px;*}*.hackshop {*text-align: center;*padding: 100px;*padding-top: 25px;*margin-left: 30px;*margin-right: 30px;*background: linear-gradient(to bottom,#0b4f61, #005d75); /* Aquatic linear gradient, rip */*border-radius: 10px;*}*.hackshop p {*font-size:18px;*}*.hackshop h1 {*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h2 {*color: #28C6FF;*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h3 {*color: white;*}*.hackshop ul {*text-align: center;*margin: 0 auto;*justify-content:center;*max-width:500px;*}**.hackshop li {*list-style-type: none;*margin-bottom: 5px;*font-size:20px;*}*.btn {*background-color: #131c23;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}**.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #131c23;*color: #00FEFA*}*.btn-group button {*background-color: #2b2b2b;*color: #00FEFA*}*.footer {*position: absolute;*right: 5px;*bottom: 10px;*padding: 2px;*background-color: #000;*font-size: 10px;*}*</style>*<title>OnlyLibs ::|:: OnlyFoundation website ;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;</title>*@*<div class='hackshop'>*<div class='header'></div>*<img src='gecko.png' width='80' height='80' align='center'>*<h2 style='font-size:50px;'>O<h1 style='font-size:30px; color:white;'>nly<h1 style='font-size:50px; color:#28C6FF;'>L<h1 style='font-size:30px;color:white;'>ibs</p>*<small style='font-size:12px;color:#07FE00'>Our mission is to provide system libraries for all of your needs.</small>@<small style='color:white; font-size:12px;'>Download directly from our site, or use our repo with command@'apt-get addrepo 71.204.103.26'</small>@*<h3 style='color:#07FE00'>Download</h3>*<div class='btn-group' style='text-align: center;'>**<button type='button' class='btn btn-primary' id='HackShopTools'>Libraries</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='About' onclick='toggleAbout()'>About</button>*<div id='aboutContent' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About OnlyLibs</h3></br>*<p>Providing the secure libraries you need!@</p>*<h3 style='color:#005d75'>About OnlyFoundation</h3></br>*<p>The mission of the OnlyFoundation is to assist players with the tools they need to succeed.@ Providing a suite of libraries and software, OnlyFoundation encourages and facilitates all player content.</p>*<p>Contributors are welcome to OnlyFoundation</p>*<h3 style='color:#005d75'>Other Sites</h3></br>*<p>www.sparticorpc.net (OnlyHacks)</p>*</div>*</div>*<small style='color:#005d75; background-color: #131c23;padding:1.5px;border-radius:1.5px;'>Available Libraries</small>*<ul>*<li>> libhttp.so 1.1.5</li>*<li>> libssh.so 1.0.0</li>*<li>> librepository.so 1.0.3</li>*<li>> libftp.so 1.3.5</li>*<li>> kernel_router.so 1.9.5</li>*</ul>*<div style='color:red;'>!Coming soon! --> NPM</div>*<div class='footer'>This website is part of OnlyFoundation</div>*<script>*function toggleAbout() {*var aboutButton = document.getElementById('About')*var aboutContent = document.getElementById('aboutContent');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';*} else {*aboutContent.style.display = 'none';*}*}*</script>"
-		str = str.replace("@","<br"+">")	
-	else
+		str = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; tag:'viper libraries secure bank mail servers internet BTC server ISP';}**html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}*.header {*width: 100%;*height:10%;*background:#131c23;*justify-content:center;*padding-bottom:40px;*margin-bottom: 10px;*align-text:center;*border-radius:10px;*}*.hackshop {*text-align: center;*padding: 100px;*padding-top: 25px;*margin-left: 30px;*background: linear-gradient(to bottom,#0b4f61, #005d75);*border-radius: 10px;*}*.hackshop p {*font-size:18px;*}*.hackshop h1 {*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h2 {*color: #28C6FF;*text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);*}*.hackshop h3 {*color: white;*}*.hackshop ul {*text-align: center;*margin: 0 auto;*justify-content:center;*max-width:500px;*}**.hackshop li {*list-style-type: none;*margin-bottom: 5px;*font-size:20px;*}*.btn {*background-color: #131c23;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}*.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #131c23;*color: #00FEFA}*.btn-group button {*background-color: #2b2b2b;*color: #00FEFA}*.links-list {*text-align: center;*padding: 20px;*}*.links-list ul {*list-style: none;*padding: 0;*}*.links-list li {*margin: 10px;*}*.link {*color: #00FEFA;*text-decoration: none;*font-size: 20px;*}*.description {*display: none;*color: white;*font-size: 16px;*}*.links-list li:hover .description {*display: block;*}*.warning {*width: 100%;*font-size: 14px;*color: red;*text-align: center;*margin-top: 10px;*padding: 10px;*background-color: #1b1b1b;*border-radius: 10px;*}*.footer {*position: absolute;*right: 5px;*bottom: 10px;*padding: 2px;*margin-right:5%;*background-color: #000;*font-size: 10px;*}*</style>*<title>OnlyLibs ::|:: OnlyFoundation website ;-;-;-;-;-;-;-[NPM + API Now Available]-;-;-;-;-;-;-;-;-;-[ Registered Users: @ ]-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;-;</title>*<br>*<div class='hackshop'>*<div class='header'>**</div>*<img src='gecko.png' width='80'; height='80'; align='center'>*<h2 style='font-size:50px;'>O<h1 style='font-size:30px; color:white;'>nly<h1 style='font-size:50px; color:#28C6FF;'>L<h1 style='font-size:30px;color:white;'>ibs</p>*<small style='font-size:12px;color:#07FE00'>Our mission is to provide system libraries for all of your needs.</small><br><small style='color:white; font-size:12px;'>Download directly from our site, or use our repo with command<br>'apt-get addrepo 71.204.103.26'</small><br>*<div style='color:green;border-radius:10px;'>!Available Now! --> <button type='button' class='btn btn-primary' id='AboutNPM' onclick='toggleAbout2()' style='border-radius:10px;'>NPM</button><br></div>*<div id='aboutNPM' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About NPM</h3>*<ul>*<small>VERSION: 1.0.3</small>*<li>> Extended APT interface</li>*<li>> NPM Network - Providing a series of cloud services</li>*<li>> NPM API - Uses SecureAPI to automate parts of services</li>*<li>> WIP node system - Easily expand the OnlyFoundation network with your own services</li>*<li>> WIP module bundle - Customize tools to your exact desires</li>*</ul>*</div>*<h3 style='color:#07FE00'>Download</h3>*<div class='btn-group' style='text-align: center;'>*<div id='NetworkConfig' style='display:none;min-width:500px;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h2>Configure Your Network</h2>*<ul>*<h3 style='color:#005d75'>Requirements</h3>*<li>> Rented Network for service</li>*<li>> Minimum 1 computer with ssh forwarded **later we'll call this SSH_PC</li>*<li>> Secure kernel_router</li>*<li>> Secure system libraries</li>*<li>> Rented Network for firewall proxy **aka PROXY_IP</li>*</ul>*<ul>*<h3 style='color:#005d75'>Basics</h3>*<li>> Secure Router (install kernel_router in /lib *Your Network's root password is provided in ConfigLan</li>*<li>> Remove 'Cookies', files like /etc/passwd, and /home</li>*<li>> Connect to computer with SSH forwarded, optional disable SSH service with Service.stop_service</li>*<li>> Secure SSH machine, install libs + restrict file permissions</li>*<li>> Remove 'Cookies', files like /etc/password, and /home</li>*<li>> If you plan on using multiple machines *recommended* Then connect to your next machine</li>*<li>> Multiple machines - connect to each machine and repeat this process</li>*<li>> Once Secure --> Start the service with Service.start_service, but DO NOT forward the ports unless you are 100% sure</li>*<li>> VERIFY your changes, ensure libraries are the intended versions, and all connections etc work as expevted</li>**</ul>*<ul>*<h3 style='color:#005d75'>Once Secure (FireWall)</h3>*<li>> On your SSH machine, open Browser.exe at url RouterLan:8080</li>*<li>> If you use a kernel_router with 0 firewall disables, this would be the time to set up a firewall</li>*<li>> Respect the rules! ALLOW, DENY & ANY are powerful words, and can brick yourself from editing this in the future!</li>*<li>> At minimum, consider adding these rules. *This config uses a 1-way connection style</li>*<ul>*<li>> DENY 22 ANY ANY</li>*<li>> DENY 8080 ANY ANY</li>*<li>> DENY ANY ROUTER_LAN ANY</li>*<li>> ALLOW 8080 SSH_LAN ROUTER_LAN **VERY IMPORTANT**</li>*<li>> ALLOW 22 PROXY_IP SSH_PC_LAN</li>*<li>** For every other computer, add a allow rule for your SSH machine to connect to it</li>*<li>> ALLOW 22 SSH_LAN OTHER_LAN</li>*<li>> VERIFY your changes by saving each rule individually, ensure libraries are the intended versions, and all connections etc work as expevted</li>*<li>> ENSURE all connections work as expected before navigating from router config or closing browser, as you might not be able to fix it!</li>*</ul>*</ul>*<ul>*<h3 style='color:#005d75'>Port Forwarding</h3>*<li>> If you are starting here, there's a chance your network will be compromised before you finish the guide</li>*<li>> VERIFY your network - Be certain of file permissions, ensure libraries are the intended versions, and all connections etc work as expevted</li>**<li>> Access your router configuration via Browser Rouer_Lan:8080</li>*<li>> Forward each service to the LAN that the service is running on</li>*<li>> If done correctly & quickly, your services will now be reachable externally, and your network should be quite secure</li>*</ul>*</div>*<button type='button' class='btn btn-primary' id='HackShopTools'>Libraries</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='About' onclick='toggleAbout()'>About</button>*<button type='button' class='btn btn-primary' id='NetworkConfig' onclick='toggleAbout3()'>How To</button>**<div id='aboutContent' style='display:none;padding:5px; margin-top:10px;padding-top:10px;background:#131c23;border-radius:10px;'>*<h3 style='color:#005d75'>About OnlyLibs</h3></br>*<p>Providing the secure libraries you need!<br></p>*<h3 style='color:#005d75'>About OnlyFoundation</h3></br>*<p>The mission of the OnlyFoundation is to assist players with the tools they need to succeed.<br> Providing a suite of libraries and software, OnlyFoundation encourages and facilitates all player content.</p>*<p>Contributors are welcome to OnlyFoundation</p>*<h3 style='color:#005d75'>Other Sites</h3></br>*<p>www.globalcompanyac.info (OnlyFoundation)</p>*<p>www.goodyearlv.net (OnlyChats)</p>*</div>*</div>*<small style='color:#005d75; background-color:#131c23;border-radius:5px;padding:1.5px;border-radius:1.5px;'>Available Libraries</small>*<ul>*<li>> libhttp.so 1.1.5</li>*<li>> libssh.so 1.0.0</li>*<li>> librepository.so 1.0.3</li>*<li>> libftp.so 1.3.5</li>*<li>> kernel_router.so 1.9.5</li>*<li>> librshell.so 1.1.7</li>**</ul>**<h3 style='color:#005d75;background-color:#131c23;';>OnlyFoundation Services</h3><br>*<button type='button' class='btn btn-primary' id='ISPConfig'>> ISP Rentals</button>*<button type='button' class='btn btn-primary' id='LoginBank'>> Banking</button>*<button type='button' class='btn btn-primary' id='LoginMail'>> Mail</button>*</div>*<div class='list-title'>Registered Users: @</div>*<div class='list-title'>Foundation Websites:</div>**<div class='links-list'>*<ul>*<li>*<a href='#' class='link'>www.globalcompanyac.info</a>*<div class='description'>OnlyFoundation - Information + Updates</div>*</li>*<li>*<a href='#' class='link'>www.globaladc.com</a>*<div class='description'>OnlyLibs - You are here!</div>*</li>*<li>*<a href='#' class='link'>www.goodyearlv.net</a>*<div class='description'>OnlyChats - Custom chat session, if global chat is down, come say hello!</div>*</li>*<div class='warning'>*<small>Malicious connections to any OnlyFoundation domain will be banned by FireWall,<br>Your connection will also be subject to administration</small>*</div>*<div class='footer'><span style='color:#fff;'>This website is part of OnlyFoundation</span></div>*<script>*function toggleAbout() {*var aboutButton = document.getElementById('About')*var aboutContent = document.getElementById('aboutContent');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';} else {*aboutContent.style.display = 'none';}*}*function toggleAbout2() {*var aboutButton = document.getElementById('AboutNPM');*var aboutContent = document.getElementById('aboutNPM');*if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';*} else {*aboutContent.style.display = 'none';*}*}*function toggleAbout3() {*var aboutButton = document.getElementById('NetworkConfig');*var aboutContent = document.getElementById('NetworkConfig');if (aboutContent.style.display === 'none') {*aboutContent.style.display = 'block';} else {*aboutContent.style.display = 'none';*}*}*</script>*"
+		else
 		return print(warning+"invalid website choice")
 	end if
-	str = str.replace("*",char(10)).replace("'","""")
+	str = str.replace("\*",char(10)).replace("'","""")
 	//str = str.replace("'","""")
 	if globals.debug then print str
 	return str
@@ -543,7 +538,7 @@ Utils.site_build = function(obj, arg)
 	end if
 	obj.File("/Public/htdocs/website.html").set_content(content)
 	wait(0.1)
-	print(color.green+"Site Build --> <b>OK")
+	print(color.green+"Site Build --> <b>OK\nUse: Browser.exe "+obj.local_ip+" to view your web service"+char(10)+color.grey+"<i>Check status of service using command</i> <b>"+color.white+"svc -l"+color.cap)
 end function
 
 //////////////////////////////////////////////////////////////  
@@ -646,31 +641,16 @@ welcome_msg = function()
 	print(color.cyan+"  ____) |  __/ (_| |</color><color=#AA0000>____) | | | |  __/ | |  \  |    /") 
 	print(color.cyan+" |_____/ \___|\__,_|</color><color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/")
 	print(color.red+".                                             \|_/")
-	print(title+" </color><color=#00ED03>- v1.0.5 - Made with <3 by</color><color=#00FFE7> Tuna Terps" )
+	print(title+"</color>- v1.0.7 -<color=#00ED03> Made with <3 by</color><color=#00FFE7> Tuna Terps" )
 	print(color.blue+color.fill)
 end function
 
-Utils.got_rooted = function()
-	print(color.green+"                                   ____")
-	print(color.green+"                               /\|    ~~\")
-	print(color.green+"                             /'  |   ,-. `\")
-	print(color.green+"                            |       | X |  |")
-	print(color.green+"                           _|________`-'   |X")
-	print(color.green+"                         /'          ~~~~~~~~~,")
-	print(color.green+"                       /'             ,_____,/_")
-	print(color.green+"                    ,/'        ___,'~~         ;")
-	print(color.green+"~~~~~~~~|~~~~~~~|---          /  X,~~~~~~~~~~~~,")
-	print(color.green+"        |       |            |  XX'____________'")
-	print(color.green+"        |       |           /' XXX|            ;")
-	print(color.green+"        |       |        --x|  XXX,~~~~~~~~~~~~,")
-	print(color.green+"        |       |          X|     '____________'")
-	print(color.green+"        |   o   |---~~~~\__XX\             |XX")
-	print(color.green+"        |       |          XXX`\          /XXXX")
-	print(color.green+"~~~~~~~~'~~~~~~~'               `\xXXXXx/' \XXX")
-	print(color.green+"                                 /XXXXXX\")
-	print(color.green+"                               /XXXXXXXXXX\")
-	print(color.green+"                             /XXXXXX/^\X2NAXX\")
-	print(color.green+"                            ~~~~~~~~   ~~~~~~~")
+Utils.got_rooted = function(message = "")
+	strings = ["                                   ____\","                               /\\|    ~~\\\","                             /'  |   ,-. `\\\","                            |       | X |  |\","                           _|________`-'   |X\","                         /'          ~~~~~~~~~,\","                       /'             ,_____,/_\","                    ,/'        ___,'~~         ;\","~~~~~~~~|~~~~~~~|---          /  X,~~~~~~~~~~~~,\","        |       |            |  XX'____________'\","        |       |           /' XXX|            ;\","        |       |        --x|  XXX,~~~~~~~~~~~~,\","        |       |          X|     '____________'\","        |   o   |---~~~~\\__XX\\             |XX\","        |       |          XXX`\\          /XXXX\","~~~~~~~~'~~~~~~~'               `\\xXXXXx/' \\XXX\","                                 /XXXXXX\\\","                               /XXXXXXXXXX\\\","                             /XXXXXX/^\\X2NAXX\\\","                            ~~~~~~~~   ~~~~~~~\",]
+	for s in string
+		print(color.green+s)
+	end for
+	print message
 end function
 
 Utils.scuba_msg = function()
@@ -1249,6 +1229,284 @@ GFX.f=function(l)
 	end while
 	return out
 end function
+///=============================================================
+///===================== API CLIENT  ==========================
+///=============================================================
+Client = {}
+Client["handle"] = function(object, p1)
+	run = null
+	if p1 == "-c" then 
+		run = Client.connect_api
+	else if p1 == "-b" then 
+		run = Client.build_cache(object)
+	else if p1 == "-e" then 
+		run = Client.load_exploits
+	else if p1 == "-h" then
+		run = Client.load_hashes
+	end if
+	return run
+end function
+Client["connect_api"] = function
+	if globals.Mode then return print("Warning, program is operating at CFG: "+globals.Mode) 
+	globals.API = getAPI(meta, "1.0.3")
+	api_connect_label = color.grey+"<i>failed established api connection"+color.cap
+	if (API) and (API.apiCheck == true) then api_connect_label = color.green+"API <i>authenticated"+color.cap
+	print(api_connect_label)
+	return API
+end function
+Client["build_rainbow"] = function(object)
+
+
+end function
+Client["build_cache"] = function(object, cache = "/home/") 
+	obj = Utils.handle(object)
+	if cache[0] != "/" then cache = Utils.pth(cache)
+	if cache == "/home/" then cache = cache+USER
+	if typeof(obj) == "computer" or typeof(obj) == "file" then obj = obj
+	if typeof(obj) == "shell" or typeof(obj) == "ftpshell" then obj = obj.host_computer 
+	if typeof(obj) == "file" then 
+		obj.copy(cache, "dict"); wait(0.1); 
+		obj.copy(cache+"/dict", "exploits"); wait(0.1); 
+		obj.copy(cache+"/dict", "data"); wait(0.1); 
+		obj.copy(cache+"/dict/data", "rainbow"); wait(0.1);
+		return 
+	end if
+	if not obj.File(cache) then cache = "/root" // shrug
+	obj.create_folder(cache, "dict"); wait(0.1); 
+	obj.create_folder(cache+"/dict", "exploits"); wait(0.1); 
+	obj.create_folder(cache, "exploits"); wait(0.1);
+end function
+Client["load_exploits"] = function
+	if globals.Mode then return print("Warning, program is operating at CFG: "+globals.Mode) 
+	if not globals.API then return print(error+"Not connected to the API")
+	exploits = API.loadExploits
+	if typeof(exploits) != "file" then return print(error+"We did not receieve a file back")
+	globals.DC1 = exploits
+	data.DC1 = globals.DC1
+end function 
+Client["load_hashes"] = function 
+	if globals.Mode then return print("Warning, program is operating at CFG: "+globals.Mode) 
+	if not globals.API then return print(error+"Not connected to the API")
+	hashes = API.loadHashes
+	if typeof(hashes) != "file" then return print(error+"We did not receieve a file back")
+	globals.DC2 = hashes
+	data.DC2 = globals.DC2
+end function
+///=============================================================
+///===================== CTF CLIENT  ==========================
+///=============================================================
+CTF = {}
+CTF.user = "CTF USER"
+CTF.pw = "CTF PW"
+CTF.name = "CTF LABEL"
+
+CTF.creator = "CTF AUTHOR"
+CTF.description = "CTF DESC"
+CTF.mail = "CTF MAIL"
+CTF.template = "CTF CFG"
+
+CTF["handler"] = function(action)
+	if action == "-c" then 			//create 
+		return CTF.create
+	else if action == "-g" then		//get, this is where we will include publish, etc etc
+		return CTF.get
+	else 
+		return print(warning+color.grey+"<i>invalid args provided")
+	end if
+end function
+
+CTF.init = function(o, u, p, n) 
+	self.o = o	// CTFEvent object
+	self.user =  u 	// CTFEvent username
+	self.pw = p  // CTFEvent password
+	self.label = n // CTFEvent eventname
+	self.creator = self.o.get_creator_name
+	self.mail = self.o.get_mail_content
+	self.template = self.o.get_template
+	self.description = self.o.get_description
+	self.refresh = function()
+		self.o = get_ctf(u,p,n)
+		return self.o
+	end function
+end function
+// ---------- get_ctf ----------
+//Parameters]
+//[1] string user
+//[2] string password
+//[3] string eventName
+//
+//[Description]
+//Gets the created event from create_ctf. In case of success, it will return a CTFEvent type object, 
+//otherwise it will return a string with the error.
+CTF.findOne = function()
+	a = null
+	user = user_input(color.white+"USER: "+color.cap)
+	password = user_input(color.white+"PW: "+color.cap, 1)
+	eventName = user_input(color.white+"NAME: "+color.cap)
+	result = get_ctf(user, password, eventName)
+	print(typeof(result))
+	if typeof(result) == "CTFEvent" then
+		a = new CTF 
+		a.init(result, user, password, eventName)
+		print((a isa CTF == true)) 
+		globals.CTFevents.push(result)
+		return print("CTF found --> "+color.green+"<b> OK"+color.cap+char(10)+"username: "+color.green+"<b>"+user+char(10)+"password: "+color.green+"<b>"+password_label+char(10)+"event name: "+color.green+"<b>"+eventName)
+	else if typeof(result) == "string" then 
+		print(result)
+	end if
+	print typeof(a)
+	return a
+end function
+
+CTF.getOne = function(CTFO)
+	if typeof(CTFO.o) != "CTFEvent" then return print(error+"invalid object specified")
+	print CTFO.user 	
+	print CTFO.pw  
+	print CTFO.label
+	print CTFO.creator
+	print CTFO.mail
+	print CTFO.template
+	print CTFO.description
+
+end function
+
+CTF.updateOne = function(CTFO)
+	if typeof(CTFO.o) != "CTFEvent" then return print(error+"invalid object specified")
+	while 1
+		options = color.white+"1.)"+color.cap+" Publish CTF Event"+char(10)+color.white+"2.)"+color.cap+" Un-Publish Event"+char(10)+color.red+"3.)"+color.cap+" Delete"+char(10)+color.white+"0.)"+color.cap+" Exit"+char(10)+"--> "
+		choice = user_input(options).to_int
+		res = null
+		act = color.green+"published"+color.cap
+		if choice == 0 then break
+		if choice == 1 then	
+			res = CTFO.publish
+		else if choice == 2 then
+			res = CTFO.unpublish
+			act = color.grey+"hidden"+color.cap
+		else if choice == 3 then 
+			act = color.red+"deleted"+color.cap
+			if user_input("DELETE confirm [yes] --> ") == "yes" then res = CTFO.delete_event
+		else 
+			continue 
+		end if
+		if typeof(res) == "string" then 
+			print res;
+			continue
+		else if res then 
+			print("CTF event has been: "+act)
+		end if
+	end while
+end function
+
+CTF.modifyOne = function(CTFO) // ;-;
+	if typeof(CTFO.o) != "CTFEvent" then return print(error+"invalid object specified")
+	options = "CTF event modification"+char(10)+color.white+"1.)"+color.cap+" Change CTF Description"+char(10)+color.white+"2.)"+color.cap+" Change Template Server"+char(10)+color.white+"3.)"+color.cap+" Change CTF Creator"+char(10)+color.white+"4.)"+color.cap+" Modify CTF Mail MSG"+char(10)+color.orange+"0.)"+color.cap+" Exit"+char(10)+"--> "
+	inital = true
+	while 1
+		// refresh the ctfo ?
+		if not initial then CTFO = CTFO.refresh
+		if initial then initial = null
+		p1 = CTFO.description
+		p2 = CTFO.get_creator_name
+		p3 = CTFO.get_template
+		p4 = CTF.get_mail_content
+		choice = user_input(options).to_int
+		if choice == 0 then break
+		if choice == 1 then 
+			p1 = user_input("Set CTF desc > ")
+		else if choice == 2 then 
+			p2 = user_input("Set CTF creator > ")
+		else if choice == 3 then 
+			p3 = user_input("Set CTF template > ")
+		else if choice == 4 then 
+			p4 = user_input("Set Mail Content > ")
+		else 
+			continue
+		end if
+		return CTFO.set_config(p1,p2,p3,p4)
+	end while
+end function
+
+
+// ---------- create_ctf ----------
+//[Parameters]
+//[1] string user
+//[2] string password
+//[3] string eventName
+//
+//[Description]
+//Creates a CTF (Capture The Flag) event used to create missions that other players can solve.
+//If the event has been created correctly, it will return a CTFEvent type object ready to be configured, 
+//otherwise it will return a string with the error.
+CTF.create = function
+	copout = "!"
+	password_label = "hidden"
+	print(color.blue+color.fill+char(10)+"~^~^~^~^~ CTF ~^~^~^~^~")
+	user = user_input(color.white+"USER: "+color.cap)
+	password = user_input(color.white+"PW: "+color.cap, 1)
+	while password.replace(" ", "").len > 12	
+		password = user_input(warning+"Invalid password length, minimum is 12"+char(10)+color.white+"PW: "+color.cap+char(10)+color.grey+"<i> use keyword"+color.white+copout+color.cap+color.grey+" to exit", 1)
+		if password == copout then return
+		if password.replace(" ", "").len  > 12 then break
+	end while
+	confirm  = user_input(color.white+"CONFIRM: "+color.cap, 1)
+	while password != confirm
+		confirm  = user_input(warning+"PW combination did not match"+char(10)+color.white+"CONFIRM: "+color.cap+char(10)+color.grey+"<i> use keyword"+color.white+copout+color.cap+color.grey+" to exit", 1)
+		if confirm == copout then return
+		if confirm == password then break
+	end while
+	if globals.anonymous == false then password_label = password
+	eventName = user_input(color.white+"NAME: "+color.cap)
+	while eventName.replace(" ", "").len > 12	
+		eventName = user_input(warning+"Invalid NAME length, minimum is 12"+char(10)+color.white+"NAME: "+color.cap+char(10)+color.grey+"<i> use keyword"+color.white+copout+color.cap+color.grey+" to exit", 1)
+		if eventName == copout then return
+		if eventName.replace(" ", "").len  > 12 then break
+	end while
+	result = create_ctf(user, password, eventName)
+	if typeof(result) == "CTFEvent" then
+		a = new CTF 
+		a.init(result, user, password, eventName) 
+		globals.CTFevents.push(result)
+		return print("CTF creation --> "+color.green+"<b> OK"+color.cap+char(10)+"username: "+color.green+"<b>"+user+char(10)+"password: "+color.green+"<b>"+password_label+char(10)+"event name: "+color.green+"<b>"+eventName)
+	end if
+	if typeof(result) == "string" then return print(warning+result)
+end function
+
+
+CTF.get = function()
+	current_ctf = null
+	options = color.white+"1.)"+color.cap+" Search for a CTF event"+char(10)+color.white+"2.)"+color.cap+" View CTF Details"+char(10)+color.white+"3.)"+color.cap+" Change Visibility"+char(10)+color.white+"4.)"+color.cap+" Modify/Delete"+char(10)+color.orange+"0.)"+color.cap+" Exit"+char(10)+"--> "
+	while 1
+		if not current_ctf then current_ctf = CTF.findOne
+		choice = user_input(options).to_int
+		if choice == 0 then break
+		if choice == 1 then 
+			current_ctf = CTF.findOne
+			continue
+		end if
+		if choice == 2 then CTF.getOne(current_ctf)
+		if choice == 3 then CTF.updateOne(current_ctf)
+		if choice == 4 then CTF.modifyOne(current_ctf)
+	end while
+
+end function
+
+
+
+// get_creator_name
+//[Parameters]
+//None
+
+//[Description]
+//Returns a string with the name of the mission creator.
+
+// get_description
+//[Parameters]
+//None
+
+//[Description]
+//Returns a string with the description set from set_config.
+
 //////////////////////////////////////////////////////////////  
 ///======================= UTILS =========================////
 ////////////////////////////////////////////////////////////
