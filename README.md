@@ -14,7 +14,6 @@
 *create a folder named src, and place all scripts inside of it via the game code editor <br>
  <br>
 -- You can pass the src code from here to the files, then easily compile them all using the installer <br>
-
 -- adjust the paths for the refernce code in main.src and payload.src <br>
 ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 # COMPILE #<br>
@@ -27,9 +26,13 @@ ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 5.) main.src --> RENAME TO ss <br>
 <br> ESCALATION <br><br>
 1.) cargo.src --> name to cargo <br>
+Once complete, the only required filed are ss, and cargo<br>
+# LOCAL DB # (NPC PW hashes)<br>
+1.) Youll need the dictionary files from https://github.com/linuxgruven/dictionary<br>
+2.) The script will ask you to paste the contents into the script, using CTRL+SHIFT+V copy the correspnding.src to the terminal running installer.<br>
+3.) You will be prompted for your user in order for the builder script to build the hashes <br>
+4. The installer script can be ran in stages, or provides a full installation. 
 
-Once complete, the only required filed are ss, eel, and payload<br>
-<br>
 DELETE ALL SRC FILES ONCE YOU HAVE SUCCESFULLY RAN SS<br>
 <h2> Features </h2><br>
 1.) Manage multiple objects in a sandbox environment<br>
