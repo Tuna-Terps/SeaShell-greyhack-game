@@ -34,7 +34,7 @@ Once complete, the only required filed are ss, and cargo<br>
 4. The installer script can be ran in stages, or provides a full installation. 
 
 DELETE ALL SRC FILES ONCE YOU HAVE SUCCESFULLY RAN SS<br>
-<h2> Features </h2><br>
+<h1>SeaShell Features </h1><br>
 1.) Manage multiple objects in a sandbox environment<br>
 2.) Capture net sessions remotely, return exploit objects from launched binaries<br>
 3.) Internal & External LAN bouncing <br>
