@@ -82,7 +82,7 @@ build_db = function
 	if not PC.File(HOME+"/dict/data/exploits") then PC.create_folder(HOME+"/dict/data", "exploits")
 	if not PC.File(HOME+"/dict/data/rainbow") then PC.create_folder(HOME+"/dict/data", "rainbow")
 
-	db_folders = ["libssh", "libftp", "libhttp", "libsql", "librepository", "libchat", "librshell", "kernelrouter", "kernelrouter1", "init"]
+	db_folders = ["libssh", "libftp", "libhttp", "libsql", "libsmtp", "librepository", "libchat", "librshell", "kernelrouter", "kernelrouter1", "init"]
 	for folder in db_folders 
 		if PC.create_folder(HOME+"/dict/data/exploits", folder) == 1 then print("Created exploit folder for library: <color=green>"+folder)
 	end for
