@@ -1,4 +1,6 @@
-// wip install script
+//////////////////////////////////////////////////////////////  
+///====================== INSTALL ========================///
+////////////////////////////////////////////////////////////
 // this script assumes it has perms to perform its tasks . . . so yeah
 if params.len == 0 then exit("<color=green>SEASHELL INSTALL:"+char(10)+"usage: <color=white>"+program_path+" -a</color> 		  --> Full installation"+char(10)+"usage: <color=white>"+program_path+" [-i|-b|-db]</color> --> Install each portion in stages"+char(10)+"*<color=grey><i> For full installation, use command:"+char(10)+program_path+"<color=white> -a"+char(10)+"* <color=grey><i>To install in stages, use commands: "+char(10)+program_path+"<color=white> -i"+char(10)+program_path+"<color=white> -b"+char(10)+program_path+"<color=white> -db")
 fill = "<color=blue>><> ><> ><>  ><> ><> ><>  ><> ><> ><>  ><> ><> ><>  ><> ><> ><> "+char(10)
@@ -11,7 +13,13 @@ PC = base.host_computer
 HOME = home_dir
 dirs = base.host_computer.File(HOME)
 p1 = HOME+"/dict/builder.src"
-
+file_paths = ""
+gen_label = function(p1 = "")
+	for file in files 
+		file_paths = file_paths+p1+HOME+"/src/"+file+char(10)
+	end for
+	return file_paths
+end function
 check_src = function(targ = "src")
 	print("<color=green>[init]</color> Checking key directories . . .") 
 	for dir in dirs.get_folders
@@ -59,7 +67,7 @@ build_src = function
 			if compile.len < 1 then 
 				print("<color=green>Compiled: "+file[:-3])
 				wait(0.03)
-				if test.delete.len > 1 then print("<color=green>Deleted: "+file)
+				if test.delete.len < 1 then print("<color=green>Deleted: "+file)
 				continue
 			end if
 			print("<color=yellow>"+compile)
@@ -79,14 +87,14 @@ build_db = function
 	print("<color=green>[init]</color> Building exploit table structure . . .")
 	if not PC.File(HOME+"/dict") then PC.create_folder(HOME, "dict")
 	if not PC.File(HOME+"/dict/data") then PC.create_folder(HOME+"/dict", "data")
-	if not PC.File(HOME+"/dict/data/exploits") then PC.create_folder(HOME+"/dict/data", "exploits")
+	if not PC.File(HOME+"/dict/exploits") then PC.create_folder(HOME+"/dict", "exploits")
 	if not PC.File(HOME+"/dict/data/rainbow") then PC.create_folder(HOME+"/dict/data", "rainbow")
 
 	db_folders = ["libssh", "libftp", "libhttp", "libsql", "libsmtp", "librepository", "libchat", "librshell", "kernelrouter", "kernelrouter1", "init"]
 	for folder in db_folders 
-		if PC.create_folder(HOME+"/dict/data/exploits", folder) == 1 then print("Created exploit folder for library: <color=green>"+folder)
+		if PC.create_folder(HOME+"/dict/exploits", folder) == 1 then print("Created exploit folder for library: <color=green>"+folder)
 	end for
-	if PC.File(HOME+"/dict/data/exploits").get_folders.len == db_folders.len then print("Exploit DB structure --> OK !")
+	if PC.File(HOME+"/dict/exploits").get_folders.len == db_folders.len then print("Exploit DB structure --> OK !")
 	print("<color=green>[init]</color> Building hash table structure . . .")
 	for i in range(1,7)
 		if PC.File(HOME+"/dict/brute"+str(i)+".src") then 
@@ -149,8 +157,6 @@ build_hashes = function
 		end if
 	end if
 end function 
-
-
 if params[0] == "-i" then
 	install_src
 else if params[0] == "-b" then 
@@ -162,15 +168,16 @@ else if params[0] == "-a" then
 	// shrug, you can just do it all !
 	if user_input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 to build src, hashes, and exploits --> ").to_int != 1 then exit("Exiting install . . .")
 	install_src
-	print("Install --> Ok !"+char(10)+"<color=yellow>Warning!</color> Before you continue to compile"+char(10)+"1.) paste the required content to the newly created files @ <color=purple>"+HOME+"/src</color>"+char(10)+"2.) then <b>SAVE</b> in code editor")
+	print("<color=purple>Install --> Ok !"+char(10)+"<color=yellow>[Action Required]</color> Before you continue to compile"+char(10)+"<color=white>1.)</color> Open a new terminal</color>"+char(10)+"<color=white>2.) </color>Launch CodeEditor.exe for the following files, paste in contents & <b>save</b>"+char(10)+gen_label("CodeEditor.exe "))
 	if user_input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 compile, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
 	build_src
-	print("Multitool build --> Ok !")
+	print("<color=purple>Multitool build --> Ok !")
 	if user_input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 build exploit tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
 	build_db
-	print("Exploit table --> Ok !")
+	print("<color=purple>Exploit table --> Ok !")
 	if user_input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 build hash tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
 	build_hashes
 end if
-
-// rainbow build
+//////////////////////////////////////////////////////////////  
+///====================== INSTALL ========================///
+////////////////////////////////////////////////////////////
