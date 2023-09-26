@@ -27,7 +27,7 @@ check_src = function(targ = "src")
 	print("<color=green>[init]</color> Checking key directories . . .") 
 	for dir in dirs.get_folders
 		if dir.name == targ then 
-			return print(HOME+"/"+targ+" already exists !")
+			return print("<color=grey><i>"+HOME+"/"+targ+" already exists !")
 		end if
 	end for	
 	PC.create_folder(HOME, targ)
@@ -53,7 +53,7 @@ install_src = function
 				print("<color=yellow>Warning</color> Failed to create "+file)
 			end if
 		else 
-			print("Already Exists: <b><color=white>"+file)
+			print("<i>Already Exists: <b><color=white>"+file)
 		end if
 	end for
 end function
@@ -140,7 +140,7 @@ build_db = function
 		if PC.create_folder(HOME+"/dict/exploits", folder) == 1 then print("Created exploit folder for library: <color=green>"+folder)
 	end for
 	if PC.File(HOME+"/dict/exploits").get_folders.len == db_folders.len then print("Exploit DB structure --> OK !")
-	print("<color=green>[init]</color> Building hash table structure . . .")
+	print("<color=green>[init]</color> Building hash table structure . . ."+char(10)+"<color=orange><i>NOTE</i>\n"+fill+"Use ctrl+shift+v to paste contents into the terminal and hit ENTER;\nThe pasted text will likely not appear in the terminal\nSo trust the instructions :)\n"+fill)
 	for i in range(1,7)
 		if PC.File(HOME+"/dict/brute"+str(i)+".src") then 
 			validate = input("<color=yellow>[Action required]</color> <color=yellow>"+HOME+"/dict/brute"+str(i)+".src </color>already exists."+char(10)+"Press 1 to paste SRC into file, 0 to skip --> ").to_int
@@ -159,47 +159,36 @@ build_db = function
 		print("There was an issue with <color=yellow>"+HOME+"/dict/brute"+str(i)+".src")
 	end for
 end function
+build_launch = function
+	base.launch(p1[:-4]);
+	if data.cb != true then return print(fill+"Warning: an error occured during the build process.")
+	print(fill+"Builder return --> OK !"+char(10)+"Starting cleanup . . .");
+	for file in PC.File(HOME+"/dict").get_files
+		if file.indexOf("brute") or file.indexOf("builder") then 
+			f = file.name
+			print("Deleting: <color=yellow>"+file.name)
+			if file.delete.len < 1 then print("<color=green>Successfully deleted "+f) 
+		end if
+	end for
+if PC.File(HOME+"/dict").get_files.len == 0 then exit("Builder cleanup --> OK !")
+end function
 build_hashes = function
 	print("<color=green>[init]</color> Building hash files . . .")  
-	username = input("<color=yellow>[Action required]</color> Specify user for builder's path >")
-	p = "/home/"+username
-	if username == "root" then p = "/root"
+	p = "/home/"+USER
+	if USER == "root" then p = "/root"
 	builder_src = "data = get_custom_object;import_"+"code('"+p+"/dict/brute1.src');import_"+"code('"+p+"/dict/brute2.src');import_"+"code('"+p+"/dict/brute3.src');import_"+"code('"+p+"/dict/brute4.src');import_"+"code('"+p+"/dict/brute5.src');import_"+"code('"+p+"/dict/brute6.src');import_"+"code('"+p+"/dict/brute7.src');;Crack={'isNum':['0','1','2','3','4','5','6','7','8','9'],'alpha':'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789','max':64,'classID':'CrackLib','Version':'2.5.1-rc.1'}; Crack.dump = function;print 'Building the rainbow tables ...';l=[];l=brute1+brute2+brute3+brute4+brute5+brute6+brute7;r=[];a=0;c=get_shell.host_computer;p=c.File('"+p+"/dict/data/rainbow').path;for b in l;if self.isNum.indexOf(b[0])!=null then ;r.push b+':'+md5(b);continue;end if;r.push b+':'+md5(b);r.push b.lower+':'+md5(b.lower);if r.len>3792 then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));r=[];a=a+1;end if;end for;if r.len then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));data.cb = true;exit('completed build process');end if;end function;Crack.dump"
 	if typeof(PC.touch(HOME+"/dict", "builder.src")) != "string" then 
-		print(fill+"Builder src created! --> compiling . . .") 
-		wait(1)
+		print(fill+"Builder src created! --> compiling . . .") ;wait(1);
 		if typeof(PC.File(HOME+"/dict/builder.src").set_content(builder_src.replace("'", """").replace(";", char(10)))) == "string" then exit("Failed to set builder content")
 		compile = base.build(p1, p1[:-11], 0)
 		if compile.len > 1 then print(compile);
 		wait(0.5);
-		base.launch(p1[:-4]);
-		if data.cb == true then 
-			print(fill+"Builder return --> OK !"+char(10)+"Starting cleanup . . .");
-			for file in PC.File(HOME+"/dict").get_files
-				if file.indexOf("brute") or file.indexOf("builder") then 
-					f = file.name
-					print("Deleting: <color=yellow>"+file.name)
-					if file.delete.len < 1 then print("<color=green>Successfully deleted "+f) 
-				end if
-			end for
-			if PC.File(HOME+"/dict").get_files.len == 0 then exit("Builder cleanup --> OK !")
-		end if
-	else
-		if PC.File(HOME+"/dict/builder") then
-			print(fill+"Builder found! --> launching . . .") 
-			base.launch(p1[:-4]);
-			if data.cb == true then 
-				print("Builder return --> OK !"+char(10)+"Starting cleanup . . .");
-				for file in PC.File(HOME+"/dict").get_files
-						f = file.name
-						print("Deleting: <color=yellow>"+file.name)
-						if file.delete.len < 1 then print("Successfully deleted "+f) 
-				end for
-				if PC.File(HOME+"/dict").get_files.len == 0 then exit("Builder cleanup --> OK !")
-			end if
-		else  
-			print(fill+"Warning: an error occured during the build process.")
-		end if
+		build_launch
+	else if PC.File(p1[:-4]) then
+		print(fill+"Builder found! --> launching . . .") 
+		build_launch
+	else  
+		print(fill+"Warning: an error occured during the build process.")
 	end if
 end function 
 if params[0] == "-i" then
@@ -211,18 +200,19 @@ else if params[0] == "-db" then
 	build_hashes
 else if params[0] == "-a" then
 	// shrug, you can just do it all !
-	if input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 to build src, hashes, and exploits --> ").to_int != 1 then exit("Exiting install . . .")
+	if input("[<color=yellow>Action required</color>]"+char(10)+"Press 1 to build src, hashes, and exploits --> ").to_int != 1 then exit("Exiting install . . .")
 	install_src
 	print("<color=purple>Install --> Ok !"+char(10)+"<color=yellow>[Action Required]</color> Before you continue to compile"+char(10)+"<color=white>1.)</color> Open a new terminal</color>"+char(10)+"<color=white>2.) </color>Launch CodeEditor.exe for the following files, paste in contents & <b>save</b>"+char(10)+gen_label("CodeEditor.exe "))
-	if input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 compile, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
+	if input("[<color=yellow>Action required</color>]"+char(10)+"Press 1 compile, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
 	build_src
 	print("<color=purple>Multitool build --> Ok !")
-	if input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 build exploit tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
+	if input("[<color=yellow>Action required</color>]"+char(10)+"Press 1 build exploit tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
 	build_db
 	print("<color=purple>Exploit table --> Ok !")
-	if input("<color=yellow>[Action required]</color>"+char(10)+"Press 1 build hash tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
+	if input("[<color=yellow>Action required</color>]"+char(10)+"Press 1 build hash tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
 	build_hashes
 end if
 //////////////////////////////////////////////////////////////  
 ///====================== INSTALL ========================///
 ////////////////////////////////////////////////////////////
+
