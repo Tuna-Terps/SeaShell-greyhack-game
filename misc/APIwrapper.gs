@@ -79,7 +79,7 @@ getAPI = function(metaxploit, clientVersion = "1.0.3")// : Map | null
     end function
     //load exploit cache into memory ** requires a token **
     api.loadHashes = function // : file | null
-        interface.args = ["loadExploits", self.api_token]
+        interface.args = ["loadHashes", self.api_token]
         self.connection.launch("/root/routes/interface")
         if not hasIndex(interface, "ret") then return null
         return @interface.ret
