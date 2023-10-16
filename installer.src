@@ -2,7 +2,7 @@
 ///====================== INSTALL ========================///
 ////////////////////////////////////////////////////////////
 // this script assumes it has perms to perform its tasks . . . so yeah
-if params.len == 0 then exit("<color=green>SEASHELL INSTALL:"+char(10)+"usage: <color=white>"+program_path+" -a</color> 		  --> Full installation"+char(10)+"usage: <color=white>"+program_path+" [-i|-b|-db]</color> --> Install each portion in stages"+char(10)+"*<color=grey><i> For full installation, use command:"+char(10)+program_path+"<color=white> -a"+char(10)+"* <color=grey><i>To install in stages, use commands: "+char(10)+program_path+"<color=white> -i"+char(10)+program_path+"<color=white> -b"+char(10)+program_path+"<color=white> -db")
+if params.len == 0 then exit("<color=green>SEASHELL INSTALL:"+char(10)+"usage: <color=white>"+program_path+" -a</color>  		  --> Full installation"+char(10)+"usage: <color=white>"+program_path+" [-i|-b|-db]</color> --> Install each portion in stages"+char(10)+"*<color=grey><i> For full installation, use command:"+char(10)+program_path+"<color=white> -a"+char(10)+"* <color=grey><i>To install in stages, use commands: "+char(10)+program_path+"<color=white> -i"+char(10)+program_path+"<color=white> -b"+char(10)+program_path+"<color=white> -db")
 fill = "<color=blue>><> ><> ><>  ><> ><> ><>  ><> ><> ><>  ><> ><> ><>  ><> ><> ><> "+char(10)
 data = get_custom_object
 data.cb = false

@@ -2,6 +2,7 @@
 <h1> A collection of scripts written for use in the game grey hack https://store.steampowered.com/app/605230/Grey_Hack/ </h1>
 <br>
 <small> WIP </small><br>
+<small> **Nightly** --> most commits reading "kind" can be used in the public build </small><br>
 
 <b> Acknowledgments </b><br>
 // Thank you @github: WyattSL for the GreyHack Game documentation<br>

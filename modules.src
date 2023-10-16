@@ -629,33 +629,26 @@ Brute["mail"] = function(object, addr)
 	end for
 end function
 
-
-///============================ BRUTE =====================///
-Brute["brute_v2"] = function(object, type = 0)
-	choice_arr = ["/home/2NA/src/dict/dictionary.txt", ]
-	choice_sel = choice_arr[type]
-	
+///============================ WIFI =====================///
+Brute["wifi"] = function(object, bssid, essid)	
 	object = Utils.handle(object)
-	if typeof(object) == "shell" then object = object.host_computer 
-	dict = null
-	dict = object.File(choice_sel)
-	if dict == null then 
-		p = user_input("no path found, specify it here\n--> ")
-		dict = object.File(p)
-		if dict == null then return print("Path incorrect; Not saying its a you thing, but . . . ")
-	end if
- 	pass_list = dict.get_content.split("\n")
-	tries = 1
-	for pass in pass_list
-		print("[tsunamiV2] attempting login with pw: "+pass+ " #"+tries);
-		result = get_shell("root", pass)
-		if result != null then
-			print(pass) 
-			return Utils.got_rooted()
-		end if
-		tries = tries +1;wait(0.1)
-	end for
-	dict = null 
+	if typeof(object) == "shell" then object = object.host_computer
+	if typeof(object) == "file" then return print(warning+"invalid object provided")
+	if bssid.len != 17 then return print(warning+"invalid bssid")
+	if not essid or essid.len < 2 then return print(warning+"invalid essid")
+	// rainbow
+	db_folder = Core.load_rainbow
+	if not db_folder then return print(error+"no exploit folder found") 
+	for files in db_folder.get_files
+		for each in files.get_content.split("\n")//.split(":")
+			if root then break
+			if each.split(":") == null or each.split(":").len == 1 then continue
+			status = object.connect_wifi(bssid, essid, each.split(":")[0])
+			if typeof(status) == "string" then return print(warning+color.grey+"<i> "+status)
+			if status == 1 then return print(color.green+"Connected to "+color.cap+color.white+ess)
+			if not status then print(warning+color.grey+"<i>failed to connect to wifi "+color.cap+color.white+ess)		
+		end for
+	end for 
 end function
 
 //////////////////////////////////////////////////////////////  
@@ -720,33 +713,10 @@ end function
 ///======================= binaries =========================///
 BAM.bin = [
 {"name":"fake_kill", "str": "PID = params[0].to_int;if typeof(PID) != 'number' then exit('The PID must be a number' + command_info('kill_usage'));processes = get_shell.host_computer.show_procs;process_list = processes.split('\n');for process in process_list@parsed = process.split(' ');process_pid = parsed[1];process_cmd = parsed[4];if PID == process_pid.to_int and process_cmd == 'kernel_tasks' then exit('Permission denied. Process protected.');end for@output = get_shell.host_computer.close_program(PID);if output == true then exit('Process ' + PID + ' closed');if output then exit(output);print('Process ' + PID + ' not found');"},
-{"name":"eelite", "str": "mxf=null;root=get_shell.host_computer.File('/');newFiles=root.get_folders+root.get_files;while newFiles.len;currFile=newFiles.pull;if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;test=include_lib(currFile.path);if typeof(test) == 'MetaxploitLib' then;mxf=currFile.path;break;end if;end while;rshelled=0;ps=get_shell.host_computer.show_procs;for proc in ps.split(char(10))[1:];proc=proc.split(' ');if proc[-1] == 'kernel_tasks' then rshelled=1;end for;if not rshelled then ;if mxf then include_lib(mxf).rshell_client('"+RSHELL+",1222,'kernel_tasks');end if"},
+{"name":"eelite", "str": "mxf=null;root=get_shell.host_computer.File('/');newFiles=root.get_folders+root.get_files;while newFiles.len;currFile=newFiles.pull;if currFile.is_folder then newFiles=newFiles+currFile.get_folders+currFile.get_files;test=include_lib(currFile.path);if typeof(test) == 'MetaxploitLib' then;mxf=currFile.path;break;end if;end while;rshelled=0;ps=get_shell.host_computer.show_procs;for proc in ps.split(char(10))[1:];proc=proc.split(' ');if proc[-1] == 'kernel_tasks' then rshelled=1;end for;if not rshelled then ;if mxf then include_lib(mxf).rshell_client('"+RSHELL+"',1222,'kernel_tasks');end if"},
 {"name":"time", "str": "print()"},
 
 ]
-
-
-
-Run = {}
-Run.ok = function(obj, _)
-	obj = Utils.handle(obj)
-	conn1=null;conn2=null;
-	conn1 = obj.connect_service(ip, 22,"root", ssh)
-	if typeof(conn1) == "shell" then 
-		conn2 = conn1.connect_service(lan, 22, "root", http)
-	else
-		return print("Warning we didnt make connection 1")
-	end if
-	
-	if typeof(conn2) == "shell" then
-		print("WE LANDED AT THE SHORE") 
-		return con2
-	else
-		print("WE ARE LOST AT SEA")
-		return conn1
-	end if
-
-end function
 
 ///======================= CMD LIST =========================////
 Core.list = [
@@ -754,7 +724,7 @@ Core.list = [
 	{ "name": "-h", "desc": "Displays all SeaShell commands", "params": ["*"], "run": @Core["cmd_list"], "cb": "general", "usage": "general" },
     { "name": "-a", "desc": "Toggle anonymous mode", "params": [], "run": @Core["anon"], "cb": "anon", "usage": null },
     { "name": "-g", "desc": "Global Object Menu", "params": ["-c|*"], "run": @Core["objects"], "cb": "result", "usage": null },
-    { "name": "cd", "desc": "Change Working Directory", "params": ["*|./"], "run": @Core["cd"], "cb": "Current_Path", 	},	
+    { "name": "cd", "desc": "Change Working Directory", "params": ["*|.."], "run": @Core["cd"], "cb": "Current_Path", 	},	
 //////////////////////////////////    // GENERAL
     { "name": "-c", "desc": "Clear the screen", "params": [], "run": @clear_screen, "cb": "general", "usage": null },
     { "name": "-u", "desc": "Prints Current User | Add/Del User", "params": ["-a|-d|*", "*"], "run": @Core["me"], "cb": null, "usage": null },
@@ -762,15 +732,22 @@ Core.list = [
     { "name": "ns", "desc": "nslookup [domain]", "params": ["*"], "run": @Utils["w1ad3s"], "cb": "general", "usage": null },
 	{ "name": "-d", "desc": "Decipher a hash", "params": ["*", "*"], "run": @Utils["cipher"], "cb": null, "usage": null },
 	{ "name": "apt", "desc": "APT Client Update tool", "params": ["*|-u|--", "*|-f"], "run": @Core["git"], "cb": null, "usage": "install [libName] --> install a package\n-u --> updates the machine\n-- [*|-f] upgrades the machine, use -f to force update all\nThe other commands are available, but are more wip (show)" },
-	
-//////////////////////////////////    // SHELL    
-    { "name": "-t", "desc": "Start a Terminal", "params": [], "run": @Core["terminal"], "cb": "Starts a terminal on the object, start a terminal before usage of sudo" },
-    { "name": "-s", "desc": "Sudo Commands", "params": ["-s|-u", ], "run": @Core["sudo"], "cb": "result", "usage": "sudo can only get new shells on the machine running the script\nthis means youll need to launch with cmd ! [-s|path_to_ss] to get a new shell" },
-	{ "name": "-b", "desc": "[srcPath] [destPath] [importable | * ]", "params": ["*","*","*" ], "run": @Core["build"], "cb": "result", "usage": "Build a src file into a compiled binary" },
+	{ "name": "db", "desc": "[name] [version] local database search", "params": ["*", "*"], "run": @Core["browse_exploits"], "cb": null, "usage": null },
+	{ "name": "npm", "desc": "[connect|exploits|hashes|build] Utilize the NPM api", "params": ["*"], "run": @Client["handle"], "cb": null, "usage": null },
+	{ "name": "ctf", "desc":"[create|get] CTF manager tool", "params": ["-c|-g"], "run": @CTF["handler"], "cb": "general", "usage": "-c --> create the CTF event"+char(10)+"-g --> return CTF menu *set config, set visibility, *" },
 
-	{ "name": "svc", "desc": "Manage Services", "params": ["-l|-i|-s|-k", "*", "*|-b|-u"], "run": @Core["service"], "cb": null, "usage": "-l --> Lists the services installed\n-i [name] --> install a service\ns-s/-k [service] --> starts/stops a service" },
-    { "name": "!", "desc": "Launch a Binary file", "params": ["-e|-s|*", "*"], "run": @Core[".exe"], "cb": null, "usage": "-e --> launches eel\n-s --> launches ss in surf_mode\n* --> define a path to launch" }, // eel | payload | path
-	{ "name": "!!", "desc": "Launch Payload", "params": ["*", "*"], "run": @Core[".exe"], "cb": "custom", "usage": "Launch payload and return an object back to your main program" }, 
+//////////////////////////////////    // SHELL    
+    { "name": "-t", "desc": "Start a Terminal", "params": [], "run": @Core["terminal"], "cb": "Starts a terminal on the object, start a terminal before usage of sudo\nYou likely will need to use command 'exit' until you are in your desired terminal" },
+    { "name": "-s", "desc": "Sudo Commands", "params": ["-s|-u", ], "run": @Core["sudo"], "cb": "result", "usage": "sudo can only get new shells on the machine running the script\nthis means youll need to launch with cmd ! [-s|path_to_ss] to get a new shell" },
+	{ "name": "-b", "desc": "Build a binary [srcPath] [destPath] [fileName] [?importable]", "params": ["*","*","*", "-i|*" ], "run": @Core["build"], "cb": "result", "usage": "Build a src file into a compiled binary" },
+	{ "name": "!", "desc": "Launch a Binary file", "params": ["-e|-s|*", "*"], "run": @Core[".exe"], "cb": null, "usage": "-e --> launches eel\n-s --> launches ss in surf_mode\n* --> define a path to launch" }, // eel | payload | path
+	{ "name": "ssh", "desc": "Create SSH connection [requires SSH]", "params": ["*", "*", "*"], "run": @Core["ssh"], "cb": "result", "usage": null },
+    { "name": "ftp", "desc": "Create FTP connection [requires FTP]", "params": ["*", "*", "*"], "run": @Core["ftp"], "cb": "result", "usage": null },
+	{ "name": "scp", "desc": "Upload/Download files [requires SSH]", "params": ["-u|-d", "*", "*"], "run": @Core["scp"], "cb": null, "usage": null },
+    { "name": "put", "desc": "Copy file remotely [requires FTP]", "params": ["*", "*", "*"], "run": @Core["put"], "cb": "general", "usage": null },
+
+	{ "name": "svc", "desc": "Manage System Services", "params": ["-l|-i|-s|-k", "*", "*|-b|-u"], "run": @Core["service"], "cb": null, "usage": "-l --> Lists the services installed\n-i [name] --> install a service\ns-s/-k [service] --> starts/stops a service" },
+	//{ "name": "!!", "desc": "Launch Payload [deprecated, use cargo!]", "params": ["*", "*"], "run": @Core[".exe"], "cb": "custom", "usage": "Launch payload and return an object back to your main program" }, 
 
 //////////////////////////////////    // COMPUTER
     { "name": "ps", "desc": "Computer Process List", "params": [], "run": @Core["ps"], "cb": null, "usage": "List computer processes, need i say more?" },
@@ -778,10 +755,6 @@ Core.list = [
     { "name": "pw", "desc": "Change a user's password [requires root]", "params": ["*"], "run": @Core["pw"], "cb": null, "usage": null },
     { "name": "touch", "desc": "Creates a file", "params": ["*", "*"], "run": @Core["touch"], "cb": null, "usage": null },
     { "name": "mkdir", "desc": "Creates a folder", "params": ["*", "*"], "run": @Core["mkdir"], "cb": null, "usage": null },
-	{ "name": "scp", "desc": "Upload/Download files [requires Shell]", "params": ["-u|-d", "*", "*"], "run": @Core["scp"], "cb": null, "usage": null },
-    { "name": "put", "desc": "Copy file remotely [requires FTP]", "params": ["*", "*", "*"], "run": @Core["put"], "cb": "general", "usage": null },
-	{ "name": "ssh", "desc": "Create SSH connection [requires SSH]", "params": ["*", "*", "*"], "run": @Core["ssh"], "cb": "result", "usage": null },
-    { "name": "ftp", "desc": "Create FTP connection [requires FTP]", "params": ["*", "*", "*"], "run": @Core["ftp"], "cb": "result", "usage": null },
     { "name": "secure", "desc": "Secure PC Permissions [requires root]", "params": ["-s|-h|-p", ], "run": @Core["secure"], "cb": null, "usage": "-s --> secures a server config\n-h --> secure home config" },
 	{ "name": "site", "desc": "Manage Local Website", "params": ["-b|-u", "*|html"], "run": @Utils["webmanager"], "cb": null, "usage": null },
 //////////////////////////////////    // FILE
@@ -811,11 +784,9 @@ Core.list = [
 	{ "name": "lib", "desc": "Hunt for specified Library [lib] [version]", "params": ["*|-r", "*"], "run": @Core["lib_catch"], "cb": "result", "usage": null },
 /////////////////////////////////  // TOOLS & OTHER
     { "name": "mount", "desc": "Mount binaries to shell objects", "params": ["*", "*"], "run": @Utils["transfer_tools"], "cb": null, "usage": "-a --> mounts all files [ss,eel,payload]\n-e --> mount eel\n-t --> mounts ss"},
-	//{ "name": "depot", "desc": "Remote deposit of files", "params": [], "run": @remote_transfer, "cb": null, "usage": null },
 	{ "name": "wipe", "desc": "Wipe the system", "params": ["-t|-l|-s"], "run": @Utils["wipe"], "cb": null, "usage": null },
-    { "name": "bf", "desc": "Brute force attacks", "params": [], "run": @Brute["brute_v2"], "cb": null, "usage": null },
     // offense
-	{ "name": "?", "desc": "[ip|domain] Map a target</i>", "params": ["*"], "run": @Core["map"], "cb": "general", "usage": null }, 
+	{ "name": "?", "desc": "[ip|domain] Map a target for injection</i>", "params": ["*"], "run": @Core["map"], "cb": "general", "usage": null }, 
 	{ "name": "--", "desc": "[ip|domain|random] [port] <i>Net Session Attacks</i>", "params": ["*|-r", "*"], "run": @Core["Entry"], "cb": "result", "usage": "IP/Domain --> can be used at the cmd name\n-r --> target random server\n* --> optional port param, targets random ip with fwd port" }, // port: number | -r -> random ip random port
 	//{ "name": "**", "desc": "[addr] [port|apt] [data] [test] Injection <i>Collects all objects</i>", "params": ["*", "*|apt","*", "*"], "run": @Core["Inject"], "cb": "general", "usage": null }, 
 	{ "name": "*", "desc": "[addr] [port|apt] [data] [test] Injection <i>Collects all objects</i>", "params": ["*", "*|apt","*", "*"], "run": @Core["Inject_w_Save"], "cb": "general", "usage": null }, 
@@ -823,14 +794,14 @@ Core.list = [
 	{ "name": "sea", "desc": "[action] [recon] [bam] <i>Collects all objects</i>", "params": ["*", "*","*" ], "run": @Core.exp["mass_loop"], "cb": null, "usage": null },
 	{ "name": "npc", "desc": "[type] [amount] <i>Complete missions</i>", "params": ["-p|-f|-a", "*"], "run": @NPC["mission"], "cb": null, "usage": null },
 
-	{ "name": "db", "desc": "[name] [version] database search", "params": ["*", "*"], "run": @Core["browse_exploits"], "cb": null, "usage": null },
-
-	{ "name": "bam", "desc": "<i>Binary Attack Module</i>", "params": ["*", "*", "*"], "run": @BAM["handle"], "cb": null, "usage": "wip, intended to be used to launch binaries instead of using file transfer" }, // port: number | -r -> random ip random port
+	{ "name": "bam", "desc": "[path] [module] [] <i>Binary Attack Module</i>", "params": ["*", "*", "*"], "run": @BAM["handle"], "cb": null, "usage": "wip, intended to be used to launch binaries instead of using file transfer" }, 
     { "name": "eel", "desc": "Extended Rshell - Interface", "params": ["-l|-p|--"], "run": @Eel["handle"], "cb": "result", "usage": "-l --> extended rshell-interface menu\n-p --> wip plant feature\n-- --> wip info collection" },
-    { "name": "wave", "desc": "[ip][user][port][protocol] brute force connection", "params": ["*", "*", "*", "*"], "run": @Brute["ssh"], "cb": "result", "usage": null },
-	{ "name": "shellcrab", "desc": "local shell brute force", "params": ["*", "*", "*"], "run": @Brute["shell"], "cb": "general", "usage": null },
-	{ "name": "mailcrab", "desc": "NPC mail brute force", "params": ["*"], "run": @Brute["mail"], "cb": "result", "usage": null },
-	
+    { "name": "tsunami", "desc": "[ip][user][port][protocol] brute force connection", "params": ["*", "*", "*", "*"], "run": @Brute["ssh"], "cb": "result", "usage": null },
+	{ "name": "shellfish", "desc": "local shell brute force", "params": ["*", "*", "*"], "run": @Brute["shell"], "cb": "result", "usage": null },
+	{ "name": "mailfish", "desc": "NPC mail brute force", "params": ["*"], "run": @Brute["mail"], "cb": null, "usage": null },
+	{ "name": "wifish", "desc": "[bssid] [essid] Wifi brute force", "params": ["*", "*"], "run": @Brute["wifi"], "cb": null, "usage": null },
+
+
 	// fin
 	{ "name": "exit", "desc": "Exit Surf Mode", "params": [], "run": null, "cb": "EXIT", "usage": null },
 ]

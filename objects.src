@@ -2,11 +2,8 @@ if not globals.entry_objects then exit("><> ><> ><>")
 //////////////////////////////////////////////////////////////  
 ///======================= OBJECTS =========================////
 ////////////////////////////////////////////////////////////
-// shellobject -> create mutable instances of each exploit object
 
 //////////////////////// SHELLS  ////////////////////////
-Global_Shells = [] // primitive list for handling multiple shells ?
-Mut_Shell = null // this is a shell that we will use for handling and throwing away shells 
 
 ShellObject = {}
 ShellObject.user = "unknown"
@@ -26,8 +23,9 @@ ShellObject.init = function(shell=null, user=null, pass=null, type=null)
 	self.risk = 0
 	self.pc = self.shell.host_computer
 	self.ip = self.shell.host_computer.public_ip
-	self.lan = self.shell.host_computer.local_ip		
-	self.is_root = self.shell.host_computer.File("/root") and self.shell.host_computer.File("/root").has_permission("r") and self.shell.host_computer.File("/root").has_permission("w") and self.shell.host_computer.File("/root").has_permission("x")
+	self.lan = self.shell.host_computer.local_ip
+	self.label = self.shell.host_computer.get_name	
+	self.is_root = self.shell.host_computer.File("/").has_permission("r") and self.shell.host_computer.File("/").has_permission("w") and self.shell.host_computer.File("/").has_permission("x")
 	self.dict = self.shell.host_computer.File("/home")	
 	self.home = "/"
 	self.user = function()
@@ -42,14 +40,13 @@ ShellObject.init = function(shell=null, user=null, pass=null, type=null)
 			return object.File("/root").name
 		end if
 		for f in object.File("/home/").get_folders
-			if f.name=="guest" then continue continue
+			if f.name=="guest" then continue
 			if f.has_permission("r") and f.has_permission("w") and f.has_permission("x") then 
 				email = self.shell.host_computer.File("/home/"+f.name+"/Config/Mail.txt")
 				bank = self.shell.host_computer.File("/home/"+f.name+"/Config/Bank.txt")
 				if email and not email.is_binary then self.email = email.get_content
 				if bank and not bank.is_binary then self.bank = bank.get_content
 				self.home = f.path
-				self.risk = self.risk+1
 				return f.name
 			end if					
 			self.risk = self.risk+1
@@ -61,25 +58,29 @@ ShellObject.init = function(shell=null, user=null, pass=null, type=null)
 	end function
 	self.pass = function()
 		object = self.shell.host_computer
-		if object.File("/etc") == null or object.File("/etc/passwd") == null then
+		passFolder = object.File("/etc")
+		passFile = object.File("/etc/passwd")
+		if passFolder == null or passFile == null then
 			self.risk = self.risk+1
-			return "!/etc"
+			if not passFolder then return "!/etc"
+			if not passFile then return "!/etc/passwd"
+			if passFile.has_permission("r") == false then return "!r/etc/passwd"
 		end if
-		if object.File("/etc/passwd").has_permission("r") == false then return "!r/etc"
-		if object.File("/etc/passwd").has_permission("r") == true then
-			u = self.user				
-			if u == "root" or u == "guest" then
-				if not object.File("/etc/passwd") then return "!/passwd"				
-				res = "&"
-				for line in object.File("/etc/passwd").get_content.split("\n")
-					if line.len < 1 then continue
-//					l_mut = line.split(":")
-//					line = l_mut[0]+":"+Core.rainbow_road(l_mut[1])
-					res=res+line+"&"
-				end for
-				return res
-			end if
-			content = object.File("/etc/passwd").get_content.split("\n")
+		u = self.user				
+		content = object.File("/etc/passwd").get_content
+		if not content then return 
+		content = content.split(char(10))
+		if content.len == 0 then return "!c/etc/passwd"
+		if u == "root" or u == "guest" then
+			res = "&"
+			for line in content
+				if line.len < 1 then continue
+				//l_mut = line.split(":")
+				//line = l_mut[0]+":"+Core.rainbow_road(l_mut[1])
+				res=res+line+"&"
+			end for
+			return res
+		else 
 			for con in content
 				if con == "" or con == " " then continue
 				c = con.split(":")
@@ -88,9 +89,10 @@ ShellObject.init = function(shell=null, user=null, pass=null, type=null)
 					return c[1]
 				end if
 				self.risk = self.risk+1
-				return "!/passwd_content"
+				return "!c/etc/passwd"
 			end for
 		end if
+		
 	end function
 end function
 
@@ -328,6 +330,9 @@ CompObject.init = function(computer)
 	if typeof(computer) != "computer" then print("c.o init error 1: computer expected, got"+typeof(computer))
 	if not computer then return print("c.o init error 2")
 	self.PC = computer
+	self.ip = computer.public_ip
+	self.lan = computer.local_ip
+	self.label = computer.get_name
 	self.home = "/"
 	self.risk = 0
 	self.user = function()
@@ -343,30 +348,36 @@ CompObject.init = function(computer)
 				if bank and not bank.is_binary then self.bank = bank.get_content
 				return f.name
 			end if
-			end for
 			return "guest"
+		end for
+		self.risk = self.risk+2
+		return "unknown"
 	end function
 	self.pass = function()
 		object = self.PC
-		if object.File("/etc") == null or object.File("/etc/passwd") == null then
+		passFolder = object.File("/etc")
+		passFile = object.File("/etc/passwd")
+		if passFolder == null or passFile == null then
 			self.risk = self.risk+1
-			return "!/etc"
+			if not passFolder then return "!/etc"
+			if not passFile then return "!/etc/passwd"
+			if passFile.has_permission("r") == false then return "!r/etc/passwd"
 		end if
-		if object.File("/etc/passwd").has_permission("r") == false then return "!r/etc"
-		if object.File("/etc/passwd").has_permission("r") == true then
-			u = self.user				
-			if u == "root" or u == "guest" then
-				if not object.File("/etc/passwd") then return "!/passwd"				
-				res = "&"
-				for line in object.File("/etc/passwd").get_content.split("\n")
-					if line.len < 1 then continue
-//					l_mut = line.split(":")
-//					line = l_mut[0]+":"+Core.rainbow_road(l_mut[1])
-					res=res+line+"&"
-				end for
-				return res
-			end if
-			content = object.File("/etc/passwd").get_content.split("/n")
+		u = self.user				
+		content = object.File("/etc/passwd").get_content
+		if not content then return "!c/etc/passwd"
+		content = content.split(char(10))
+		if content.len == 0 then return "!c/etc/passwd"
+		if u == "root" or u == "guest" then
+			res = "&"
+			for line in content
+				if line.len < 1 then continue
+				//l_mut = line.split(":")
+				//line = l_mut[0]+":"+Core.rainbow_road(l_mut[1])
+				res=res+line+"&"
+			end for
+			return res
+		else 
 			for con in content
 				if con == "" or con == " " then continue
 				c = con.split(":")
@@ -375,12 +386,11 @@ CompObject.init = function(computer)
 					return c[1]
 				end if
 				self.risk = self.risk+1
-				return "!/passwd_content"
+				return "!c/etc/passwd"
 			end for
 		end if
 	end function
-	self.ip = computer.public_ip
-	self.lan = computer.local_ip
+
 end function
 
 //////////////////////////////////////////////////////////////////
@@ -411,8 +421,6 @@ CompObject.cat_attack = function(target_path = "/")
 	else   
 		return print(color.white+file.name+":\n"+file.get_content)
 	end if
-		
-
 	return print("Cant access "+file.name)
 end function
 ///////////////////////////////// CONTENT ATTACK /////////////////////////////////
@@ -632,7 +640,8 @@ FileObject.fs = function()
 		sub_options = []
 		display = "0.)"+color.grey+" Previous Directory"
 		count = 1
-		if selected_file.is_folder then 
+		if selected_file.is_folder then
+
 			for file in selected_file.get_files
 				if file.is_binary then continue
 				if file.is_folder then continue // lol ik ik
@@ -647,6 +656,7 @@ FileObject.fs = function()
 				count = count+1
 			end for
 		else 
+			display = display+"\n1.) "+self.F.name+color.cyan+" file"
 			options.push(self.F)
 		end if
 		if display.len == 37 then print("@ "+selected_file.name)
@@ -669,12 +679,14 @@ FileObject.fs = function()
 			plabel = selected_file.parent
 		end if 
 		print("selected file: "+color.white+plabel+"/<b>"+color.yellow+selected_file.name)
-		choice = user_input(color.grey+"Choose [option]"+color.cap+"\n1.) Edit\n2.) Delete\n3.) View\n4.) Parent Dir\n5.) Open\n0.) Return\n-->").to_int
+		choice = user_input(color.grey+"Choose [option]"+color.cap+"\n1.) Edit\n2.) Delete\n3.) View\n4.) Parent Dir\n5.) Openn\n6.) CHMOD\n0.) Return\n-->").to_int
 		if choice == 1 then 
 			run = Core["edit"]
 			run(selected_file, selected_file.path)
-		else if choice == 2 then 
+		else if choice == 2 then
+			par = selected_file.parent 
 			selected_file.delete
+			selected_file = par
 			if selected_file.name != "/" then selected_file = selected_file.parent
 		else if choice == 3 then 
 			print(selected_file.get_content)
@@ -682,6 +694,9 @@ FileObject.fs = function()
 			if selected_file.name != "/" then selected_file = selected_file.parent
 		else if choice == 5 then 
 			selected_file = selected_file
+		else if choice == 6 then 
+			perms = user_input(">")
+			selected_file.chmod(perms, true)
 		else 
 			return
 		end if
@@ -892,12 +907,6 @@ FileObject.file_attack = function( net = null, all = null )
 
 end function
 
-// copy attack
-FileObject.swap = function(filePath)
-	if File(filePath) == null then
-
-
-end function
 
 // redirects 
 //////////////////////////////////////////////////////////////  
