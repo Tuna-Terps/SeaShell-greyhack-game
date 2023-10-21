@@ -538,7 +538,7 @@ Utils.site_build = function(obj, arg)
 	end if
 	obj.File("/Public/htdocs/website.html").set_content(content)
 	wait(0.1)
-	print(color.green+"Site Build --> <b>OK\nUse: Browser.exe "+obj.local_ip+" to view your web service"+char(10)+color.grey+"<i>Check status of service using command</i> <b>"+color.white+"svc -l"+color.cap)
+	print(color.green+"Site Build --> <b>OK\nUse: Browser.exe "+obj.local_ip+" to view your web service"+char(10)+"----------> Use Browser.exe "+get_router.local_ip+":8080 to configure"+color.yellow+" port forwarding"+char(10)+color.grey+"<i>Check status of service using command</i> <b>"+color.white+"svc -l"+color.cap)
 end function
 
 //////////////////////////////////////////////////////////////  
@@ -613,7 +613,7 @@ Utils.lib_catch = function(obj, lib, libVersion)
 			if parsed[0] != lib then continue
 			if parsed[1] != libVersion then continue
 			if parsed[1] == libVersion then
-				obj.touch("/root/"+lib+libVersion)
+				obj.touch("/root/", lib+libVersion)
 				wait(0.1)
 				if obj.File("/root/"+lib+libVersion) then obj.File("/root/"+lib+libVersion).set_content(i)
 				wait(0.1)
@@ -641,7 +641,7 @@ welcome_msg = function()
 	print(color.cyan+"  ____) |  __/ (_| |</color><color=#AA0000>____) | | | |  __/ | |  \  |    /") 
 	print(color.cyan+" |_____/ \___|\__,_|</color><color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/")
 	print(color.red+".                                             \|_/")
-	print(title+"</color>- v1.0.7 -<color=#00ED03> Made with <3 by</color><color=#00FFE7> Tuna Terps" )
+	print(title+"- v1.0.6 -<color=#00ED03> Made with <3 by</color><color=#00FFE7> Tuna Terps" )
 	print(color.blue+color.fill)
 end function
 
@@ -653,7 +653,7 @@ Utils.got_rooted = function(message = "")
 	print message
 end function
 
-Utils.scuba_msg = function()
+Utils.scuba_msg = function(message = "")
 	print(color.blue+"                                   __")
 	print(color.blue+"                                  |::|")
 	print(color.blue+"                                  |::|")
@@ -671,14 +671,14 @@ Utils.scuba_msg = function()
 	print(color.blue+"   ---._` \\:_ \("+color.red+"o"+color.cap+color.blue+")/...\("+color.red+"o"+color.cap+color.blue+")/._:// .----..---")
 	print(color.blue+"    ___.._  __....   ._....._.....___")
 	print(color.blue+"'' ___.._  __....   ._....._.....___")
-
+	print(message)
 end function
 Utils.fish_tank_msg = function()
 	print(color.blue+"|  \|/  *    .  .    . .. .      |")
-	print(color.blue+"|   \|*/*     ..     _ . .       |")
-	print(color.blue+"|   *|| |     ..   ><_> . _      |")
-	print(color.blue+"|   |`|/     _ .         <_><    |")
-	print(color.blue+"|    \|    ><_>              _   |")
+	print(color.blue+"|   \|*/*     ..     . . .       |")
+	print(color.blue+"|   *|| |     ..   ><> .   .    |")
+	print(color.blue+"|   |`|/     . .         <><   . |")
+	print(color.blue+"|    \|    ><>  .            _   |")
 	print(color.blue+"`-----!---------!!!---!!!---/ \--'")
 end function
 Utils.paired_msg = function()
@@ -1282,7 +1282,8 @@ Client["load_exploits"] = function
 	exploits = API.loadExploits
 	if typeof(exploits) != "file" then return print(error+"We did not receieve a file back")
 	globals.DC1 = exploits
-	data.DC1 = globals.DC1
+	data.DC1 = exploits
+	return exploits
 end function 
 Client["load_hashes"] = function 
 	if globals.Mode then return print("Warning, program is operating at CFG: "+globals.Mode) 
@@ -1290,44 +1291,62 @@ Client["load_hashes"] = function
 	hashes = API.loadHashes
 	if typeof(hashes) != "file" then return print(error+"We did not receieve a file back")
 	globals.DC2 = hashes
-	data.DC2 = globals.DC2
+	data.DC2 = hashes
+	return hashes
 end function
 ///=============================================================
 ///===================== CTF CLIENT  ==========================
 ///=============================================================
 CTF = {}
-CTF.user = "CTF USER"
-CTF.pw = "CTF PW"
-CTF.name = "CTF LABEL"
-
-CTF.creator = "CTF AUTHOR"
-CTF.description = "CTF DESC"
-CTF.mail = "CTF MAIL"
-CTF.template = "CTF CFG"
-
 CTF["handler"] = function(action)
 	if action == "-c" then 			//create 
 		return CTF.create
 	else if action == "-g" then		//get, this is where we will include publish, etc etc
-		return CTF.get
+		return CTF.get()
 	else 
 		return print(warning+color.grey+"<i>invalid args provided")
 	end if
 end function
 
 CTF.init = function(o, u, p, n) 
-	self.o = o	// CTFEvent object
-	self.user =  u 	// CTFEvent username
-	self.pw = p  // CTFEvent password
-	self.label = n // CTFEvent eventname
-	self.creator = self.o.get_creator_name
-	self.mail = self.o.get_mail_content
-	self.template = self.o.get_template
-	self.description = self.o.get_description
+	self.o = o;	// CTFEvent object
+	self.user =  u; 	// CTFEvent username
+	self.pw = p;  // CTFEvent password
+	self.label = n; // CTFEvent eventname
+	self.change = "** CHANGE ME **"
+	self.creator = self.o.get_creator_name;
+	print(typeof(self.creator))
+	print(self.creator.len)
+	//self.mail = self.o.get_mail_content;
+	//self.template = self.o.get_template;
+	//self.description = self.o.get_description;
+	if self.o.get_description == "" or "** CHANGE ME **"  then 
+		self.description = self.change
+	else 
+		self.description = self.o.get_description;
+	end if
+	if self.o.get_template.len == 0 then 
+		self.template = get_shell.host_computer.public_ip
+	else 
+		self.template = self.o.get_template
+	end if
+	if self.o.get_creator_name == "" or "** CHANGE ME **"  then
+		self.creator = self.change
+	else 
+		self.creator = self.o.get_creator_name
+	end if
+	if self.o.get_mail_content == "" or "** CHANGE ME **"  then 
+		self.mail = self.change
+	else 
+		self.mail = self.o.get_mail_content;
+	end if
 	self.refresh = function()
-		self.o = get_ctf(u,p,n)
-		return self.o
+		self.o = get_ctf(self.description,self.creator,self.label)
+		return self
 	end function
+	self.config = self.o.set_config(self.description, self.template, self.creator, self.mail)
+	if typeof(self.config) == "string" then print(error+"CTFO: "+self.config)
+	return self
 end function
 // ---------- get_ctf ----------
 //Parameters]
@@ -1338,40 +1357,38 @@ end function
 //[Description]
 //Gets the created event from create_ctf. In case of success, it will return a CTFEvent type object, 
 //otherwise it will return a string with the error.
-CTF.findOne = function()
-	a = null
+CTFevents = []
+CTF["findOne"] = function()
+	ret = null
 	user = user_input(color.white+"USER: "+color.cap)
 	password = user_input(color.white+"PW: "+color.cap, 1)
 	eventName = user_input(color.white+"NAME: "+color.cap)
 	result = get_ctf(user, password, eventName)
 	print(typeof(result))
-	if typeof(result) == "CTFEvent" then
-		a = new CTF 
-		a.init(result, user, password, eventName)
-		print((a isa CTF == true)) 
-		globals.CTFevents.push(result)
-		return print("CTF found --> "+color.green+"<b> OK"+color.cap+char(10)+"username: "+color.green+"<b>"+user+char(10)+"password: "+color.green+"<b>"+password_label+char(10)+"event name: "+color.green+"<b>"+eventName)
+	if typeof(result) == "ctfEvent" then
+		ret = new CTF.init(result, user, password, eventName)
+		print("CTF found --> "+color.green+"<b> OK"+color.cap+char(10)+"username: "+color.green+"<b>"+user+char(10)+"event name: "+color.green+"<b>"+eventName)
 	else if typeof(result) == "string" then 
 		print(result)
 	end if
-	print typeof(a)
-	return a
+	return ret
 end function
 
-CTF.getOne = function(CTFO)
-	if typeof(CTFO.o) != "CTFEvent" then return print(error+"invalid object specified")
-	print CTFO.user 	
-	print CTFO.pw  
-	print CTFO.label
-	print CTFO.creator
-	print CTFO.mail
-	print CTFO.template
-	print CTFO.description
-
+CTF["getOne"] = function(CTFO)
+	if not CTFO then return print(warning+"No CTF passed")
+	if typeof(CTFO.o) != "ctfEvent" then return print(error+"invalid object specified")
+	clear_screen
+	print(color.fill+char(10)+"     CTF"+char(10)+color.fill)
+	print color.white+"USER: "+color.cap+CTFO.user 	
+	print color.white+"NAME: "+color.cap+CTFO.label
+	print color.white+"CREATOR: "+color.cap+CTFO.creator
+	print color.white+"MAIL: "+color.cap+CTFO.mail
+	print color.white+"TEMPLATE_IP: "+color.cap+CTFO.template
+	print color.white+"DESCRIPTION: "+color.cap+CTFO.description
 end function
 
-CTF.updateOne = function(CTFO)
-	if typeof(CTFO.o) != "CTFEvent" then return print(error+"invalid object specified")
+CTF["updateOne"] = function(CTFO)
+	if typeof(CTFO.o) != "ctfEvent" then return print(error+"invalid object specified")
 	while 1
 		options = color.white+"1.)"+color.cap+" Publish CTF Event"+char(10)+color.white+"2.)"+color.cap+" Un-Publish Event"+char(10)+color.red+"3.)"+color.cap+" Delete"+char(10)+color.white+"0.)"+color.cap+" Exit"+char(10)+"--> "
 		choice = user_input(options).to_int
@@ -1379,13 +1396,13 @@ CTF.updateOne = function(CTFO)
 		act = color.green+"published"+color.cap
 		if choice == 0 then break
 		if choice == 1 then	
-			res = CTFO.publish
+			res = CTFO.o.publish
 		else if choice == 2 then
-			res = CTFO.unpublish
+			res = CTFO.o.unpublish
 			act = color.grey+"hidden"+color.cap
 		else if choice == 3 then 
 			act = color.red+"deleted"+color.cap
-			if user_input("DELETE confirm [yes] --> ") == "yes" then res = CTFO.delete_event
+			if user_input("DELETE confirm [yes] --> ") == "yes" then res = CTFO.o.delete_event
 		else 
 			continue 
 		end if
@@ -1399,35 +1416,33 @@ CTF.updateOne = function(CTFO)
 end function
 
 CTF.modifyOne = function(CTFO) // ;-;
-	if typeof(CTFO.o) != "CTFEvent" then return print(error+"invalid object specified")
-	options = "CTF event modification"+char(10)+color.white+"1.)"+color.cap+" Change CTF Description"+char(10)+color.white+"2.)"+color.cap+" Change Template Server"+char(10)+color.white+"3.)"+color.cap+" Change CTF Creator"+char(10)+color.white+"4.)"+color.cap+" Modify CTF Mail MSG"+char(10)+color.orange+"0.)"+color.cap+" Exit"+char(10)+"--> "
-	inital = true
+	if typeof(CTFO.o) != "ctfEvent" then return print(error+"invalid object specified")
+	options = "CTF event modification"+char(10)+color.white+"1.)"+color.cap+" Change CTF Description"+char(10)+color.white+"2.)"+color.cap+" Change Template Server"+char(10)+color.white+"3.)"+color.cap+" Change CTF Creator"+char(10)+color.white+"5.)"+color.cap+" Save CTF"+char(10)+color.orange+"0.)"+color.cap+" Exit"+char(10)+"--> "
+	initial = true
 	while 1
 		// refresh the ctfo ?
 		if not initial then CTFO = CTFO.refresh
 		if initial then initial = null
+		CTF.getOne(CTFO)
 		p1 = CTFO.description
-		p2 = CTFO.get_creator_name
-		p3 = CTFO.get_template
-		p4 = CTF.get_mail_content
+		p2 = CTFO.template
+		p3 = CTFO.creator
+		p4 = CTFO.mail
 		choice = user_input(options).to_int
 		if choice == 0 then break
 		if choice == 1 then 
 			p1 = user_input("Set CTF desc > ")
 		else if choice == 2 then 
-			p2 = user_input("Set CTF creator > ")
+			p2 = user_input("Set CTF template > ")
 		else if choice == 3 then 
-			p3 = user_input("Set CTF template > ")
+			p3 = user_input("Set CTF creator > ")
 		else if choice == 4 then 
 			p4 = user_input("Set Mail Content > ")
-		else 
-			continue
 		end if
-		return CTFO.set_config(p1,p2,p3,p4)
+		test = CTFO.o.set_config(p1,p2,p3,p4)
+		if typeof(test) == "string" then print test
 	end while
 end function
-
-
 // ---------- create_ctf ----------
 //[Parameters]
 //[1] string user
@@ -1464,7 +1479,7 @@ CTF.create = function
 	end while
 	result = create_ctf(user, password, eventName)
 	if typeof(result) == "CTFEvent" then
-		a = new CTF 
+		a = new CTF
 		a.init(result, user, password, eventName) 
 		globals.CTFevents.push(result)
 		return print("CTF creation --> "+color.green+"<b> OK"+color.cap+char(10)+"username: "+color.green+"<b>"+user+char(10)+"password: "+color.green+"<b>"+password_label+char(10)+"event name: "+color.green+"<b>"+eventName)
@@ -1474,10 +1489,12 @@ end function
 
 
 CTF.get = function()
-	current_ctf = null
+	current_ctf = CTF.findOne
+	if not current_ctf then return print(warning+"Invalid CTF specified")
 	options = color.white+"1.)"+color.cap+" Search for a CTF event"+char(10)+color.white+"2.)"+color.cap+" View CTF Details"+char(10)+color.white+"3.)"+color.cap+" Change Visibility"+char(10)+color.white+"4.)"+color.cap+" Modify/Delete"+char(10)+color.orange+"0.)"+color.cap+" Exit"+char(10)+"--> "
 	while 1
-		if not current_ctf then current_ctf = CTF.findOne
+		if typeof(current_ctf.o) != "ctfEvent" then current_ctf = CTF.findOne
+		print(typeof(current_ctf.o))
 		choice = user_input(options).to_int
 		if choice == 0 then break
 		if choice == 1 then 
@@ -1487,6 +1504,7 @@ CTF.get = function()
 		if choice == 2 then CTF.getOne(current_ctf)
 		if choice == 3 then CTF.updateOne(current_ctf)
 		if choice == 4 then CTF.modifyOne(current_ctf)
+
 	end while
 
 end function
