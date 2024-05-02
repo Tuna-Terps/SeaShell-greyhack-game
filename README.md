@@ -1,4 +1,4 @@
-<h1 style="font-size: 28px;">SeaShell</h1>
+<h1 style="font-size: 28px;">SeaShell 1.0.7 WIP</h1>
 <h1> A collection of scripts written for use in the game grey hack https://store.steampowered.com/app/605230/Grey_Hack/ </h1>
 <br>
 <small> WIP </small><br>
@@ -20,14 +20,14 @@ ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 # COMPILE #<br>
 -- You will need to compile the following files in this order, name the binary the same as the src<br><br>
 <br> MAIN PROGRAM <br><br>
-1.) objects.src --> ** MUST ALLOW IMPORTS **<br>
+~~1.) objects.src --> ** MUST ALLOW IMPORTS **<br>~~
 2.) core.src --> ** MUST ALLOW IMPORTS **<br>
 3.) utils.src --> ** MUST ALLOW IMPORTS **<br>
-4.) modules.src --> ** MUST ALLOW IMPORTS **<br>
+~~4.) modules.src --> ** MUST ALLOW IMPORTS **<br>~~
 5.) main.src --> RENAME TO ss <br>
 <br> ESCALATION <br><br>
-1.) cargo.src --> name to cargo <br>
-Once complete, the only required filed are ss, and cargo<br>
+~~1.) cargo.src --> name to cargo <br>~~
+Once complete, the only required filed are ss, ~~and cargo<br>~~
 # LOCAL DB # (NPC PW hashes)<br>
 1.) Youll need the dictionary files from https://github.com/linuxgruven/dictionary<br>
 2.) The script will ask you to paste the contents into the script, using CTRL+SHIFT+V copy the correspnding.src to the terminal running installer.<br>
