@@ -1,0 +1,221 @@
+//////////////////////////////////////////////////////////////  
+///====================== INSTALL ========================///
+////////////////////////////////////////////////////////////
+// this script assumes it has perms to perform its tasks . . . so yeah
+if params.len == 0 then exit("<color=green>SEASHELL INSTALL:"+char(10)+"usage: <color=white>"+program_path+" -a</color>  		  --> Full installation"+char(10)+"usage: <color=white>"+program_path+" [-i|-b|-db]</color> --> Install each portion in stages"+char(10)+"*<color=grey><i> For full installation, use command:"+char(10)+program_path+"<color=white> -a"+char(10)+"* <color=grey><i>To install in stages, use commands: "+char(10)+program_path+"<color=white> -i"+char(10)+program_path+"<color=white> -b"+char(10)+program_path+"<color=white> -db")
+fill = "<color=blue>><> ><> ><>  ><> ><> ><>  ><> ><> ><>  ><> ><> ><>  ><> ><> ><> "+char(10)
+data = get_custom_object
+data.cb = false
+// INSTALL
+files = [ "utils.src", "core.src", "main.src", ]
+base = get_shell
+PC = base.host_computer
+HOME = home_dir
+USER = active_user
+input = @user_input 
+dirs = base.host_computer.File(HOME)
+p1 = HOME+"/dict/builder.src"
+file_paths = ""
+gen_label = function(p1 = "")
+	for file in files
+		if file == "main.src" then continue // dont encourage pasting the main.src, we will build it
+		file_paths = file_paths+p1+HOME+"/src/"+file+char(10)
+	end for
+	return file_paths
+end function
+check_src = function(targ = "src")
+	print("<color=green>[init]</color> Checking key directories . . .") 
+	for dir in dirs.get_folders
+		if dir.name == targ then 
+			return print("<color=grey><i>"+HOME+"/"+targ+" already exists !")
+		end if
+	end for	
+	PC.create_folder(HOME, targ)
+end function
+check_src // check for src
+check_src("dict") // check for dict
+// check src folder
+folder = PC.File(HOME+"/src")
+if not folder or not folder.is_folder then return print("no src folder found")
+
+install_src = function
+	print("<color=green>[init]</color> Bulding source files . . .")  
+	for file in files
+		test = PC.File(HOME+"/src/"+file)
+		if test == null then 
+			print("<color=grey><i>Creating: "+file)
+			if PC.touch(HOME+"/src", file) == 1 then 
+				print(file+" creation --> OK")
+				//content = input("<color=yellow>[Action required]</color> Paste contents for <color=yellow>"+file+"</color> > ")
+				//if PC.File(HOME+"/src/"+file).set_content(content) == 1 then print("Successfully saved <color=green>"+HOME+"/src/"+file)
+				continue
+			else 
+				print("<color=yellow>Warning</color> Failed to create "+file)
+			end if
+		else 
+			print("<i>Already Exists: <b><color=white>"+file)
+		end if
+	end for
+end function
+build_main = function
+	print("<color=green>[init]</color> Adjusting main file . . .") 
+	authPass = input("<color=yellow>[Action required]</color> Specify your program password "+char(10)+"-- You will need to use this password to run SeaShell!"+char(10)+"--> ")
+	if authPass.len == 0 then 
+		print("Your password will be defaulted to '++++++++'")
+		authPass = "++++++++"
+	else 
+		print("Your auth pass has been set to <color=white>"+authPass)
+	end if
+	userConfirm = input("<color=yellow>[Action required]</color> Program will be built as "+USER+char(10)+"Press 1 to define a different user, press enter to confirm"+char(10)+"--> ").to_int
+	if userConfirm != 1 then userConfirm = USER
+	if userConfirm == 1 then userConfirm = input("specify user > ")
+	print("Your user has been set to <color=white>"+userConfirm)
+	mailConfirm = input("<color=yellow>[Action required]</color> In order to use the NPC command, you must define your mail information **THIS CANNOT BE CHANGED**"+char(10)+"Press 1 to continue, press 0 to confirm you do NOT want to use the NPC mission auto completion"+char(10)+"--> ").to_int
+	if mailConfirm == 1 then 
+		eUrl = input("<color=yellow>[Action required]</color> Specify your email domain (ex. tuna@mail.com) --> ")
+		ePass = input("<color=yellow>[Action required]</color> Specify your email password --> ", true)
+		ePass2 = input("confirm pass: ", true)
+		while ePass != ePass2 
+			ePass2 = input("confirm pass", true)
+			if ePass == ePass2 then break
+		end while 
+		eIp = input("<color=yellow>[Action required]</color> EMAIL can only be accessed from ip:")
+		while not is_valid_ip(eIp)
+			eIp = input("<color=yellow>[Action required]</color> Not a valid ip, try again:")
+		end while
+		print("Your mail login has been set to: "+char(10)+"Login: "+eUrl+char(10)+"Authorized ip: "+eIp)
+	else 
+		eUrl = "DEFAULT";ePass = "DEFAULT";eIp = PC.public_ip;
+	end if
+	rShell = input("<color=yellow>[Action required]</color> Specify your RSHELL ip -- This value can be defined later! Press enter to default")
+	if rShell.len != 0 then rShell = "144.2.4.3";
+	cargo_src = "//////////////////////////////////////////////////////////////&  ///======================= CARGO =======================///&////////////////////////////////////////////////////////////&globals.debug = true&globals.entry_objects = true&import"+"_code('"+HOME+"/src/objects')&globals.entry_util = true&import"+"_code('"+HOME+"/src/utils') &data = get_custom_object()&//MX = data.mx&crypto = data.crypto&Query = @data.query&Format = @data.get_format&// db&DB1 = data.DB1&DB2 = data.DB2&// object cache&SO = data.SO&CO = data.CO&FO = data.FO&&data.exports = []&&print(init+color.red+'~~~~^~~^~~^~ Dropping Cargo ~^~~^~~^~~~~')&if not data then exit('><> ><> ><>')&eLibs = [] // exploit libs&MX = Utils.mx_crawl(get_shell)&if not MX then exit(warning+'metaxploit was not found')&local_shell = get_shell&pass = null&if params.len == 0 then pass = 'pass'&if params.len == 1 then pass = params[0]&print('data: '+pass)&libs = ['libhttp.so', 'init.so']&found_libs = []&for eLib in libs &crawled  = null&crawled = Utils.ml_crawl(local_shell, MX, eLib)&if crawled then found_libs.push(crawled)&end for&if found_libs.len == 0 then return print(warning+'no libraries found')&hacks = []&for flib in found_libs&lib = flib.lib_name&libV = flib.version&libName = lib+'_v'+libV&query = Query(lib, libV)&hacks = []&if not query then &//print(color.grey+'<i>DB query failed: '+libName)&if user_input(color.white+'Press 1 to manually scan: '+color.cap).to_int != 1 then continue&dump = MX.scan(flib)&if not dump then continue&addresses = MX.scan(dump)&for mem in addresses&hack = {}&values = []&if globals.debug then print('Address: ' + mem)&data = MX.scan_address(dump, mem)&strings = data.split('Unsafe check: ')&for string in strings&if string == strings[0] then continue&value = string[string.indexOf('<b>')+3:string.indexOf('</b>')]&if globals.debug then print(' --> ' + value)&values = values + [value]&end for&hack['metalib'] = filename&hack['memory'] = mem&hack['string'] = values&hacks = hacks + [hack]&end for&else&hacks = Format(query)&end if&if hacks.len == 0 then continue&for hack in hacks&result = null&if hack.len < 2 then continue&result = flib.overflow(hack[1]['memory'], hack[2]['string'], pass)&type = typeof(result)&if result == null then&str = color.white+'overflow result --> '+color.cap+color.red+'FAIL'&if hack.len > 3 then str = str+'\n'+color.grey+'><> ><> ><>\n'+hack[3]['requirements']+'\n'+color.grey+'><> ><> ><>'&print(str)&continue&end if&print(color.white+'<i>overflow resulted in: </i><b>'+color.cap+color.green+type)&a = null&if type == 'shell' then&a = new data.so&a.init(result);&SO.push([a, 'captured'])&else if type == 'computer' then &a = new data.co&a.init(result);&CO.push([a, 'captured'])&else if type == 'file' then &a = new data.fo&a.init(result);&FO.push([a, 'captured'])&else if type == 'string' then &continue&else if type == 'number' then&Others.push(1)&continue &end if&end for&end for&return data&////////////////////////////////////////////////////////////// & ///======================= CARGO =======================///&////////////////////////////////////////////////////////////&"
+	cargo_src = cargo_src.replace("'", """").replace("&", char(10))
+	print("<color=grey><i>Attempting to save changes to cargo.src . . .")
+	if PC.File(HOME+"/src/cargo.src") then PC.File(HOME+"/src/cargo.src").set_content(cargo_src)
+	main_src ="////////////////////////////////////////////////////////////// &///==================== SEASHELL ========================//// &//////////////////////////////////////////////////////////// &// ~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~^~~~ &// ><> ><> ><> ><> ><> USER CONFIG ><> ><> ><> ><> ><> ><> &// !! change these variables to have a good time !! &authPass = '"+authPass+"' // SCRIPT LAUNCH PASSWORD &USER = '"+userConfirm+"'// HOME USER &MAIL = '"+eUrl+"' // MAIL DOMAIN &MAIL_PW = '"+ePass+"' // MAIL PW &MAIL_IP = '"+eIp+"' // ALLOWED IP MAIL LOGIN  &RSHELL = '"+rShell+"' // RSHELL IP &// ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> &globals.debug = null; &globals.nightly = true & //////////////////////////////////////////////////////////// &data = get_custom_object(); &globals.entry = true; &globals.entry_objects = true; &import"+"_code('"+HOME+"/src/objects') // CHANGE ME &globals.entry_util = true; &import"+"_code('"+HOME+"/src/utils') // CHANGE ME &globals.entry_core = true; &import"+"_code('"+HOME+"/src/core') // CHANGE ME &globals.entry_modules = true; &import"+"_code('"+HOME+"/src/modules') // CHANGE ME &//////////////////////////////////////////////////////////// &if user_input(color.white+'Port:  '+color.cap,1) != authPass then exit(color.red+'Nuh-uh-uh! You did not say the magic word'); &// ><> ><> ><> ><>  OBJECTS  ><> ><> ><> ><> &data.so = @ShellObject;data.co = @CompObject;data.fo = @FileObject;data.SO = @globals.Shells; data.CO = @globals.Computers; data.FO = @globals.Files;  &///=================== LIBRARIES ======================//// &meta = null &dirs = ['/lib', '/lib/cheese',current_path,launch_path,home_dir,'/home/guest'] &for d in dirs &if meta then break &meta = include_lib(d+'/metaxploit.so') &end for &if not meta then print(warning+color.red+'<b>metaxploit.so</b> was not found') &data.mx = null;  &if meta then data.mx = meta; &crypto = null &for d in dirs &if crypto then break &crypto = include_lib(d+'/crypto.so') &end for &data.crypto=null;  &// ><> ><> ><> ><>  CONFIG  ><> ><> ><> ><> &if crypto then data.crypto = crypto; &if crypto and not meta then globals.Mode = color.yellow+'CO' &if not crypto and not meta then globals.Mode = color.red+'OS' &cfg_label = null &cfg_label = globals.Mode &if meta then cfg_label = color.cyan+'SS' &// ><> ><> ><> ><> LOCAL DATABASE ><> ><> ><> ><> &globals.DB1 = base_shell.shell.host_computer.File('/home/'+USER+'/dict/exploits');globals.DB1C = 0; &globals.DB2 = base_shell.shell.host_computer.File('/home/'+USER+'/dict/data/rainbow');globals.DB2C = 0; &data.DB1 = globals.DB1;data.DB2 = globals.DB2; &///=================== GREET ======================//// &welcome_msg; &print(color.white+current_date+color.cap+char(10)+color.grey+'Config: '+cfg_label) &///=================== MAIN-INIT ======================//// &if globals.DB1 != null then  &for each in globals.DB1.get_folders &for files in each.get_files &content = files.get_content.split('\n').len &globals.DB1C = globals.DB1C+content &end for &end for &print('<b>'+color.red+'Exploits'+color.cap+'</b>'+color.green+' initialized! '+color.cap+'['+color.white+str(globals.DB1C)+color.cap+'] vulnerabilities found') &data.DB1 = globals.DB1 &else if (globals.DB1 and data) and data.DB1 != null then  &print(color.red+'<b>Exploits</b>'+color.cap+color.green+' loaded!') &else &print(color.grey+'<i>DB not found') &end if &if globals.DB2 != null then &for each in globals.DB2.get_files &content = each.get_content.split('\n').len &globals.DB2C = globals.DB2C+content &end for  &	print('<b>'+color.rainbow+'</b>'+color.cap+color.green+' initialized! '+color.cap+'['+color.white+str(globals.DB2C)+color.cap+'] passwords found') &data.DB2 = globals.DB2 &else if (globals.DB2 and data) and data.DB2 != null then  &print('<b>'+color.rainbow+color.cap+color.green+'</b> loaded! ')  &else  &print(color.grey+'<i>Rainbow not found') &end if &///=================== MAIN ======================//// &Current_Object = globals.Current_Shell;Current_Object = new ShellObject;Current_Object.init; &Main = {} &// object: ShellObject | CompObject | FileObject &// ><> ><> ><> ><> EVAL ><> ><> ><> ><> &Main.eval = function(object, data) &if (data isa ShellObject) == true or (data isa CompObject) == true or (data isa FileObject) == true then &print(color.fill+'\n'+title+color.green+' New Object detected!') &confirm = user_input(color.white+'1.) Add to Object Pool \n'+color.green+'2.) Surf Mode \n'+color.grey+'3.) Pass Object\n--> ') &confirm = confirm.val&if confirm == 1 then Core.add(data)&if confirm == 2 then Main.surf_mode(data)&end if&end function&// ><> ><> ><> ><> SURF MODE ><> ><> ><> ><>&Main.surf_mode = function(object)&surfing = true&print(title+color.blue+'<b>~^~~~^~~^~'+color.cyan+'SURF MODE'+color.cap+color.blue+'~'+color.cap+color.cyan+'[ '+color.green+'ENABLED'+color.cap+color.cyan+' ]'+color.cap+color.blue+'~^~~~^~~~^~') &	while surfing == true &if surfing == false then break&obj =  object&pth = globals.Current_Path&anon = globals.anonymous&prompt = Core.prompt(obj, pth, anon)&if prompt.len == 0  or prompt == ' ' then continue&result = Core.cmd(obj, prompt)&if result == 'EXIT' then &surfing = false&continue// why doesnt break work in a single line idk&end if&if result then Main.eval(obj, result)&&end while&return print(title+color.blue+'~^~~~^~~^~'+color.cyan+'SURF MODE'+color.cap+color.blue+'~'+color.cap+color.cyan+'[ '+color.red+'DISABLED'+color.cap+color.cyan+' ]'+color.cap+color.blue+'~^~~~^~~~^~')&end function&// ><> ><> ><> ><>  PARAMS  ><> ><> ><> ><>&if params.len == 0 then &Main.surf_mode(globals.Current_Object)&else if params.len == 1 and params[0] == '-a' then &globals.anonymous = true&Main.surf_mode(globals.Current_Object)&end if&&//////////////////////////////////////////////////////////////   &///==================== SEASHELL ========================//// &//////////////////////////////////////////////////////////// &"
+	main_src = main_src.replace("'", """").replace("&", char(10))
+	print("<color=grey><i>Attempting to save changes to main.src . . .")
+	if PC.File(HOME+"/src/main.src") then return PC.File(HOME+"/src/main.src").set_content(main_src)
+	return null
+end function
+build_src = function
+	print("<color=green>[init]</color> Compiling source files . . .") 
+	for file in files
+		test = PC.File(HOME+"/src/"+file)
+		if test then
+			//if file == "main.src" or file == "cargo.src" then continue
+			file_path = HOME+"/src/"
+			print("Compiling: "+file+" @ <color=purple>"+file_path)
+			targ = file_path+file
+			if test.name == "main.src" then 
+				if typeof(build_main) == "string" then return print("Failed to define env variables, please change the values in main.src manually")
+			end if
+			compile = base.build(targ, file_path, 1)
+			if compile.len < 1 then 
+				print("<color=green>Compiled: "+file[:-3])
+				wait(0.03)
+				if test.name == "main.src" then continue
+				if test.delete.len < 1 then print("<color=green>Deleted: "+file)
+				continue
+			end if
+			print("<color=yellow>"+compile)
+		end if
+	end for
+	//if base.build(HOME+"/src/main.src", "/bin/", 0).len < 1 then print("<color=green>Compiled: SeaShell</color> --> Use command ss to run SeaShell")
+	if PC.File(HOME+"/src/main") then 
+		PC.File(HOME+"/src/main").move("/bin", "ss")
+		print("<color=green>Compiled: SeaShell</color> --> Use command ss to run SeaShell")
+	end if
+	if PC.File(HOME+"/src/cargo") then PC.File(HOME+"/src/cargo").move("/bin","cargo")
+	wait(0.1)
+	//if base.build(HOME+"/src/cargo.src", "/bin/", 0).len < 1 then print("<color=green>Compiled: cargo")
+	if PC.File(HOME+"/src").get_files.len == 0 then PC.File(HOME+"/src").delete
+end function
+build_db = function 
+	print("<color=green>[init]</color> Building exploit table structure . . .")
+	if not PC.File(HOME+"/dict") then PC.create_folder(HOME, "dict")
+	if not PC.File(HOME+"/dict/data") then PC.create_folder(HOME+"/dict", "data")
+	if not PC.File(HOME+"/dict/exploits") then PC.create_folder(HOME+"/dict", "exploits")
+	if not PC.File(HOME+"/dict/data/rainbow") then PC.create_folder(HOME+"/dict/data", "rainbow")
+
+	db_folders = ["libssh", "libftp", "libhttp", "libsql", "libsmtp", "librepository", "libchat", "librshell", "kernelrouter", "kernelrouter1", "init"]
+	for folder in db_folders 
+		if PC.create_folder(HOME+"/dict/exploits", folder) == 1 then print("Created exploit folder for library: <color=green>"+folder)
+	end for
+	if PC.File(HOME+"/dict/exploits").get_folders.len == db_folders.len then print("Exploit DB structure --> OK !")
+	print("<color=green>[init]</color> Building hash table structure . . ."+char(10)+"<color=orange><i>NOTE</i>\n"+fill+"Use ctrl+shift+v to paste contents into the terminal and hit ENTER;\nThe pasted text will likely not appear in the terminal\nSo trust the instructions :)\n"+fill)
+	for i in range(1,7)
+		if PC.File(HOME+"/dict/brute"+str(i)+".src") then 
+			validate = input("<color=yellow>[Action required]</color> <color=yellow>"+HOME+"/dict/brute"+str(i)+".src </color>already exists."+char(10)+"Press 1 to paste SRC into file, 0 to skip --> ").to_int
+			content = null
+			if validate == 1 then content = input("<color=yellow>[Action required]</color> Paste contents for brute"+str(i)+".src > ")
+			if not content then continue
+			if PC.File(HOME+"/dict/brute"+str(i)+".src").set_content(content) == 1 then print("Successfully saved <color=green>"+HOME+"/dict/brute"+str(i)+".src")
+			continue
+		end if
+		if PC.touch(HOME+"/dict", "brute"+str(i)+".src") == 1 then 
+			print("brute"+str(i)+" creation --> OK")
+			content = input("<color=yellow>[Action required]</color> Paste contents for brute"+str(i)+".src > ")
+			if PC.File(HOME+"/dict/brute"+str(i)+".src").set_content(content) == 1 then print("Successfully saved <color=green>"+HOME+"/dict/brute"+str(i)+".src")
+			continue
+		end if
+		print("There was an issue with <color=yellow>"+HOME+"/dict/brute"+str(i)+".src")
+	end for
+end function
+build_launch = function
+	base.launch(p1[:-4]);
+	if data.cb != true then return print(fill+"Warning: an error occured during the build process.")
+	print(fill+"Builder return --> OK !"+char(10)+"Starting cleanup . . .");
+	for file in PC.File(HOME+"/dict").get_files
+		if file.indexOf("brute") or file.indexOf("builder") then 
+			f = file.name
+			print("Deleting: <color=yellow>"+file.name)
+			if file.delete.len < 1 then print("<color=green>Successfully deleted "+f) 
+		end if
+	end for
+if PC.File(HOME+"/dict").get_files.len == 0 then exit("Builder cleanup --> OK !")
+end function
+build_hashes = function
+	print("<color=green>[init]</color> Building hash files . . .")  
+	p = "/home/"+USER
+	if USER == "root" then p = "/root"
+	builder_src = "data = get_custom_object;import_"+"code('"+p+"/dict/brute1.src');import_"+"code('"+p+"/dict/brute2.src');import_"+"code('"+p+"/dict/brute3.src');import_"+"code('"+p+"/dict/brute4.src');import_"+"code('"+p+"/dict/brute5.src');import_"+"code('"+p+"/dict/brute6.src');import_"+"code('"+p+"/dict/brute7.src');;Crack={'isNum':['0','1','2','3','4','5','6','7','8','9'],'alpha':'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789','max':64,'classID':'CrackLib','Version':'2.5.1-rc.1'}; Crack.dump = function;print 'Building the rainbow tables ...';l=[];l=brute1+brute2+brute3+brute4+brute5+brute6+brute7;r=[];a=0;c=get_shell.host_computer;p=c.File('"+p+"/dict/data/rainbow').path;for b in l;if self.isNum.indexOf(b[0])!=null then ;r.push b+':'+md5(b);continue;end if;r.push b+':'+md5(b);r.push b.lower+':'+md5(b.lower);if r.len>3792 then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));r=[];a=a+1;end if;end for;if r.len then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));data.cb = true;exit('completed build process');end if;end function;Crack.dump"
+	if typeof(PC.touch(HOME+"/dict", "builder.src")) != "string" then 
+		print(fill+"Builder src created! --> compiling . . .") ;wait(1);
+		if typeof(PC.File(HOME+"/dict/builder.src").set_content(builder_src.replace("'", """").replace(";", char(10)))) == "string" then exit("Failed to set builder content")
+		compile = base.build(p1, p1[:-11], 0)
+		if compile.len > 1 then print(compile);
+		wait(0.5);
+		build_launch
+	else if PC.File(p1[:-4]) then
+		print(fill+"Builder found! --> launching . . .") 
+		build_launch
+	else  
+		print(fill+"Warning: an error occured during the build process.")
+	end if
+end function 
+if params[0] == "-i" then
+	install_src
+else if params[0] == "-b" then 
+	build_src
+else if params[0] == "-db" then
+	build_db 
+	build_hashes
+else if params[0] == "-a" then
+	// shrug, you can just do it all !
+	if input("[<color=yellow>Action required</color>]"+char(10)+"Press 1 to build src, hashes, and exploits --> ").to_int != 1 then exit("Exiting install . . .")
+	install_src
+	print("<color=purple>Install --> Ok !"+char(10)+"<color=yellow>[Action Required]</color> Before you continue to compile"+char(10)+"<color=white>1.)</color> Open a new terminal</color>"+char(10)+"<color=white>2.) </color>Launch CodeEditor.exe for the following files, paste in contents & <b>save</b>"+char(10)+gen_label("CodeEditor.exe "))
+	if input("[<color=yellow>Action required</color>]"+char(10)+"Press 1 compile, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
+	build_src
+	print("<color=purple>Multitool build --> Ok !")
+	if input("[<color=yellow>Action required</color>]"+char(10)+"Press 1 build exploit tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
+	build_db
+	print("<color=purple>Exploit table --> Ok !")
+	if input("[<color=yellow>Action required</color>]"+char(10)+"Press 1 build hash tables, 0 to exit --> ").to_int != 1 then exit("Exiting install . . .")
+	build_hashes
+end if
+//////////////////////////////////////////////////////////////  
+///====================== INSTALL ========================///
+////////////////////////////////////////////////////////////
