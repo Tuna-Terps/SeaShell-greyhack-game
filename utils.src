@@ -263,6 +263,10 @@ string.ogfishtank = function(self)
     o = o+self
     return o
 end function
+string.a = function(self)
+    if SS.anon == true then return "HIDDEN".grey.size(14)
+    return self
+end function
 // ======== LISTS
 list.table = function(title)
     return self
@@ -574,9 +578,9 @@ SS.Utils.hasFolder = function(o, n, all = null)
     if ret.len == 0 then return null
     return ret
 end function
-SS.Utils.hasLib = function(o, l, p = null)
+SS.Utils.hasLib = function(o, l, p = null, clean = null)
     lib = null
-    LOG("Attempting to load library: ".sys+l)
+    if clean == null then LOG("Attempting to load library: ".sys+l)
     if p == null then lib = include_lib("/lib/"+l)
     if p != null then lib = include_lib(p)
     if lib == null then 
@@ -585,8 +589,8 @@ SS.Utils.hasLib = function(o, l, p = null)
             lib = include_lib(lo.path); 
         end if
     end if
-    if lib == null then LOG("Library not found: ".warning+l)
-    if lib then LOG("Found library: ".ok+T(lib))
+    if lib == null and (clean != null) then LOG("Library not found: ".warning+l)
+    if lib and (clean == null) then LOG("Found library: ".ok+T(lib))
     return lib
 end function
 SS.Utils.loadLib = function(o, mx, n)
@@ -630,13 +634,15 @@ SS.Utils.saveFileFromList = function(o, l)
 end function
 //TODO: services list
 SS.Utils.listServices = function(o)
-    svs = ["libchat.so", "librepository.so", "librshell.so", "libsql.so","libhttp.so","libftp.so","libssh.so"]
+    svs = SS.Utils.fileFromPath(o, "/lib")
     svs_dis = null
+    if not svs then return
     // get a list of fwd ports 
-
     // loop subnets to check local services 
-    for s in svs
-        library = SS.Utils.hasLib(o, "/lib/", s)
+    for s in svs.get_files
+        if not s.is_binary then continue
+        library = SS.Utils.hasLib(o, s.name)
+        if T(library) != "service" then continue
         status = "----->"+" missing".red+" X".grey
         if library == null then continue
         running = null
@@ -674,9 +680,9 @@ SS.Utils.listServices = function(o)
         else 
             status = "----->"+" online".yellow+fwd
         end if
-        svs_dis = color.white+s+color.cap+" "+status+"\n"+svs_dis
+        svs_dis= s.name+" "+status+"\n"+svs_dis
     end for
-    return LOG(color.fill.blue+NL+COLUMNS(svs_dis))
+    return LOG("".fill.blue+NL+COLUMNS(svs_dis))
 end function
 SS.Utils.ison = function(b)
     if b then return "ENABLED".green
@@ -793,8 +799,8 @@ SS.Utils.wipe_sys = function(o)
             if rn.len > 1 then LOG(rn.warning.s+f.name) 
         end for
     end function
-    if _c(boot) == true then return true
     if _c(sys) == true then return true
+    if _c(boot) == true then return true
     return null
 end function 
 SS.Utils.secure = function(o, a)
@@ -811,8 +817,8 @@ SS.Utils.secure = function(o, a)
         r = pc.File("/")
     end if
     s1 = r.chmod("o-wrx", 1)
-    hp = Utils.goHome(o)
-    cfg = Utils.goConfig(o) 
+    hp = SS.Utils.goHome(o)
+    cfg = SS.Utils.goConfig(o) 
     s1=null;s2=null;s3=null;s4=null;s5=null;s6=null;
     if a == "-s" then 
         s2 = r.set_owner("root", 1)
@@ -929,234 +935,40 @@ SS.Inputs.pos = {}
 SS.Inputs.pos.x = 0
 SS.Inputs.pos.y = 0
 SS.Inputs.refresh = function()
-    Inputs.pos.x = 0
-    Inputs.pos.y = 0
+    self.pos.x = 0
+    self.pos.y = 0
 end function
 SS.Inputs.pos.setY = function(lineIndex, data)
-    current_line = Inputs.pos.y
+    current_line = self.pos.y
     length = data.len-1
-    if lineIndex < 0 and length > 0 and Inputs.pos.y != 0 then  // up
-        Inputs.pos.y = Inputs.pos.y-1
-    else if length > 0 and lineIndex > 0 and Inputs.pos.y != length then // down
-        Inputs.pos.y = Inputs.pos.y+1
+    if lineIndex < 0 and length > 0 and self.pos.y != 0 then  // up
+        self.pos.y = self.pos.y-1
+    else if length > 0 and lineIndex > 0 and self.pos.y != length then // down
+        self.pos.y = self.pos.y+1
     end if
     //if globals.debug == true then print("setY: input "+lineIndex+" global: "+Inputs.pos.y+"\n-----")
-    if Inputs.pos.y > Inputs.pos.x then Inputs.pos.x = 0
-    return Inputs.pos.y
+    if self.pos.y > self.pos.x then self.pos.x = 0
+    return self.pos.y
 end function
 SS.Inputs.pos.setX = function(linePos, data)
     current_position = data[Inputs.pos.y-1] // gets the line we are editing
         if SS.debug then LOG("SET X line: "+current_position)
     length = current_position.len-1
-    if linePos < 0 and length > 0 and Inputs.pos.x != 0 then // left
+    if linePos < 0 and length > 0 and self.pos.x != 0 then // left
         if SS.debug then LOG("moving: left")
-        Inputs.pos.x = Inputs.pos.x-1
-    else if length > 0 and linePos > 0 and Inputs.pos.x != length then // right 
+        self.pos.x = self.pos.x-1
+    else if length > 0 and linePos > 0 and self.pos.x != length then // right 
         if SS.debug then LOG("moving: right")
-        Inputs.pos.x = Inputs.pos.x+1
+        self.pos.x = self.pos.x+1
     end if
     //if globals.debug == true then print("setX: input "+linePos+"\nglobal: "+Inputs.pos.x+"\n-----")
-    return Inputs.pos.x
+    return self.pos.x
 end function
 SS.Inputs.adjust = function(i, data)
-    if i == "LeftArrow" and Inputs.pos.x > 0 then Inputs.pos.x = Inputs.pos.x-1
-    if i == "RightArrow" and Inputs.pos.x != Inputs.pos.xLen then Inputs.pos.x = Inputs.pos.x+1
-    if i == "UpArrow" and Inputs.pos.y != 0 then Inputs.pos.y = Inputs.pos.y-1
-    if i == "DownArrow" and Inputs.pos.y != Inputs.pos.yLen then Inputs.pos.y = Inputs.pos.y-1
-end function 
-///======================= METAXPLOIT =========================////
-SS.MX = {}
-SS.MX.x = null // metaxploitlib
-SS.MX.o = null // passed object
-SS.MX.libs = [] // libs dumped
-SS.MX.rshells = [] // reverse shell connections
-SS.MX.rsn = "rshell_client"
-SS.MX.seshes = []// TODO: bring net sessions to their mx objects
-SS.MX.rsip = null
-SS.MX.i = function(o)// include
-    self.o = o
-    r = SS.Utils.rootFromFile(SS.Utils.ds(o, "file"))
-    cf = r.get_folders+r.get_files 
-    ret = null
-    while cf.len
-        f = cf.pull 
-        if f.is_folder then cf = cf+f.get_folders+f.get_files
-        if f.name == "metaxploit.so" then 
-            ret = include_lib(f.path); break;
-        end if
-    end while
-    if ret == null then return LOG("Unable to load SS.MX on this system".warning)
-    self.x = ret
-    return self
-end function
-SS.MX.fi = function(o, ip = null) // forced include
-    if not ip then ip = INPUT("Specify repo ip".prompt)
-    o.launch("/bin/apt-get", "addrepo "+ip)
-    o.launch("/bin/apt-get", "update")
-    o.launch("/bin/apt-get", "install metaxploit.so")
-    self.i(o)
-end function
-SS.MX.l = function(l = null)// 
-    if self.o == null then return null//
-    if not l then l = "/lib/init.so"
-    if l == "-a" then
-        o = SS.Utils.ds(self.o, "file")
-        if o == null then return null 
-        f = SS.Utils.fileFromPath(self.o, "/lib")
-        if f == null then return LOG("error loading metalib folder".warning)
-        for fi in f.get_files 
-            if not fi.is_binary then continue
-            ml = null 
-            ml = self.x.load(fi.path)
-            if ml != null then self.libs.push(ml)
-        end for
-    else 
-        ml = self.x.load(l)
-        if not ml then return LOG("error loading metalib".warning)
-        if T(ml) == "MetaLib" then
-            LOG("Pushing metalib to cache . . .".ok) 
-            self.libs.push(ml)
-        end if
-    end if
-    return self
-end function
-SS.MX.rs = function(a, i = null, d = null)
-    if not self.x then return null
-    if a == "-l" then return self.rsCfg
-    if a == "-p" and i then
-        if not d then d = self.rsn
-        if not is_valid_ip(i) then return
-        self.x.rshell_client(i, 1222, d)
-        return 
-    else if a == "!" then // launching payloads
-        if not d then d = INPUT("Specify command to connected rshell")
-        if d == " " or d == "" then return 
-    else if a == "-c" then
-        LOG("Attempting to locate reverse connections . . . ".sys) 
-        self.rsGet
-        return 
-    end if
-
-end function
-SS.MX.rsGet = function 
-    rs = []
-    while rs.len == 0 
-        rs = self.x.rshell_server
-        if T(rs) == "string" then; LOG(rs.warning); return null; end if;
-        if rs.len == 0 then wait(2)
-    end while
-    self.rshells = rs
-    return self.rshells
-end function
-SS.MX.rsCfg = function
-    rs = self.rshells
-    if rs.len == 0 then rs = self.rsGet
-    if rs == null then return null
-    opt = 0
-    while T(opt) != "number" or (opt < 1 or opt > rs.len)
-        LOG("RSHELL self.interface".title.NL+("[ "+str(rs.len).white.b+" ]"+" connections(s) established".grey))
-        for i in range(0, rs.len-1)
-            u = SS.Utils.user(rs[i])
-            pc = rs[i].host_computer
-            LOG("".fill.NL+str(i+1).b.white+"."+") ".white+"Shell".purple.b+" ["+u.isRoot+"]"+NL+"Public IP: ".white+pc.public_ip+NL+"Local IP: ".white+pc.local_ip)
-        end for
-        LOG("".fill)
-        opt = INPUT("Select a shell | 0 to return".prompt).to_int
-        if opt == 0 then break
-    end while
-    if opt == 0 then return 
-    choice = INPUT(["Surf Mode", "Terminal", "Implode", "Kill System"].select+NL+"Select".prompt).to_int
-    if choice == 0 then ;return null;
-    else if choice == 1 then ; return rs[opt-1];
-    else if choice == 2 then ; rs[opt-1].start_terminal ;
-    else if choice == 3 then ; self.implode(rs[opt-1]); return null;
-    else if choice == 4 then ; self.ks(rs[opt-1]); return null;
-    end if
-end function
-SS.MX.implode = function(o, n = null)
-    if not n then n = self.rsn
-    if T(o) != "Shell" then return LOG("Not a shell".error)
-    procs = o.host_computer.show_procs.split(NL)
-    if procs.len == 1 then return null
-    for i in range(1, procs.len-1)
-        p = procs.split(" ")
-        if p[4] != n then continue 
-        out = o.host_computer.close_program(p[1].to_int)
-		if out == true then LOG(("Process "+n.grey+" closed").ok)
-		if T(out) == "string" then LOG(out.warning)
-    end for
-    return self
-end function 
-SS.MX.ks = function(o)
-    u = SS.Utils.user(o)
-    pc = o.host_computer
-    if u == "root" or pc.File("/boot").has_permission("w") then 
-        b = pc.File("/boot")
-        if b then b = b.rename("booted")
-        if b.len < 1 then return LOG(("System Corrupted: "+pc.public_ip.white+":"+pc.local_ip.red))
-    else 
-        bins = [pc.File("/sys"), pc.File("/boot", pc.File("/lib"))]
-        for i in bins.get_files 
-            if not i.is_binary then continue 
-            rn = i.rename(i.name+"BOOTED")
-            if rn.len < 1 then LOG(("System Corrupted: "+pc.public_ip.white+":"+pc.local_ip.red))
-            if rn.len < 1 then break 
-        end for
-    end if
-end function
-SS.MX.mutate = function(o, n = null, ip = null)
-    if not n then n = self.rsn
-    if not ip then ip = self.rsip
-    if T(o) != "Shell" then return LOG("Not a shell".error)
-    procs = o.host_computer.show_procs.split(NL)
-    if procs.len == 1 then return null
-    for i in range(1, procs.len-1)
-        p = procs.split(" ")
-        if p[4] != n then continue 
-        out = o.host_computer.close_program(p[1].to_int)
-		if out == true then 
-            LOG(("Process "+n.grey+" closed").ok)
-            rj = self.x.rshell_client(ip, 1222, n)
-            if rj == 1 then return LOG("Process has been reinjected".ok)
-            LOG("Failed to reinject process".warning)
-        end if
-		if T(out) == "string" then LOG(out.warning)
-    end for
-    return self
-end function
-// TODO: path payloadArg flag
-SS.MX.rsLaunch = function(o, p=null, arg = null, flag = null)
-
-    if flag == "-a" then 
-        for i in self.rshells
-            pc = i.host_computer
-            h = pc.File(h)
-            if not p then h = SS.Utils.goHome(i)
-            if not h then 
-                LOG(("Unable to establish home cache @ "+pc.public_ip.grey+":"+pc.local_ip.red).warning)
-                continue;
-            end if
-            if not pc.File(h.path+"/fish.src") then src = pc.touch(h.path, "fish.src")
-            if T(src) == "string" then 
-                LOG(src.warning); continue;
-            else 
-                // payload build
-            end if
-        end for
-    else
-        options = []
-        for s in self.rshells 
-            n = new SS.EO 
-            n.map(s)
-            options.push(n.info)
-        end for
-        selection = SS.Utils.menu("RShell Selection", [{"name": "rshells", "options": options}])
-        if selection[0] == 0 or selection[1] == 0 then return null
-        // finish me
-        
-
-    end if
-    
+    if i == "LeftArrow" and self.pos.x > 0 then self.pos.x = self.pos.x-1
+    if i == "RightArrow" and self.pos.x != self.pos.xLen then self.pos.x = self.pos.x+1
+    if i == "UpArrow" and self.pos.y != 0 then self.pos.y = self.pos.y-1
+    if i == "DownArrow" and self.pos.y != self.pos.yLen then self.pos.y = self.pos.y-1
 end function 
 ///======================= NETWORK =========================////
 SS.Network = {}
@@ -1175,17 +987,17 @@ SS.Network.domain = null
 SS.Network.admin = null
 SS.Network.email = null
 SS.Network.phone = null
-SS.Network.neurobox = "false"
+SS.Network.neurobox = " false"
 SS.Network.is = function(self)
     self.who = whois(self.ip)
     self.wp = self.who.split(NL)
     self.who = "whois: "+self.who
-    self.domain = self.wp[0].split(":")[1].trim().green
+    self.domain = self.wp[0].split(":")[1].trim().lblue
     self.admin = self.wp[1].split(":")[1].red
-    self.email = self.wp[2].split(":")[1].orange
-    self.phone = self.wp[3].split(":")[1].yellow
+    self.email = self.wp[2].split(":")[1].grey
+    self.phone = self.wp[3].split(":")[1].grey
     if self.wp.len > 4 then self.neurobox = self.wp[4].cyan
-    return "Domain: ".cyan+self.domain+NL+"Admin: ".cyan+self.admin+NL+"Email: ".cyan+self.email+NL+"Phone: ".cyan+self.phone+NL+"Neurobox: "+self.neurobox
+    return "Domain: ".cyan+self.domain+NL+"Admin: ".cyan+self.admin+NL+"Email: ".cyan+self.email+NL+"Phone: ".cyan+self.phone+NL+"Neuro: ".cyan+self.neurobox
 end function
 SS.Network.rs = function
     gw = self.router
@@ -1280,7 +1092,7 @@ SS.Network.mapsub = function(ip = null, g = null) // map a subnet, or the gatewa
 end function
 // maps the entire network 
 SS.Network.map = function(addr)
-    if SS.anon == null then LOG("Mapping network: ".sys+addr)
+    if SS.anon == null then LOG("Mapping network: ".sys+addr.a)
     i_i = is_valid_ip(addr); 
     i_l = is_lan_ip(addr);    
     v = null;
@@ -1421,7 +1233,11 @@ SS.Server.API = {}
 SS.Server.API.memzone = null
 SS.Server.API.memval = null
 SS.Server.API.interface = {}
-SS.Server.API.set = function(ip, mem, value)
+SS.Server.API.set = function(ip, mem=null, value=null)
+    if not is_valid_ip(ip) then return null 
+    self.ip = ip
+    if mem then self.memzone = mem 
+    if value then self.memval = value
 
 end function
 SS.Server.API.get = function(mx, cv)
@@ -1504,24 +1320,84 @@ SS.Server.API.get = function(mx, cv)
     //all api method end
     return api
 end function
-///======================= NetSession =========================////
-SS.NS = {"exploits":[]}
-SS.NS.ip = null // public ip
-SS.NS.lan = null
-SS.NS.port = null
-SS.NS.session = null
-SS.NS.connections = null
-SS.NS.registered = null
-SS.NS.active = null
-SS.NS.root_active = null
-SS.NS.dump = null
-SS.NS.lib = null
-SS.NS.libv = null
-SS.NS.scanned = []
-SS.NS.scanlabel = null
-SS.NS.summary = null
-SS.NS.hasScanned = function(lib, libV)
-    LOG("<i>Searching db for library: ".sys+lib+" "+libV)
+///======================= METAXPLOIT =========================////
+SS.MX = {}
+SS.MX.x = null // metaxploitlib
+SS.MX.o = null // passed object
+SS.MX.libs = [] // libs dumped
+SS.MX.rshells = [] // reverse shell connections
+SS.MX.rsn = "rshell_client"
+SS.MX.seshes = []// TODO: bring net sessions to their mx objects
+SS.MX.rsip = null
+SS.MX.i = function(o)// include
+    self.o = o
+    r = SS.Utils.rootFromFile(SS.Utils.ds(o, "file"))
+    cf = r.get_folders+r.get_files 
+    ret = null
+    while cf.len
+        f = cf.pull 
+        if f.is_folder then cf = cf+f.get_folders+f.get_files
+        if f.name == "metaxploit.so" then
+            ret = include_lib(f.path); break;
+        end if
+    end while
+    if ret == null then return LOG("Unable to load SS.MX on this system".warning)
+    self.x = ret
+    return self
+end function
+SS.MX.fi = function(o, ip = null) // forced include
+    if T(self.o) != "shell" then return null
+    if not ip then ip = INPUT("Specify repo ip".prompt)
+    o.launch("/bin/apt-get", "addrepo "+ip)
+    o.launch("/bin/apt-get", "update")
+    o.launch("/bin/apt-get", "install metaxploit.so")
+    self.i(o)
+    return self
+end function
+SS.MX.l = function(l = null)// 
+    if self.o == null then return null//
+    if not l then l = "/lib/init.so"
+    if l == "-a" then
+        o = SS.Utils.ds(self.o, "file")
+        if o == null then return null 
+        f = SS.Utils.fileFromPath(self.o, "/lib")
+        if f == null then return LOG("error loading metalib folder".warning)
+        for fi in f.get_files 
+            if not fi.is_binary then continue
+            ml = null 
+            ml = self.x.load(fi.path)
+            if T(ml) != "MetaLib" then continue
+            ml = new SS.ML.map(ml, "-i")
+            if ml != null then self.libs.push(ml)
+        end for
+    else 
+        ml = self.x.load("/lib/"+l)
+        if not ml then return LOG("error loading metalib".warning)
+        if T(ml) == "MetaLib" then
+            LOG("Pushing metalib to cache . . .".ok) 
+            n = new SS.ML.map(ml, "-i")
+            self.libs.push(n)
+        end if
+    end if
+    return self
+end function
+SS.MX.map = function(o, x = null)
+    if x == null and SS.mx != null then self.x = SS.mx
+    self.o = o
+    self.lib = []
+    self.rshells = []
+    self.rsip = null
+    if T(x) != "metaxploitLib" then return null
+    return self
+end function
+SS.ML = {"exploits":[]}
+SS.ML.m = null // metalib
+SS.ML.n = null // metalib name
+SS.ML.v = null // metalib name
+SS.ML.scanned = null
+SS.ML.scanlabel = null
+SS.ML.hasScanned = function(lib, libV) 
+    LOG("ML: <i>Searching db for library: ".sys+lib+" "+libV)
     exploits = null
     db_folder = SS.db1
     if not SS.db1 then; LOG("no exploit folder found".warning) ; return null; end if 
@@ -1539,7 +1415,7 @@ SS.NS.hasScanned = function(lib, libV)
     LOG(s)
     return exploits
 end function
-SS.NS.get=function(m)
+SS.ML.get=function(m)
 	if not m.lib_name then return null
 	c=null
 	p=null
@@ -1567,7 +1443,7 @@ SS.NS.get=function(m)
 		return c.File(p+"/"+x+"/"+n)
 	end if
 end function
-SS.NS.load=function(m)
+SS.ML.load=function(m)
 	v=[]
 	a=self.get(m)
 	if not a then return v
@@ -1610,7 +1486,7 @@ SS.NS.load=function(m)
 	end for
 	return v
 end function
-SS.NS.write=function(z,m)
+SS.ML.write=function(z,m)
 	if self.exploits then self.exploits=[]
 	f=self.get(m)
 	if not f then return print("File IO","Write Exploits")
@@ -1626,7 +1502,7 @@ SS.NS.write=function(z,m)
 	test = f.set_content(s.join(""))
 	return test
 end function
-SS.NS.scan = function(t)
+SS.ML.scan = function(t)
     _r=function(z)
         a=-1
         for e in z
@@ -1681,31 +1557,23 @@ SS.NS.scan = function(t)
     self.scanned = c.join("")
     return self.write(_r(self.load(t)),t)
 end function
-SS.NS.map = function(a, p = null, flag = null, mx=null,)
-    if mx == null then mx = SS.mx
-    if SS.mx == null then; LOG("Program is operating under cfg: ".warning+SS.cfg.label); return null;end if;
-    if p then self.session = mx.net_use(a,p)
-    if not p then self.session = mx.net_use(a, p)
-    if self.session == null then; LOG("Unable to establish net session".warning); return null;end if;
-    LOG("Establishing net session . . .".ok)
-    self.addr = a 
-    self.port = to_int(p)
-    if not is_lan_ip(self.lan) then self.ip = self.addr 
-    self.connections = self.session.get_num_conn_gateway
-    self.registered = self.session.get_num_users
-    self.active = self.session.is_any_active_user
-    self.root_active = self.session.is_root_active_user
-    self.dump = self.session.dump_lib
-    self.lib = self.dump.lib_name
-    self.libv = self.dump.version
-    self.scanlabel = "unknown".yellow
-    self.scanned = self.hasScanned(self.lib, self.libv)
+SS.ML.map = function(ml, flag)
+    if not ml then return null
+    if SS.debug then LOG("ML:map "+ml+" flag: "+flag)
+    if T(ml) == "file" then ml = self.x.load(ml.path)
+    if T(ml) != "MetaLib" then return null 
+    self.m = ml 
+    self.n = ml.lib_name
+    self.v = ml.version
+    self.scanlabel = "unknown".red
+    self.scanned = SS.ML.hasScanned(self.n,self.v) 
     if self.scanned == null then
+        LOG("New library detected".sys)
         if flag == "-f" then 
-            SS.NS.scan(self.dump)
+            SS.ML.scan(self.m)
             self.scanlabel = "scanned".green
         else if flag == "-i" and INPUT("Scan & Save 1 | Return 0 ".prompt).to_int == 1 then 
-            SS.NS.scan(self.dump)
+            SS.ML.scan(self.m)
             self.scanlabel = "scanned".green
         else 
             self.scanlabel = "unscanned".orange
@@ -1713,13 +1581,12 @@ SS.NS.map = function(a, p = null, flag = null, mx=null,)
     else 
         self.scanlabel = "scanned".green
     end if
-    self.summary = " NetSession ".title.NL+"ADDR".wrap.blue.cap(a).blue+NL+"PORT".wrap.blue.cap(str(p)).blue+NL+"LIB".wrap.blue.cap(self.lib).blue+NL+"SCAN".wrap.blue.cap(self.scanlabel).blue+NL+"Connections".wrap.lblue.cap(self.connections).lblue+NL+"Users".wrap.lblue.cap(self.registered).lblue+NL+"Active user".wrap.lblue.cap(self.active).lblue+NL+"Active root".wrap.lblue.cap(self.root_active).lblue
     return self
 end function
-SS.NS.of = function(vuln = null, data = null)// OVERFLOW
+SS.ML.of = function(vuln = null, data = null)// OVERFLOW
     if data == null then data = SS.cfg.unsecure_pw
     ret = []
-    _d = self.dump
+    _d = self.m
     _h = function(hack, data)
         if SS.debug then LOG("hack: ".debug+hack+NL+hack[1]["memory"]+" "+hack[2]["string"]+" "+data)
         r = null
@@ -1735,7 +1602,6 @@ SS.NS.of = function(vuln = null, data = null)// OVERFLOW
         if res != "string" and res != "number" then ret.push(r)
         //LOG("".fill.NL+"Overflow resulted in: ".ok+res.green.b)
         LOG("Overflow resulted in: ".ok+res.green.b)
-
     end function
     if vuln == null then // overflow all values
         for hack in SS.EXP.format(self.scanned)
@@ -1749,7 +1615,7 @@ SS.NS.of = function(vuln = null, data = null)// OVERFLOW
     end if
     return ret
 end function
-SS.NS.browse = function(self)
+SS.ML.browse = function(self)
     if not self.scanned then return null
     ret = []
     options = []
@@ -1768,7 +1634,7 @@ SS.NS.browse = function(self)
 
     while 1
         if options.len == 0 then break
-        LOG(self.summary+NL+"CURRENTLY SELECTED: "+ret.len+NL+options.select)
+        LOG("CURRENTLY SELECTED: "+ret.len+NL+options.select)
         choice = INPUT("Select exploit".prompt)
         if choice == "" or choice == " " then break
         if choice.to_int-1 > options.len then continue
@@ -1788,6 +1654,185 @@ SS.NS.browse = function(self)
         if ret.len == 0 then break
     end while
     return ret
+end function
+///==== RSHELL
+SS.MX.rs = function(a, i = null, d = null)
+    if not self.x then return null
+    if a == "-l" then return self.rsCfg
+    if a == "-p" and i then
+        if not d then d = self.rsn
+        if not is_valid_ip(i) then return
+        self.x.rshell_client(i, 1222, d)
+        return 
+    else if a == "!" then // launching payloads
+        if not d then d = INPUT("Specify command to connected rshell")
+        if d == " " or d == "" then return 
+    else if a == "-c" then
+        LOG("Attempting to locate reverse connections . . . ".sys) 
+        self.rsGet
+        return 
+    end if
+
+end function
+SS.MX.rsGet = function 
+    rs = []
+    while rs.len == 0 
+        rs = self.x.rshell_server
+        if T(rs) == "string" then; LOG(rs.warning); return null; end if;
+        if rs.len == 0 then wait(2)
+    end while
+    self.rshells = rs
+    return self.rshells
+end function
+SS.MX.rsCfg = function
+    rs = self.rshells
+    if rs.len == 0 then rs = self.rsGet
+    if rs == null then return null
+    opt = 0
+    while T(opt) != "number" or (opt < 1 or opt > rs.len)
+        LOG("RSHELL self.interface".title.NL+("[ "+str(rs.len).white.b+" ]"+" connections(s) established".grey))
+        for i in range(0, rs.len-1)
+            u = SS.Utils.user(rs[i])
+            pc = rs[i].host_computer
+            LOG("".fill.NL+str(i+1).b.white+"."+") ".white+"Shell".purple.b+" ["+u.isRoot+"]"+NL+"Public IP: ".white+pc.public_ip+NL+"Local IP: ".white+pc.local_ip)
+        end for
+        LOG("".fill)
+        opt = INPUT("Select a shell | 0 to return".prompt).to_int
+        if opt == 0 then break
+    end while
+    if opt == 0 then return 
+    choice = INPUT(["Surf Mode", "Terminal", "Implode", "Kill System"].select+NL+"Select".prompt).to_int
+    if choice == 0 then ;return null;
+    else if choice == 1 then ; return rs[opt-1];
+    else if choice == 2 then ; rs[opt-1].start_terminal ;
+    else if choice == 3 then ; self.implode(rs[opt-1]); return null;
+    else if choice == 4 then ; self.ks(rs[opt-1]); return null;
+    end if
+end function
+SS.MX.implode = function(o, n = null)
+    if not n then n = self.rsn
+    if T(o) != "Shell" then return LOG("Not a shell".error)
+    procs = o.host_computer.show_procs.split(NL)
+    if procs.len == 1 then return null
+    for i in range(1, procs.len-1)
+        p = procs.split(" ")
+        if p[4] != n then continue 
+        out = o.host_computer.close_program(p[1].to_int)
+		if out == true then LOG(("Process "+n.grey+" closed").ok)
+		if T(out) == "string" then LOG(out.warning)
+    end for
+    return self
+end function 
+SS.MX.ks = function(o)
+    u = SS.Utils.user(o)
+    pc = o.host_computer
+    if u == "root" or pc.File("/boot").has_permission("w") then 
+        b = pc.File("/boot")
+        if b then b = b.rename("booted")
+        if b.len < 1 then return LOG(("System Corrupted: "+pc.public_ip.white+":"+pc.local_ip.red))
+    else 
+        bins = [pc.File("/sys"), pc.File("/boot", pc.File("/lib"))]
+        for i in bins.get_files 
+            if not i.is_binary then continue 
+            rn = i.rename(i.name+"BOOTED")
+            if rn.len < 1 then LOG(("System Corrupted: "+pc.public_ip.white+":"+pc.local_ip.red))
+            if rn.len < 1 then break 
+        end for
+    end if
+end function
+SS.MX.mutate = function(o, n = null, ip = null)
+    if not n then n = self.rsn
+    if not ip then ip = self.rsip
+    if T(o) != "Shell" then return LOG("Not a shell".error)
+    procs = o.host_computer.show_procs.split(NL)
+    if procs.len == 1 then return null
+    for i in range(1, procs.len-1)
+        p = procs.split(" ")
+        if p[4] != n then continue 
+        out = o.host_computer.close_program(p[1].to_int)
+		if out == true then 
+            LOG(("Process "+n.grey+" closed").ok)
+            rj = self.x.rshell_client(ip, 1222, n)
+            if rj == 1 then return LOG("Process has been reinjected".ok)
+            LOG("Failed to reinject process".warning)
+        end if
+		if T(out) == "string" then LOG(out.warning)
+    end for
+    return self
+end function
+// TODO: path payloadArg flag
+SS.MX.rsLaunch = function(o, p=null, arg = null, flag = null)
+
+    if flag == "-a" then 
+        for i in self.rshells
+            pc = i.host_computer
+            h = pc.File(h)
+            if not p then h = SS.Utils.goHome(i)
+            if not h then 
+                LOG(("Unable to establish home cache @ "+pc.public_ip.grey+":"+pc.local_ip.red).warning)
+                continue;
+            end if
+            if not pc.File(h.path+"/fish.src") then src = pc.touch(h.path, "fish.src")
+            if T(src) == "string" then 
+                LOG(src.warning); continue;
+            else 
+                // payload build
+            end if
+        end for
+    else
+        options = []
+        for s in self.rshells 
+            n = new SS.EO 
+            n.map(s)
+            options.push(n.info)
+        end for
+        selection = SS.Utils.menu("RShell Selection", [{"name": "rshells", "options": options}])
+        if selection[0] == 0 or selection[1] == 0 then return null
+        // finish me
+        
+
+    end if
+    
+end function 
+///======================= NetSession =========================////
+SS.NS = {"exploits":[]}
+SS.NS.ip = null // public ip
+SS.NS.lan = null
+SS.NS.port = null
+SS.NS.session = null
+SS.NS.connections = null
+SS.NS.registered = null
+SS.NS.active = null
+SS.NS.root_active = null
+SS.NS.summary = null
+SS.NS.mlib = null
+SS.NS.dump = null
+SS.NS.lib = null
+SS.NS.libv = null
+SS.NS.scanned = null
+SS.NS.scanlabel = null
+SS.NS.map = function(a, p = null, flag = null, mx=null,)
+    if mx == null then mx = SS.mx
+    if SS.mx == null then; LOG("Program is operating under cfg: ".warning+SS.cfg.label); return null;end if;
+    if p then self.session = mx.net_use(a,p)
+    if not p then self.session = mx.net_use(a, p)
+    if self.session == null then; LOG("Unable to establish net session".warning); return null;end if;
+    LOG("Establishing net session . . .".ok)
+    self.addr = a 
+    self.port = to_int(p)
+    if not is_lan_ip(self.lan) then self.ip = self.addr 
+    self.connections = self.session.get_num_conn_gateway
+    self.registered = self.session.get_num_users
+    self.active = self.session.is_any_active_user
+    self.root_active = self.session.is_root_active_user
+    self.dump = self.session.dump_lib
+    self.mlib = new SS.ML.map(self.dump, flag)
+    self.lib = self.mlib.n
+    self.libv = self.mlib.v
+    self.scanned = self.mlib.scanned
+    self.scanlabel = self.mlib.scanlabel
+    self.summary = " NetSession ".title.NL+"ADDR".wrap.blue.cap(a).blue+NL+"PORT".wrap.blue.cap(str(p)).blue+NL+"LIB".wrap.blue.cap(self.lib).blue+NL+"SCAN".wrap.blue.cap(self.scanlabel).blue+NL+"Connections".wrap.lblue.cap(self.connections).lblue+NL+"Users".wrap.lblue.cap(self.registered).lblue+NL+"Active user".wrap.lblue.cap(self.active).lblue+NL+"Active root".wrap.lblue.cap(self.root_active).lblue
+    return self
 end function
 SS.NS.cache = function(self, r = null)
     if len(SS.sessions) == 0 then
@@ -1815,14 +1860,11 @@ SS.EO.ip = null
 SS.EO.lan = null
 SS.EO.home = null 
 SS.EO.cfg = null
-
 SS.EO.e = null // email 
 SS.EO.b = null // bank
 SS.EO.br = null // browser.txt
 SS.EO.risk = 0 // risk
-
 SS.EO.label = ""
-
 SS.EO.string = "" // hashing purposes
 SS.EO.isCached = function(self)
     to = T(o)
@@ -1910,6 +1952,10 @@ SS.EO.cache = function
 end function
 // mission completion functions
 SS.EO.credentials = function(u = "root")
+    if self.is == "root" then 
+        pc = SS.Utils.ds(self.o, "computer")
+        if pc then;if(pc.change_password(u, SS.cfg.unsecure_pw)) == 1 then return SS.cfg.unsecure_pw;end if;
+    end if
     if self.pw.indexOf(":") == null then return null
     for parse in self.pw.split(NL)
         p = parse.split(":")
@@ -1936,22 +1982,37 @@ SS.EO.sys_kill = function()
             if not f.is_binary then continue
             rn = f.rename(f.name+".FISHY")
             if (rn == 1) or (rn.len < 1) then return true 
-            if rn.len > 1 then LOG(rn) 
+            //if rn.len > 1 then LOG(rn) 
         end for
     end function
+    if _c(sys) == true then return true
     if _c(boot) == true then return true
-    if _c(root) == true then return true
     return null
 end function
 // TODO: make as easy as possible
 SS.EO.file_retrieval = function(fn)
-
-
+    return null
+end function
+SS.EO.file_kill = function(fn)
+    t = SS.Utils.fileFromPath(o, fn)
+    if not t then return null
+    del = t.delete
+    if T(del) != "string" then return true
+    return null
 end function
 // TODO: make as easy as possible
 SS.EO.academic = function
-    
-    
+    return null
+end function
+SS.EO.escalate = function(u = "root")
+    if self.type != "shell" then return self 
+    // brute force shell grab
+    cmd = SS.CMD.getOne("shellfish")
+    bam = SS.BAM.handler(self.o, cmd, [u])
+    if bam != null and T(bam) == "shell" then; self.o = bam; self.is = u; end if;
+    if SS.Utils.User(o) == "root" then return self 
+    // local hack
+
 end function
 ///======================= EXPLOIT DB =========================////
 SS.EXP={"exploits":[]}
@@ -2192,20 +2253,23 @@ SS.MD5.connect = function(o, a, u = "root", p = 22, prot = "ssh")
     end for
     return ret
 end function
-SS.MD5.shell = function(user = "root")
-    if SS.dbhl.len == 0 then return LOG("Hashes not loaded".warning)
+SS.MD5.shell = function(user)
     if T(SS.dbe) != "file" then return LOG("No hashes found".warning)
-    ret = null
-    for s in SS.dbhl
-        parse = s.split(":")
-        if parse == null or parse.len == 1 then continue
-        shell = get_shell(user, parse[0])
-        if shell == null then continue
-        LOG(parse[0].oggotroot)
-        ret = shell; 
-        break;
+    if SS.og then LOG(("""What's your vector, Victor?""".yellow).sys)
+    for f in SS.dbh.get_files
+        if f.is_binary then continue
+        for s in f.get_content.split(NL)
+            parse = s.split(":")
+            if parse == null or parse.len == 1 then continue
+            shell = null
+            shell = get_shell(user, parse[0])
+            if T(shell) != "shell" then continue
+            if SS.og then LOG(("""You have clearance, Clarence!""".green).sys)
+            return shell 
+        end for
     end for
-    return ret
+    if SS.og then LOG(("""Roger, Roger""".red).sys)
+    return null
 end function
 SS.MD5.mail = function(addr)
     if T(SS.dbe) != "file" then return LOG("No hashes found".warning)
@@ -2224,20 +2288,150 @@ SS.MD5.mail = function(addr)
 		end for
 	end for
 end function
+///======================== MAIL =========================////
+SS.NPC = {}
+SS.NPC.fixmekuro = null// MetaMail
+SS.NPC.mailacct = null
+SS.NPC.maillpw = null
+SS.NPC.burner = null
+SS.NPC.target = "any"
+SS.NPC.mission = function(o, mission)
+    if SS.cfg.mailacct == null then SS.cfg.mailacct = INPUT("Enter mail acct".prompt,true)
+    if SS.cfg.mailpw == null then SS.cfg.mailpw = INPUT("Enter mail pw".prompt,true)
+    self.fixmekuro = null
+    self.burner = mail_login(SS.cfg.burnmailacct, SS.cfg.burnmailpw)
+    if T(self.burner) == "string" then return LOG("Burner error".warning)
+    self.fixmekuro = mail_login(SS.cfg.mailacct, SS.cfg.mailpw)
+    if T(self.fixmekuro) == "string" then return LOG(self.fixmekuro.warning)
+    LOG("Analyzing metamail. . .".sys)
+    ret = ""
+    for plz in self.fixmekuro.fetch()
+        self.target = "any"
+		target_ip = null
+		target_lan = null
+        m = plz.split(NL)
+        id = m[2].split(" ")[1]
+		if m[4] != "Subject: Mission Contract" then continue
+        content = self.fixmekuro.read(m[2].split(" ")[1])
+		// OBJECTIVE STATEMENT
+		word = content.split(NL)[3].split(" ")
+        label = "error"
+		// OBJECTIVE DETAILS
+		detail = content.split(NL)[4].split(" ")
+        if mission == "-p" then // credentials
+            if word[5] != "credentials" then continue
+			label = "credentials"
+			if word[7] == "the" then self.target = word[9].replace("\<b\>", "").replace("\<\\b\>", "")[:-1]
+			LOG("NPC: ".grey+word[5])
+			target_ip = detail[7].replace("<b>", "").replace("</b>","")[:-1]
+			target_lan = detail[25].replace("<b>", "").replace("</b>","")
+		else if mission == "-c" then 
+            if word[7] != "stop"  then continue // corrupt system
+			label = "system corruption"
+			LOG("NPC: ".grey+"Corrupt")
+			LOG(content.split(NL)[3])
+		else if mission == "-f" then 
+            if word[5] != "delete"  then continue // delete remote file
+			label = "file deletion"
+			LOG("NPC: ".grey+"Remote File [delete]")
+			LOG(content.split(NL)[3])
+		else if mission == "-f" then
+            if word[10] != "get" then continue
+			label = "file retrieval"
+			LOG("NPC:".grey+"Remote File [delete]")
+			LOG(content.split(NL)[3])
+		end if
+        if SS.debug then LOG(word)
+        target_ip = detail[7].replace("<b>", "").replace("</b>","")[:-1]
+        target_lan = detail[25].replace("<b>", "").replace("</b>","")
+        result = null
+        result = self.run(id, label, self.target, target_ip, target_lan)
+        reslabel = "FAILED".red.b
+        if result != null then reslabel = "COMPLETE".green.b
+        restring = (" ".fill).red+NL+"Mission Tasks Complete".ok+NL+(label.lblue.b+" - "+reslabel).title.NL+" Target ".wrap.cap(self.target).NL+" IP ".wrap.cap(target_ip).NL+" LAN ".wrap.cap(target_lan).NL+" DAT ".wrap.cap(result)
+        LOG(restring)
+        ret = ret+restring+NL
+    end for
+    LOG("Summary".title+NL+ret)
+    self.fixmekuro = null
+end function
+SS.NPC.run = function(id, label, target, target_ip, target_lan)
+    if SS.debug then LOG(id+" "+label+" "+ target+" "+ target_ip+" "+ target_lan)
+    result = null//mission complete switch
+    net = new SS.Network 
+    net.map(target_ip)
+    if net == null then return LOG("An issue occured")
+    // open ports to targ?
+    ns_cache = []
+    fwd_libs = []
+    data = SS.cfg.unsecure_pw
+    if label != "credentials" then data = target_lan
+    if net.services.len == 0 then 
+        ns = new SS.NS.map(target_ip, 0, "-f")
+        ns_cache.push(ns)
+    else
+        for s in net.services 
+            if s[4] == target_lan then 
+                fwd_libs.push(s)
+            end if
+        end for
+        if fwd_libs.len == 0 then ns = new SS.NS.map(target_ip, 0)
+    end if
+    for l in fwd_libs
+        ns = new SS.NS
+        ns.map(target_ip, l[3], "-f")
+        if ns.session == null then continue
+        if ns == null then continue
+        ns_cache.push(ns)
+    end for
+    for s in ns_cache
+        if not s then continue
+        if result != null then break
+        res = s.mlib.of(null, data)
+        if res.len == 0 then continue
+        for r in res
+            task = null
+            eo = new SS.EO;
+            eo.map(r)
+            if not eo then continue 
+            if label == "credentials" then 
+                task = eo.credentials(target)
+            else if label == "system corruption" then 
+                task = eo.sys_kill
+            else if label == "file_deletion" then 
+                task = eo.file_kill(targe)
+            else if label == "file_retrieval" then  
+                task = eo.file_get(target)
+            end if
+            if task != null then; result = task; break; end if;
+        end for 
+    end for
+    if result != null then return result
+    // bounce
+    ns = new SS.NS
+    ns.map(target_ip, 0, "-f")
+    if ns == null then return null
+    res = ns.mlib.of(null, target_lan)
+    if res.len == 0 then return null
+    for r in res
+        task = null
+        eo = new SS.EO;
+        eo.map(r)
+        if not eo then continue 
+        if label == "credentials" then 
+            task = eo.credentials(target)
+        else if label == "system corruption" then 
+            task = eo.sys_kill
+        else if label == "file_deletion" then 
+            task = eo.file_kill(targe)
+        else if label == "file_retrieval" then  
+            task = eo.file_get(target)
+        end if
+        if task != null then; result = task; break; end if;
+    end for
+    return result
+end function
 ///======================== GFX =========================////
-// Starting from left, going right:
-// 
-// X Position
-// Y Position
-// Rotate
-// Whole Word
-// 
-// X, will move it horizontally
-// Y, will move it vertically
-// Rotate, will rotate it
-// Whole Word, will decide whether you want to rotate the whole string or just the letters
-// 
-// For personal preferences, I inverted the rotate value so negative values will go anti-clockwise instead
 SS.GFX = {}
 SS.GFX.f=function(l)
     x=10
