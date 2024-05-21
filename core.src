@@ -23,12 +23,17 @@ SS.files = []
 SS.commands = []
 SS.networks = []
 SS.sessions = []
+SS.mxlibs = []
 SS.macros = []
 SS.cfg = {} // cfg
 SS.cfg.label = null
 SS.cfg.i = null // item: cache/config folder
 SS.cfg.start_time = current_date
 SS.cfg.unsecure_pw = "f1shb0wl"
+SS.cfg.burnmailacct = "Oppelli@barner.com"
+SS.cfg.burnmailpw = "Bitch"
+SS.cfg.mailacct = "mail@bolds.net"
+SS.cfg.mailpw = "mail"
 SS.cfg.dat = null // data file
 SS.cfg.macros = null // macro folder
 SS.dbe = null // exploits file 
@@ -37,6 +42,7 @@ SS.dbhl = {} // hash map
 ///==================== SS.CMD() ========================////
 SS.CMD = {}
 SS.CMD.isValid = function(param)
+	if param == "" or param == " " then return null
 	for c in SS.commands
 		if c["name"] == param then return c
 		if c["name"] == "entry" and (is_valid_ip(param) or is_valid_ip(nslookup(param))) then return c
@@ -177,7 +183,7 @@ SS.CMD.prompt = function(eo)
 	if SS.debug then LOG("debugging user: ".debug+user+" "+T(user))
 	if user == "root" then sym = "#"
 	space = 3.9+(user.len+host.len)*0.6
-	s =  NL+"<pos=04>—{"+user.isRoot(user, "FFFFFF")+"@".cyan+host+"}—[<b>"+tsym+"</b>]—{"+ ip.white.size(14) +":"+ lan.grey.size(14) +"}—["+SS.Utils.dash(SS.cwd, user).white.size(14)+"]<voffset=-0.5em><space=-"+space+"em><pos=00>|<voffset=-1em><space=-0.6em>|<voffset=-1.5em><pos=04>——:~"+sym.white+" "	
+	s =  NL+"<pos=04>—{"+user.isRoot(user, "FFFFFF")+"@".cyan+host+"}—[<b>"+tsym+"</b>]—{"+ ip.white.size(14).a +":"+ lan.grey.size(14) +"}—["+SS.Utils.dash(SS.cwd, user).white.size(14)+"]<voffset=-0.5em><space=-"+space+"em><pos=00>|<voffset=-1em><space=-0.6em>|<voffset=-1.5em><pos=04>——:~"+sym.white+" "	
 	return INPUT(s)
 end function
 SS.CMD.result = function(o)
@@ -521,19 +527,23 @@ SS.setUserConfig = function(act, flag=null, p = null)
 	if act == "-u" then// userconfig
 		s = "User Config"
 		f = SS.cfg.dat
-		p = "ss.dat"
-		d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"
-		run = @SS["setDat"]
+		if flag == "-b" then
+			run = @SS["setDat"] 
+			p = "ss.dat"
+			d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"apiIp=null"+NL+"apiMemZone=null"+NL+"apiMemVal=null"
+		else 
+			return SS.cfgDat(flag, p)
+		end if
 	else if act == "-m" then // usermacros
 		s = "User Macros"
 		f = SS.cfg.macros
+		run = @SS["setMacros"] 
 		p = "ss.macros"
 		d = "[MACRO NAME] [SS.CMD NAME] [ARGUMENTS] ; [SS.CMD NAME] [ARGUMENTS]"+NL+"EXAMPLE ls ; cd /"
-		run = @SS["setMacros"]
-	//else if act == "-ccd" then // user ccd
-	//	s = "User Cache"
-	//	f = SS.cfg.i
-	//	p = "/"+SS.ccd
+	else if act == "-ccd" then // user ccd
+		s = "User Cache"
+		f = SS.cfg.i
+		p = SS.ccd
 	else 
 		return LOG("Invalid arguments".warning)
 	end if
@@ -554,44 +564,116 @@ end function
 SS.setDat = function(data)
 	if SS.debug then LOG("SS:setDat: ".debug+data)
 	if data.len == 0 then return LOG("No content in user.dat".warning)
-	if data.indexOf(NL) == null then return LOG(i)
+	if data.indexOf(NL) == null then return LOG("Data not found")
 	s = data.split(NL)
 	if s.len == 0 then return LOG("File is empty".warning)
 	for i in s 
 		if i.len < 1 then continue 
 		if i.indexOf("=") == null then continue
 		p = i.split("=")
-		if @p[0] isa "FuncRef" then continue 
-		if @p[1] isa "FuncRef" then continue
 		if p[0] == "anonymousMode" then 
-			if p[1].to_int == 1 then SS.anon = true
+			if p[1].to_int == 1 then 
+				SS.anon = true 
+			else
+				SS.anon = false
+			end if
 		else if p[0] == "debugMode" then 
-			if p[1].to_int == 1 then SS.debug = true
+			if p[1].to_int == 1 then 
+				SS.debug = true 
+			else 
+				SS.debug = false
+			end if
 		else if p[0] == "oldArtMode" then 
-			if p[1].to_int == 1 then SS.og = true
+			if p[1].to_int == 1 then SS.og = true else SS.og = false
+		else if p[0] == "apiIp" then 
+			SS.Server.API.ip = p[0]
+		else if p[0] == "apiMemZone" then 
+			SS.Server.API.memzone = p[0]
+		else if p[0] == "apiMemVal" then 
+			SS.Server.API.memval = p[0]
 		end if
 	end for 
 end function
+SS.cfgDat = function(item, change)
+	if not SS.cfg.dat then return LOG("User not configured on this machine")
+	data =  SS.cfg.dat.get_content
+	if data.len < 10 then return LOG("File corrupted".error)
+	data = data.split(NL)
+	if data == null or data.len == 0 then return LOG("File corrupted".error)
+	c = 0; isn = null; edit = null
+	for i in data
+		p = i.split("=")
+		if p == null then continue
+		if item == "anon" and p[0] == "anonymousMode" then
+			label = "anonymous mode"
+			isn = true 
+			edit = i; break;
+		else if item == "dev" and p[0] == "debugMode" then
+			label = "debug mode"
+			isn = true  
+			edit = i; break;
+		else if item == "art" and p[0] == "oldArtMode" then
+			label = "original art mode"
+			isn = true  
+			edit = i; break;
+		else if item == "api1" and p[0] == "apiIp" then
+			label = "api ip" 
+			edit = i; break;
+		else if item == "api2" and p[0] == "apiMemZone" then
+			label = "api memzone" 
+			edit = i; break;
+		else if item == "api3" and p[0] == "apiMemVal" then
+			label = "api memval" 
+			edit = i; break;
+		end if
+		c = c+1
+	end for
+	data.remove(c);
+	if edit == null then return LOG("Incorrect setting".warning)
+	if isn then 
+		change = change.to_int
+		if change != 0 and change != 1 then return LOG("Invalid setting option".warning)
+		label2 = SS.Utils.ison(change)
+		edit = edit.trim
+		edit = edit[:-1]+str(change)
+	else 
+		label2 = change
+		ep = edit.split("=")
+		edit = ep[0]+"="+change
+	end if
+	data.push(edit)
+	data = data.join
+	data = data.trim
+	data = data.replace(" ", NL)
+	if SS.debug then LOG("Data set: ".debug+data)
+	save = SS.cfg.dat.set_content(data)
+	if T(save) == "string" then return LOG(save.warning)
+	LOG("Setting saved: ".ok+label+" --> ".white+label2)
+	return self.setDat(data)
+end function
 // TODO: set macro function
 SS.setMacros = function(data)
-	if data.len == 0 then return LOG("No content in user.macro".warning)		
+	if data.len == 0 then return LOG("No content in user.macro".warning)
 
 end function
 ///==================== CORE() ========================////
 Core = {}
-Core["anon"] = function
+//TODO: flag to save setting to ss.dat
+Core["anon"] = function(save = null)
 	t = true; s = "ENABLED".green;
 	if SS.anon == true then
 		t = false; s = "DISABLED".red;
 	end if
+	if save then SS.cfgDat("anon", str(t))
 	LOG("Anonymous mode: ".sys+s);SS.anon = t;
 end function
-string.anon = function(self); if SS.anon == null then return self; return "HIDDEN";end function
-Core["dev"] = function
+//TODO: flag to save setting to ss.dat
+Core["dev"] = function(save = null)
 	t=true; s="ENABLED".green;
 	if SS.debug == true then 
 		t=false;s="DISABLED".red;
 	end if
+	if save then SS.cfgDat("dev", str(t))
 	LOG("Debug mode: ".sys+s);SS.debug = t;
 end function
 Core["add"] = function(o)
@@ -808,16 +890,16 @@ Core["service"] = function(o, a, s = null, f = null)
 	if a == "-l" then return SS.Utils.listServices(o)
 	if s == null then return LOG("No service specified".warning)
 	act = null
-	srv = SS.Utils.hasLib(o, s)
+	srv = SS.Utils.hasLib(o, s, null, true)
 	if a == "-i" then 
 		al = "Installing:<i> ".grey+s
-		act = o.install_service
+		act = srv.install_service
 	else if a == "-s" then 
 		al = "Starting<i> ".white+""
-		act = o.start_service
+		act = srv.start_service
 	else if a == "-k" then 
 		al = "Stopping:<i> ".grey+s 
-		act = o.stop_service
+		act = srv.stop_service
 	end if
 	if T(act) == "string" then 
 		return LOG(act.warning)
@@ -999,13 +1081,13 @@ Core["secure"] = function(o, a)
 	LOG("Securing system . . .".sys)
 	if a == "-p" then return SS.Utils.patch(o)
 	m=null;b=null;out=null;cfg=null
-	GF = @SS.Utils.getFromFile
+	GF = @SS.Utils.fileFromPath
 	isR = SS.Utils.isRoot(o)
 	if T(o) == "file" then
 		if o.owner == "root" then isR = true
 		r = SS.Utils.rootFromFile(o)
 		if r.chmod("o-wrx", true).len > 1 then LOG("Failed to adjust scope Other to /".warning)
-		g = SS.Utils.getFromFile(o, "/home/guest")
+		g = SS.Utils.fileFromPath(o, "/home/guest")
 		if g != null then;if (g.set_owner("root", true).len < 1) and (g.set_group("root", true) < 1) then LOG("Guest has been secured".ok);end if;	
 		files = [GF(r,"/sys") , GF(r,"/boot") , GF(r,"/lib")]
 		if a == "-s" then cfg = GF(r, "/root/Config")
@@ -1126,7 +1208,7 @@ Core["cat"] = function(o,p)
 	LOG("content:".ok+NL+f.get_content)
 end function
 Core["move"] = function(o, cfp, tpf)
-	if cfp[0] != "/" then cpf = SS.Utils.path(cpf)
+	if cfp[0] != "/" then cfp = SS.Utils.path(cpf)
 	if tfp[0] != "/" then tfp = SS.Utils.path(tfp)
 	if T(o) == "file" then return o.move(tfp, fn)
 	if T(o) != "computer" then o = o.host_computer
@@ -1134,11 +1216,11 @@ Core["move"] = function(o, cfp, tpf)
 	if t == null then return LOG("File not found at: ".warning+tfp)
 	f = t.move(tfg, fn)
 	if T(f) == "string" then return LOG(f.warning)
-	LOG("Moved file: ".ok+fn+" to path: "+tfp )
+	LOG(("Moved file: ".ok+fn+" to path: "+tfp).ok )
 end function
 Core["copy"] = function(o, cfp, tfp, fn)
 	if cfp == null then return LOG("path dest name") end if
-	if cfp[0] != "/" then cpf = SS.Utils.path(cpf)
+	if cfp[0] != "/" then cfp = SS.Utils.path(cpf)
 	if tfp[0] != "/" then tfp = SS.Utils.path(tfp)
 	if T(o) == "file" then return o.copy(tfp, fn)
 	if T(o) != "computer" then o = o.host_computer
@@ -1146,7 +1228,7 @@ Core["copy"] = function(o, cfp, tfp, fn)
 	if t == null then return LOG("File not found at: ".warning+tfp)
 	f = t.copy(tfp, fn)
 	if T(f) == "string" then return LOG(f.warning)
-	LOG("Moved file: ".ok+fn+" to path: "+tfp )
+	LOG(("Copied file: ".ok+fn+" to path: "+tfp).ok)
 end function
 Core["rm*"] = function(o, p)
 	o = SS.Utils.ds(o, "file"); isGlob = null;
@@ -1186,7 +1268,7 @@ Core["rn"] = function(o, p, n)// obj path newName
 	LOG("File has been renamed: ".ok+n)
 end function
 Core["edit"] = function(o, p, clean = null)
-	Inputs.refresh()
+	SS.Inputs.refresh()
 	o = SS.Utils.ds(o, "file")
 	if o == null then return
 	if p[0] != "/" then p = SS.Utils.path(p)
@@ -1196,14 +1278,15 @@ Core["edit"] = function(o, p, clean = null)
 	if f.has_permission("r") == false then return LOG("Unable to edit - Permission denied: ".warning+"R")
 	raw = f.get_content
 	edit = null
-	while 1 
+	while 1
+		CLEAR 
 		if edit == null then edit = raw
 		parse = edit.split(NL)
 		view = null
 		c = 0
-		currLine = parse[Inputs.pos.y]
-		Inputs.pos.xLen = parse.len
-		Inputs.pos.yLen = currLine.len
+		currLine = parse[SS.Inputs.pos.y]
+		SS.Inputs.pos.xLen = parse.len
+		SS.Inputs.pos.yLen = currLine.len
 		for i in parse
 			if c == 0 then 
 				view = "1.) ".white+i
@@ -1213,24 +1296,24 @@ Core["edit"] = function(o, p, clean = null)
 			c = c+1
 		end for
 		LOG("Editing:".blue+f.path.yellow+NL+view)
-		input = INPUT("-----INPUT:"+NL+"X: ".white+Inputs.pos.x+" | Y: ".white+Inputs.pos.y)
+		input = INPUT("-----INPUT:"+NL+"X: ".white+SS.Inputs.pos.x+" | Y: ".white+SS.Inputs.pos.y, false, true)
 		if input == "Escape" then break
 		if input == "F1" then SS.Utils.saveFileFromList(o, parse) 
-		if Inputs.invalid.indexOf(input) != null then continue			
-		if Inputs.valid.indexOf(input) then 
-			Inputs.adjust(input); continue
+		if SS.Inputs.invalid.indexOf(input) != null then continue			
+		if SS.Inputs.valid.indexOf(input) then 
+			SS.Inputs.adjust(input); continue
 		else 
 			charIndex = 0
-			currLine = parse[Inputs.pos.y]
+			currLine = parse[SS.Inputs.pos.y]
 			for chars in currLine.values
-				if charIndex != Inputs.pos.x then 
+				if charIndex != SS.Inputs.pos.x then 
 					mut_line = mut_line+chars
 					charIndex = charIndex+1
 					continue
 				end if
-				if input == "Backspace" and Inputs.pos.x > 0 then 
+				if input == "Backspace" and SS.Inputs.pos.x > 0 then 
 					mut_line = mut_line+""
-					Inputs.pos.x = Inputs.pos.x-1
+					SS.Inputs.pos.x = SS.Inputs.pos.x-1
 				else if input == "Spacebar" then 
 					mut_line = mut_line+" "
 				else 
@@ -1255,6 +1338,7 @@ Core["sniff"] = function
 end function
 Core["iwlist"] = function(obj, net)
 	obj = SS.Utils.ds(obj, "computer")
+	if obj == null then return
 	networks = obj.wifi_networks(net)
 	if networks == null then return LOG("invalid usage")
 	i = "BSSID".cyan+" "+"PWR".cyan+" "+"ESSID".cyan
@@ -1264,9 +1348,10 @@ Core["iwlist"] = function(obj, net)
 	end for
 	LOG(COLUMNS(i))
 end function
-// Usage: ifconfig [net interface] [ip address] gateway [ip address]
 Core["ifconfig"] = function(o, addr = null, gate = null, device = null)
+	//ifconfig [net interface] [ip address] gateway [ip address]
 	o = SS.Utils.ds(o, "computer")
+	if o == null then return
 	if addr == null then 
 		if o.is_network_active == false then return LOG("Not connected to the network".warning)
 		r = get_router
@@ -1282,10 +1367,10 @@ Core["ifconfig"] = function(o, addr = null, gate = null, device = null)
 		if output.len > 0 then LOG(output)
 	end if
 end function
-//Usage: iwconfig [net device] [bssid] [essid name] [pass key]
 Core["iwconfig"] = function(obj, net, bss, ess, pass)
+	//Usage: iwconfig [net device] [bssid] [essid name] [pass key]
 	o = SS.Utils.ds(obj, "computer")
-	//command: iwconfig
+	if o == null then return
 	devices = o.network_devices
 	if devices == null or devices.indexOf(net) == null then return print("iwconfig: SS.Network device not found")
 	status = o.connect_wifi(net, bss, ess, pass)
@@ -1407,23 +1492,12 @@ Core["scanlan"] = function
 	if SS.c.is_network_active == false then return LOG("Script is offline".warning)
 	net = new SS.Network.scanlan
 end function
-// TODO: local hax
-Core["local"] = function(o, a)
-	// local hacks
-	m = new SS.MX
-	m.i(o)
-	if m.x == null then return null
-	m.l
-	LOG(m.libs)
-	m.l("-a")
-	LOG(m.libs)
-
-end function
 // create and manage net sessions by each step
 // address , port, action, data
-// address , port, memAddr, memValue 
+// address , port, memAddr, memValue
 Core["ns"] = function(addr, p, a = null, d = null)
 	if SS.debug then LOG("SS.NS".debug+NL+"addr "+addr+NL+"port "+p+NL+"action: "+a+NL+"data "+d)
+	if not addr and not p then return null
 	p = to_int(p)
 	addr = addr.isIp
 	res = []
@@ -1436,31 +1510,31 @@ Core["ns"] = function(addr, p, a = null, d = null)
 	LOG("Pushing net session to cache . . .".ok) ; netsesh.cache;
 	if not a then return 
 	exploits = null
+	LOG(netsesh.summary)
 	if a == "-s" then // select
-		//LOG(netsesh.summary)
-		exploits = netsesh.browse
+		exploits = netsesh.mlib.browse
 	else if a == "-a" then // all
-		LOG(netsesh.summary)
-		exploits = netsesh.scanned
+		exploits = netsesh.mlib.scanned
 	else if a == "-i" then 
-		return LOG(netsesh.summary)
+		return
 	else
 		if not d then return
-		res = netsesh.of([[{"exploit":"Unknown"}, {"memory": a},{"string": d}]], SS.Utils.datapls)
+		res = netsesh.mlib.of([[{"exploit":"Unknown"}, {"memory": a},{"string": d}]], SS.Utils.datapls)
 		exploits = true
 	end if
+	if SS.debug then LOG("Exploits: ".debug+exploits)
 	if exploits == null then
 		if INPUT("Press 1 to confirm manual scan".prompt).to_int != 1 then return
-		netsesh.scan(netsesh.dump)
-		exploits = netsesh.scanned
+		netsesh.mlib.scan()
+		exploits = netsesh.mlib.scanned
 	end if
 	if not d then d = SS.Utils.datapls
 	if d == ""  or d == " " then d = SS.cfg.unsecure_pw; if d == SS.cfg.unsecure_pw then LOG("Defaulting to unsecure pw . . .".sys)
 	if d == null then return LOG("Data error".error)
 	if T(exploits) == "list" then
-		res = netsesh.of(exploits, d)
+		res = netsesh.mlib.of(exploits, d)
 	else if T(exploits) == "string" then
-		res = netsesh.of(null, d)
+		res = netsesh.mlib.of(null, d)
 	end if
 	if res.len == 0 or res == null then return LOG("No objects returned".warning)
 	isL = is_lan_ip(addr)
@@ -1472,7 +1546,7 @@ Core["ns"] = function(addr, p, a = null, d = null)
 		lan = null
 	end if
 	SS.cache(res, ip, lan)
-end function
+end function 
 Core["ns_handle"] = function(a = null)
 	if SS.sessions.len == 0 then return LOG("No sessions found in cache".warning)
 	ret=null;res=null;UC=null;
@@ -1483,30 +1557,29 @@ Core["ns_handle"] = function(a = null)
 		end for
 		UI = INPUT(c.select+NL+"Choose a net session".prompt)
 		if UI == "" or UI == " " then break
-		UI = UI.to_int-1
-		if UI > SS.sessions.len then continue
-		ret = SS.sessions[UI]
-		UC = ["Select Exploit(s)", "Exploit all", "Remove"].select
-		if UI == "" or UI == " " then continue
+		UI = UI.to_int
+		if (UI-1) > SS.sessions.len then continue
+		ret = SS.sessions[UI-1]
+		UC = INPUT(["Select Exploit(s)", "Exploit all", "Remove"].select.NL+"choose | any to return".prompt).to_int
+		if UC == "" or UC == " " then continue
 		if ret then break
 	end while
 	if ret == null then return LOG("error".error)
 	if UC == 1 then 
-		e = ret.browse
+		e = ret.mlib.browse
 	else if UC == 2 then 
-		e = ret.scanned
+		e = ret.mlib.scanned
 	else 
 		e = null 
 	end if
-
 	if T(e) == "list" then
-		res = ret.of(e, SS.Utils.datapls)
-	else if T(exploits) == "string" then
-		res = ret.of(null, SS.Utils.datapls)
+		res = ret.mlib.of(e, SS.Utils.datapls)
+	else if T(e) == "string" then
+		res = ret.mlib.of(null, SS.Utils.datapls)
 	end if
 
 end function
-// todo: network handler; perhaps one day if we have more router methods :')
+// TODO: network handler; perhaps one day if we have more router methods :')
 Core["net_handle"] = function(a = null)
 
 	return null
@@ -1521,7 +1594,7 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	// bring up our mapped services 
 	if net.services.len == 0 then 
 		// default to targeting router
-		if INPUT("Press 1 to target router".prompt).to_int != 1 then return null
+		if INPUT("No open ports found".orange.warning.NL+"Press 1 to target router".prompt).to_int != 1 then return null
 		ns = new SS.NS.map(addr, 0)
 	else
 		t = net.nmap.split(NL)
@@ -1545,11 +1618,11 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	sel = INPUT([("Use "+"ALL".green+" Exploits").white, ("Select Exploit("+"s".green+")").white, ("Manual Scan "+"(No Saves)".red).white].select.NL+"confirm option".prompt).to_int
 	payload = null
 	if sel == 1 then 
-		payload = ns.scanned
+		payload = ns.mlib.scanned
 	else if sel == 2 then 
-		payload = ns.browse
+		payload = ns.mlib.browse
 	else if sel == 3 then 
-		payload = ns.manscan
+		payload = ns.mlib.manscan
 	else
 		return null 
 	end if
@@ -1557,9 +1630,9 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	if (d == "")  or (d == " ") then d = SS.cfg.unsecure_pw
 	res = []
 	if T(payload) == "list" then
-		res = ns.of(payload, d)
+		res = ns.mlib.of(payload, d)
 	else if T(payload) == "string" then
-		res = ns.of(null, d)
+		res = ns.mlib.of(null, d)
 	end if
 	if res.len == 0 or res == null then return LOG("No objects returned".warning)
 	i = null; l = null
@@ -1571,6 +1644,38 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 		l = null
 	end if
 	SS.cache(res, i, l)
+end function
+// TODO: local hax
+Core["localhax"] = function(o, l, a)
+	if not ["init.so", "kernel_module.so", "net.so", "aptclient.so", "-a"].indexOf(l) then return LOG("Invalid arguments".warning)
+	m = new SS.MX
+	m.i(o)
+	ip = null // addme
+	lan = null // addme
+	if m.x == null then return null
+	if l == "-a" then// all libraries
+		m.l(l)
+	else// name
+		m.l
+	end if
+	for l in m.libs 
+		if not l then continue
+		exploits = null
+		if a == "-a" then 
+			exploits = l.scanned
+		else
+			exploits = l.browse
+		end if
+		res = null
+		if not exploits then LOG("An error occurs")
+		if T(exploits) == "list" then 
+			res = l.of(exploits, SS.Utils.datapls)
+		else if T(exploits) == "string" then
+			res = l.of(null, SS.Utils.datapls)
+		end if
+		if res == null or res.len == 0 then; LOG("No objects returned".warning); continue; end if;
+		SS.cache(res, ip, lan)
+	end for
 end function
 Core["fish"] = function(obj, lib, libVersion)
 	ip = null
@@ -1663,8 +1768,19 @@ end function
 Core["proxybounce"] = function(o)
 	if T(o) != "shell" or T(o) != "ftpshell" then return LOG("A shell is required".warning)
 	server = new SS.Server
-	return server.proxtunnel(o)
-
+	server.proxtunnel(o)
+end function
+Core["npc"] = function(o, t=null)
+	o = SS.Utils.ds(o, "computer")
+    if o == null then return
+	if not t then t = "-p"
+	LOG("Beginning NPC mission completion. . .".ok)
+	SS.NPC.mission(o, t)
+end function
+Core["shellfish"] = function(_, u = "root")
+	result = null
+	result = SS.MD5.shell(u)
+	return result
 end function
 Core["test"] = function
 	// menu tests
@@ -1730,9 +1846,9 @@ SS.CMD.list = [
 	["-h", "Displays all SeaShell commands", ["*"], "* no arguments --> prints all registered commands\n[cmdName] --> gives detailed information on most commands", null, @SS.CMD["cmd_list"]],
 	["-e", "Exit Surf Mode", [], "As you pass objects, seashell will create a new surf loop, using -e will help you close these", "result", SS["quit"]],
 	["-c", "Clear the screen", [], null, null, @CLEAR],
-	["-anon", "Toggle anonymous mode", [], null, null, @Core["anon"]],
-	["-dev", "Toggle debug mode", [], null, null, @Core["dev"]],
-	["-og", "Toggle original artwork", [], null, null, @OGT],
+	["-anon", "Toggle anonymous mode", ["-s|*"], null, null, @Core["anon"]],
+	["-dev", "Toggle debug mode", ["-s|*"], null, null, @Core["dev"]],
+	["-og", "Toggle original artwork", ["-s|*"], null, null, @OGT],
 	["cache", "SeaShell Cache Menu", ["-o|-ns|-net", "*|-c"], "-c", "result", @SS["getMemCache"]],
 	["-cfg", "SeaShell config", ["*","*","*"], "* --> prints general config info\n-i --> host config info"+NL+"-e|-h [-b|-d] --> manage hash and exploit databases"+NL+"-u|-m|-ccd [-b|-d] --> manage user config", null, @SS["getHost"]],
 	["apt", "APT client update tool", ["*|-u|--", "*|-f"], "install [libName] --> install a package\n-u --> updates the machine\n-- [*|-f] upgrades the machine, use -f to force update all\naddrepo [ip] --> add a new repository\ndelrepo [ip] --> remove a new repository\search [lib] --> searches for all packages\show [ip] --> shows all packages in a repo\n", null, @Core["apt"]],
@@ -1748,7 +1864,7 @@ SS.CMD.list = [
 	["user", "Prints current user | Add/Del User", ["-a|-d|*", "*"], "-a [username] --> add a user\n-d [username] --> delete a user", "general", @Core["me"]],
 	["passwd", "Change a user's password [requires root]", ["*"], null, "general", @Core["passwd"]],
 	["groups", "Group View | Add/Del Group", ["-a|-d|*", "*", "*"], "-a [username] [group] --> add a group\n-d [username] [group] --> delete a group", "general", @Core["groups"]],
-	["secure", "Secure PC permissions [requires root]", ["-s|-h|-p", ], "-s --> secures a server config\n-h --> secure home config\n-p --> attempts to patch the system to working order", null, @Core["secure"]],
+	["secure", "Secure PC permissions [requires root]", ["-s|-h|-p", ], "-s --> secures a server config\n-h --> secure home config\n-p --> attempts to patch the system to working order", "general", @Core["secure"]],
 
 	["pwd", "Print working directory", [], "Print SeaShell's working directory", null, @Core["pwd"]],
 	["touch", "Creates a file", ["*", "*"], null, "general", @Core["touch"]],
@@ -1770,7 +1886,7 @@ SS.CMD.list = [
 	["ftp", "Create FTP connection", ["*", "*"], "p1: user@ip"+NL+"p2: port, default is 21", "result", @Core["ftp"]],
 	["put", "Upload file remotely *require FTP", ["*", "*"], null, "general", @Core["put"]],
 	["get", "Download file remotely *require FTP", ["*", "*"], null, "general", @Core["get"]],
-	["svc", "Manage services [action] [service] [data]" , ["*", "*", "*"], "-l --> Lists the services installed\n-i [name] --> install a service\n-s/-k [name] --> starts/stops a service", null, @Core["service"]],
+	["svc", "Manage services [action] [service] [data]" , ["*", "*", "*"], "-l --> Lists the services installed\n-i [name] --> install a service\n-s/-k [name] --> starts/stops a service", "general", @Core["service"]],
 	
 	//////////////////////////////////    // COMPUTER
 	//["site", "Manage Local Website", ["-b|-u", "*|html"], null, null, @Utils["webmanager"]],
@@ -1794,6 +1910,8 @@ SS.CMD.list = [
 	["nmap", "SS.Network mapping tool", ["*", "*"], null, null, @Core["nmap"]],
 	["scanlan", "Local network mapping", ["*"], null, null, @Core["scanlan"]],
 	["ns", "Manual NetSessions", ["*","*","*","*"] , "[addr] [port] [action|null] [data|null]".NL+"[addr] target address".NL+"[port] target port".NL+"[action|memory zone]".NL+"-s --> select specific exploits to overflow".NL+"-a --> exploit all vulnerabilities".NL+"[data|memory value]".NL+"* --> defaults to unsecure password change".NL+"*LAN --> attempts lan bounce".NL+"*PW --> changes pw to given value", null, @Core["ns"] ],
+	["local", "Local library exploitation", ["*", "*"], "", "general", @Core["localhax"]],
+
 	["entry", "SS.NS on rails", ["*", "*"], "Designed to work like earlier versions of SeaShell\n* Enter an IP/LAN/Domain as the command name to utilize this feature\nYou can also use entry -r for a random ip", "result", @Core["entry"]],
 
 	["fish", "Hunt for specified lib | port", ["*", "*"], "[lib]", "general", @Core["fish"]],
@@ -1806,9 +1924,10 @@ SS.CMD.list = [
 	//["db", "[name] [version] database search", ["*", "*"], null, null, @Core["browse_exploits"]],
 	//["api", "[connect|exploits|hashes|build] Utilize the NPM api", ["*"], null, "general", @Client["handle"]],
 	["tsunami", "Brute force connection", ["*", "*", "*", "*"], "[ip][user][port][protocol]", "result", @SS.MD5["connect"]],
-	["shellfish", "local shell Brute force", ["*"], null, "general", @SS.MD5["shell"]],
+	["shellfish", "local shell Brute force", ["*"], null, "result", @Core["shellfish"]],
 	["mailfish", "NPC mail Brute force", ["*"], null, null, @SS.MD5["mail"]],
 	["rshell", "MX rshells", ["*", "*", "*"], null, "result", @Core["rshell"]],
+	["npc", "NPC mission competion", ["*", ], null, "general", @Core["npc"]],
 
 	["bam", "", ["*", "*", "*", "*", "*"], "Binary attack module is a remote option for using seashell commands, and specified payloads\n[cmd|info|module] [args]\nex: bam sudo -s | bam touch /home/guest", "result", @Core["bam"]],
 	["test", "testing function", [], null, null, @Core["test"]],
@@ -1816,7 +1935,7 @@ SS.CMD.list = [
 ]
 ///======================= Binary.Attack.Module =========================////
 SS.BAM = {}
-SS.BAM.bamstring = "LOG = @print;INPUT = @user_input;HOME = @home_dir;T = @typeof;NL = char(10);COLUMNS = @format_columns;CLEAR = function; return clear_screen; end function;string.size = function(self, s);if T(s) == 'number' then s = str(s);return '<size='+s+'>'+self+'</size>';end function;string.b = function(self);return '<b>'+self+'</b>';end function;string.i = function(self);return '<i>'+self+'</i>';end function;string.s = function(self);return self+' ';end function;string.white = function(self);return '<#FFFFFF>' + self + '</color>';end function;string.grey = function(self);return '<#A5A5A5>' + self + '</color>';end function;string.red = function(self);return '<#AA0000>' + self + '</color>';end function;string.orange = function(self);return '<#FF6E00>' + self + '</color>';end function;string.yellow = function(self);return '<#FBFF00>' + self + '</color>';end function;string.green = function(self);return '<#00ED03>' + self + '</color>';end function;string.lblue = function(self);return '<#00BDFF>' + self + '</color>';end function;string.blue = function(self);return '<#003AFF>' + self + '</color>';end function;string.purple = function(self);return '<#D700FF>' + self + '</color>';end function;string.cyan = function(self);return '<#00FFE7>' + self + '</color>';end function;string.sys = function(self);return '[<#00FFE7>SeaShell</color>] <i>' + self.white;end function;string.debug = function(self);return '[<#00FFE7>debug</color>] <i>' +self.white;end function;string.ok = function(self);return '[<#00ED03><b>success</b></color>] ' + self.white;end function;string.warning = function(self);return '[<#FBFF00><b>warning</b></color>] <i>' + self.grey;end function;string.error = function(self);return '[<#AA0000><b>error</b></color>] ' + self.yellow;end function;string.prompt = function(self);return '['+'input'.white.b+']'+'-- '.white+self.grey+' --> '.white;end function;string.fill = function(self);return '><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>'.blue + self;end function;string.NL = function(self);return self+globals.NL;end function;string.strip = function(self);if self.len < 15 then return null;self = self[:15];return self[:self.len-8];end function;string.bitToByte = function(self);b = to_int(self);s=['B','KB','MB','GB'];i=0;;while b>1024;b=b/1024;i=i+1;end while;return round(b,2)+s[i];end function;string.isRoot = function(self, u, hex = 'FFFFFF');if self == u then return self.green;if self == 'root' or self == 'unknown' then return self.red;if self == 'guest' then return self.orange;return '<#'+hex+'>'+self+'</color>';end function;string.isSlash = function;if self == '/' then return 'root'.green;return self.grey;end function;string.isPc = function(self);if get_router(self).local_ip != self then return true;return false;end function;string.isProc = function(self);if ['Xorg','kernel_task', 'dsession'].indexOf(self) != null then return self.red;if ['Terminal', 'CodeEditor', 'Browser', 'Mail', 'Settings','FileExplorer', 'Notepad', 'Chat', 'ConfigLan', 'AdminMonitor'].indexOf(self) != null then return self.green;return self.yellow;end function;string.isIp = function(self);if not is_valid_ip(self) and not is_lan_ip(self) then return nslookup(self);return self;end function;string.isLan = function ;if is_lan_ip(self) then return self;end function;string.getGw = function(self);if is_lan_ip(self) then return get_router.public_ip;if is_valid_ip(self) then return self;return '!Invalid!'.error;end function;string.isUnknown = function(self, hex = 'FFFFFF');if self.lower == 'unknown' then return self.grey;return '<#'+hex+'>'+self+'</color>';end function;string.rule = function(self, s = null);if self == 'DENY' or s == 'DENY' then return self.red;if self == 'ALLOW' or s == 'ALLOW' then return self.green;return self.grey;;end function;string.month_int = function(self);return to_int((['Jan', 'Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',].indexOf(self))+1);end function;string.wrap = function(self, hex = 'FFFFFF', n = 20);sl = '['+self+']'; sl = sl.len;;s_t = '[<#'+hex+'>'+self+'</color>]';if sl >= n then return s_t;for i in range(1, (n-sl)); s_t = s_t+'-'; end for;;return s_t;end function;string.cap = function(self, cap, hex = 'FFFFFF', ih = null);if hex and ih then return self+'[<#'+hex+'>'+cap+'</color>]';if ih then return self+'['+cap+']';return self+'[<#'+hex+'>'+cap+'</color>]';end function;string.title = function(self, hex = 'FFFFFF', si = 40);sl = '['+self+']'; sl = sl.len;;s_t = '[<#'+hex+'>'+self+'</color>]';if sl >= si then return s_t;for i in range(1, (si-sl)/2); s_t = '-'+s_t+'-'; end for;;return s_t;end function;string.fromMd5 = function;if SS.dbhl.len == 0 and SS.crypto != null then return SS.crypto.decipher(self);hasHash = SS.dbhl.indexOf(self);if hasHash != null then return;end function;string.isOp = function(self, v);if self == v then return self.red;return self.white;end function;string.ogconnect = function(self);if SS.og == null then return self;out = '';out = out+'   _______________                        |'.white+'*'.red+'\_/'.white+'*'.red+'|________'.white+NL;out = out+'  |  ___________  |     '.white+'.-.     .-.'.red+'      ||_/-\_|______  |'.white+NL;out = out+'  | |           | |    '.white+'.****. .****.'.red+'     | |           | |'.white+NL;out = out+'  | |   '.white+'0   0'.green+'   | |    '.white+'.*****.*****.'.red+'     | |   '.white+'0   0'.red+'   | |'.wh;ite+NLout = out+'  | |     -     | |     '.white+'.*********.'.red+'      | |     -     | |'.white+NL;out = out+'  | |   \___/   | |      '.white+'.*******.'.red+'       | |   \___/   | |'.white+NL;out = out+'  | |___     ___| |       '.white+'.*****.'.red+'        | |___________| |'.white+NL;out = out+'  |_____|\_/|_____|        '.white+'.***.'.red+'         |_______________|'.white+NL;out = out+'    _|__|/ \|_|_'.white+'............'.red+'.*..............'.red+'_|________|_'.white+NL;out = out+'   / ********** \                          / ********** \'.white+NL;out = out+' /  ************  \                      /  ************  \'.white+NL;out = out+'--------------------                    --------------------'.white+NL;out = out+self;self = out;return self;end function;list.table = function(title);return self;end function;list.select = function(l=null);if l then ret = l;if l == null then ret = '[ '+'SELECT'.grey+' ] '+NL;c = 1;for s in self;if c == self.len then ;ret = ret + str(c).white + '.'+') '.white+s;else;ret = ret + str(c).white + '.'+') '.white+s+NL;end if;c = c+1;end for;ret = ret;return ret;end function;list.select_w_count = function(self, l);ret = '[ '+'SELECT'.grey+' ] '+NL;c = 1;for i in range(0, l.len-1);ret = ret + str(c).white + '.'+') '.white+self[i]+' '+l[i] +NL;end for;end function;list.select2 = function();ret = '';c=1;for s in self;ret = ret + str(c).white + '.'+') '.white+s+NL;c = c+1;end for;ret = ret + '0'.white+'.'+') '.white+'Exploit the router'.orange.b+NL;ret = ret+NL+'Select'.prompt;return ret;end function;"
+SS.BAM.bamstring = "LOG = @print;INPUT = @user_input;HOME = @home_dir;T = @typeof;NL = char(10);COLUMNS = @format_columns;CLEAR = function; return clear_screen; end function;string.size = function(self, s);if T(s) == 'number' then s = str(s);return '<size='+s+'>'+self+'</size>';end function;string.b = function(self);return '<b>'+self+'</b>';end function;string.i = function(self);return '<i>'+self+'</i>';end function;string.s = function(self);return self+' ';end function;string.white = function(self);return '<#FFFFFF>' + self + '</color>';end function;string.grey = function(self);return '<#A5A5A5>' + self + '</color>';end function;string.red = function(self);return '<#AA0000>' + self + '</color>';end function;string.orange = function(self);return '<#FF6E00>' + self + '</color>';end function;string.yellow = function(self);return '<#FBFF00>' + self + '</color>';end function;string.green = function(self);return '<#00ED03>' + self + '</color>';end function;string.lblue = function(self);return '<#00BDFF>' + self + '</color>';end function;string.blue = function(self);return '<#003AFF>' + self + '</color>';end function;string.purple = function(self);return '<#D700FF>' + self + '</color>';end function;string.cyan = function(self);return '<#00FFE7>' + self + '</color>';end function;string.sys = function(self);return '[<#00FFE7>SeaShell</color>] <i>' + self.white;end function;string.debug = function(self);return '[<#00FFE7>debug</color>] <i>' +self.white;end function;string.ok = function(self);return '[<#00ED03><b>success</b></color>] ' + self.white;end function;string.warning = function(self);return '[<#FBFF00><b>warning</b></color>] <i>' + self.grey;end function;string.error = function(self);return '[<#AA0000><b>error</b></color>] ' + self.yellow;end function;string.prompt = function(self);return '['+'input'.white.b+']'+'-- '.white+self.grey+' --> '.white;end function;string.fill = function(self);return '><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>'.blue + self;end function;string.NL = function(self);return self+globals.NL;end function;string.strip = function(self);if self.len < 15 then return null;self = self[:15];return self[:self.len-8];end function;string.bitToByte = function(self);b = to_int(self);s=['B','KB','MB','GB'];i=0;;while b>1024;b=b/1024;i=i+1;end while;return round(b,2)+s[i];end function;string.isRoot = function(self, u, hex = 'FFFFFF');if self == u then return self.green;if self == 'root' or self == 'unknown' then return self.red;if self == 'guest' then return self.orange;return '<#'+hex+'>'+self+'</color>';end function;string.isSlash = function;if self == '/' then return 'root'.green;return self.grey;end function;string.isPc = function(self);if get_router(self).local_ip != self then return true;return false;end function;string.isProc = function(self);if ['Xorg','kernel_task', 'dsession'].indexOf(self) != null then return self.red;if ['Terminal', 'CodeEditor', 'Browser', 'Mail', 'Settings','FileExplorer', 'Notepad', 'Chat', 'ConfigLan', 'AdminMonitor'].indexOf(self) != null then return self.green;return self.yellow;end function;string.isIp = function(self);if not is_valid_ip(self) and not is_lan_ip(self) then return nslookup(self);return self;end function;string.isLan = function ;if is_lan_ip(self) then return self;end function;string.getGw = function(self);if is_lan_ip(self) then return get_router.public_ip;if is_valid_ip(self) then return self;return '!Invalid!'.error;end function;string.isUnknown = function(self, hex = 'FFFFFF');if self.lower == 'unknown' then return self.grey;return '<#'+hex+'>'+self+'</color>';end function;string.rule = function(self, s = null);if self == 'DENY' or s == 'DENY' then return self.red;if self == 'ALLOW' or s == 'ALLOW' then return self.green;return self.grey;;end function;string.month_int = function(self);return to_int((['Jan', 'Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',].indexOf(self))+1);end function;string.wrap = function(self, hex = 'FFFFFF', n = 20);sl = '['+self+']'; sl = sl.len;;s_t = '[<#'+hex+'>'+self+'</color>]';if sl >= n then return s_t;for i in range(1, (n-sl)); s_t = s_t+'-'; end for;;return s_t;end function;string.cap = function(self, cap, hex = 'FFFFFF', ih = null);if hex and ih then return self+'[<#'+hex+'>'+cap+'</color>]';if ih then return self+'['+cap+']';return self+'[<#'+hex+'>'+cap+'</color>]';end function;string.title = function(self, hex = 'FFFFFF', si = 40);sl = '['+self+']'; sl = sl.len;;s_t = '[<#'+hex+'>'+self+'</color>]';if sl >= si then return s_t;for i in range(1, (si-sl)/2); s_t = '-'+s_t+'-'; end for;;return s_t;end function;string.fromMd5 = function;if SS.dbhl.len == 0 and SS.crypto != null then return SS.crypto.decipher(self);hasHash = SS.dbhl.indexOf(self);if hasHash != null then return;end function;string.isOp = function(self, v);if self == v then return self.red;return self.white;end function;string.ogconnect = function(self);if SS.og == null then return self;out = '';out = out+'   _______________                        |'.white+'*'.red+'\_/'.white+'*'.red+'|________'.white+NL;out = out+'  |  ___________  |     '.white+'.-.     .-.'.red+'      ||_/-\_|______  |'.white+NL;out = out+'  | |           | |    '.white+'.****. .****.'.red+'     | |           | |'.white+NL;out = out+'  | |   '.white+'0   0'.green+'   | |    '.white+'.*****.*****.'.red+'     | |   '.white+'0   0'.red+'   | |'.wh;ite+NLout = out+'  | |     -     | |     '.white+'.*********.'.red+'      | |     -     | |'.white+NL;out = out+'  | |   \___/   | |      '.white+'.*******.'.red+'       | |   \___/   | |'.white+NL;out = out+'  | |___     ___| |       '.white+'.*****.'.red+'        | |___________| |'.white+NL;out = out+'  |_____|\_/|_____|        '.white+'.***.'.red+'         |_______________|'.white+NL;out = out+'    _|__|/ \|_|_'.white+'............'.red+'.*..............'.red+'_|________|_'.white+NL;out = out+'   / ********** \                          / ********** \'.white+NL;out = out+' /  ************  \                      /  ************  \'.white+NL;out = out+'--------------------                    --------------------'.white+NL;out = out+self;self = out;return self;end function;string.a = function(self);if SS.anon == true then return 'HIDDEN'.grey.size(14);return self;end function;list.table = function(title);return self;end function;list.select = function(l=null);if l then ret = l;if l == null then ret = '[ '+'SELECT'.grey+' ] '+NL;c = 1;for s in self;if c == self.len then ;ret = ret + str(c).white + '.'+') '.white+s;else;ret = ret + str(c).white + '.'+') '.white+s+NL;end if;c = c+1;end for;ret = ret;return ret;end function;list.select_w_count = function(self, l);ret = '[ '+'SELECT'.grey+' ] '+NL;c = 1;for i in range(0, l.len-1);ret = ret + str(c).white + '.'+') '.white+self[i]+' '+l[i] +NL;end for;end function;list.select2 = function();ret = '';c=1;for s in self;ret = ret + str(c).white + '.'+') '.white+s+NL;c = c+1;end for;ret = ret + '0'.white+'.'+') '.white+'Exploit the router'.orange.b+NL;ret = ret+NL+'Select'.prompt;return ret;end function;"
 SS.BAM.bamstring = SS.BAM.bamstring+"LOG(('Launching '+ 'B'.red.b+'.'+'A'.red.b+'.'+'M'.red.b).sys);SS = get_custom_object;args = SS.bamargs;if args.len == 0 then;if SS.bamrun.cb == 'general' then ; SS.CMD.invoke(SS.o, SS.bamrun.name);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name);else ;SS.CMD.invoke(SS.o, SS.bamrun.name);end if;else if args.len == 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);end if;else if args.len > 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join(' '));else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);end if;end if;if SS.bamret != null and SS.bamret != 'exit' then SS.CMD.result(SS.bamret)"
 SS.BAM.isModule = function(c)// check registered modules
 	for i in self.modules 
