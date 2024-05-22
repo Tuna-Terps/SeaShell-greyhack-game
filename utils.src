@@ -32,6 +32,7 @@ SS.o = null // current object
 SS.bamrun = null
 SS.bamargs = []
 SS.bamret = null // return?
+SS.bamres = null// result?
 
 ///==================== Maps ========================////
 string.size = function(self, s)
@@ -177,11 +178,14 @@ string.title = function(self, hex = "FFFFFF", si = 40)
     for i in range(1, (si-sl)/2); s_t = "-"+s_t+"-"; end for;
     return s_t
 end function
-string.fromMd5 = function
-    if SS.dbhl.len == 0 and SS.crypto != null then return SS.crypto.decipher(self)
-    hasHash = SS.dbhl.indexOf(self)
-    if hasHash != null then return
-end function
+// TODO: update bam string
+string.fromMd5 = function(self);
+    if SS.debug then LOG("from md5 --> ".debug.s+self);
+    if T(SS.dbh) != "file" then return self;
+    find = SS.MD5.find(self);
+    if find != null then return find;
+    return self;
+end function;
 string.isOp = function(self, v)
     if self == v then return self.red
     return self.white
@@ -351,7 +355,6 @@ end function
 ///======================== UTIL =========================////
 SS.Utils = {}
 SS.Utils.ds = function(o, type = "computer")
-    if SS.debug then LOG("Utils:ds ".debug+T(o))
     types = [{"t": "shell", "v": 3}, {"t": "ftpshell", "v": 3}, {"t": "computer", "v": 2}, {"t": "file", "v": 1}]
     ds = null
     ret = null
@@ -510,7 +513,7 @@ SS.Utils.goHome = function(o, u = null)
     if u == "root" then p = "/root"        
     frp = SS.Utils.fileFromPath(o, p)
     if frp == null then LOG("GOHOME ERROR".error)
-    if frp then return p
+    if frp then return frp.path // p
     return "/" // changed from null to default /
 end function
 SS.Utils.goConfig = function(o, u = null)// : String | null
@@ -529,8 +532,8 @@ SS.Utils.datapls = function
     if dat == null then return null 
     return dat
 end function
-SS.Utils.hasFile = function(o, n, all = null)
-    LOG("Searching for file: ".sys+n)
+SS.Utils.hasFile = function(o, n, all = false, clean = false,)
+    if not clean then LOG("Searching for file: ".sys+n)
     r = null
     if T(o) != "file" then
         if T(o) != "computer" then 
@@ -951,24 +954,24 @@ SS.Inputs.pos.setY = function(lineIndex, data)
     return self.pos.y
 end function
 SS.Inputs.pos.setX = function(linePos, data)
-    current_position = data[Inputs.pos.y-1] // gets the line we are editing
-        if SS.debug then LOG("SET X line: "+current_position)
+    current_position = data[SS.Inputs.pos.y-1] // gets the line we are editing
+    if SS.debug then LOG("SET X line: "+current_position)
     length = current_position.len-1
-    if linePos < 0 and length > 0 and self.pos.x != 0 then // left
+    if linePos < 0 and length > 0 and SS.Inputs.pos.x != 0 then // left
         if SS.debug then LOG("moving: left")
-        self.pos.x = self.pos.x-1
-    else if length > 0 and linePos > 0 and self.pos.x != length then // right 
+        SS.Inputs.pos.x = SS.Inputs.pos.x-1
+    else if length > 0 and linePos > 0 and SS.Inputs.pos.x != length then // right 
         if SS.debug then LOG("moving: right")
-        self.pos.x = self.pos.x+1
+        SS.Inputs.pos.x = SS.Inputs.pos.x+1
     end if
     //if globals.debug == true then print("setX: input "+linePos+"\nglobal: "+Inputs.pos.x+"\n-----")
-    return self.pos.x
+    return SS.Inputs.pos.x
 end function
-SS.Inputs.adjust = function(i, data)
-    if i == "LeftArrow" and self.pos.x > 0 then self.pos.x = self.pos.x-1
-    if i == "RightArrow" and self.pos.x != self.pos.xLen then self.pos.x = self.pos.x+1
-    if i == "UpArrow" and self.pos.y != 0 then self.pos.y = self.pos.y-1
-    if i == "DownArrow" and self.pos.y != self.pos.yLen then self.pos.y = self.pos.y-1
+SS.Inputs.adjust = function(i)
+    if (i == "LeftArrow") and self.pos.x > 0 then self.pos.x = self.pos.x-1
+    if (i == "RightArrow") and (self.pos.x < self.pos.xLen) then self.pos.x = self.pos.x+1
+    if (i == "UpArrow") and self.pos.y != 0 then self.pos.y = self.pos.y-1
+    if (i == "DownArrow") and (self.pos.y > -1) then self.pos.y = self.pos.y+1
 end function 
 ///======================= NETWORK =========================////
 SS.Network = {}
@@ -1327,7 +1330,7 @@ SS.MX.o = null // passed object
 SS.MX.libs = [] // libs dumped
 SS.MX.rshells = [] // reverse shell connections
 SS.MX.rsn = "rshell_client"
-SS.MX.seshes = []// TODO: bring net sessions to their mx objects
+SS.MX.seshes = []
 SS.MX.rsip = null
 SS.MX.i = function(o)// include
     self.o = o
@@ -1569,7 +1572,7 @@ SS.ML.map = function(ml, flag)
     self.scanned = SS.ML.hasScanned(self.n,self.v) 
     if self.scanned == null then
         LOG("New library detected".sys)
-        if flag == "-f" then 
+        if flag == "-f" or flag == "-a" then 
             SS.ML.scan(self.m)
             self.scanlabel = "scanned".green
         else if flag == "-i" and INPUT("Scan & Save 1 | Return 0 ".prompt).to_int == 1 then 
@@ -1598,8 +1601,8 @@ SS.ML.of = function(vuln = null, data = null)// OVERFLOW
             if hack.len > 3 then s = s+NL+hack[3]["requirements"].i//+NL+"".fill
             LOG(s);return;
         end if 
+        if r != null then ret.push(r)
         res = T(r)
-        if res != "string" and res != "number" then ret.push(r)
         //LOG("".fill.NL+"Overflow resulted in: ".ok+res.green.b)
         LOG("Overflow resulted in: ".ok+res.green.b)
     end function
@@ -1905,7 +1908,12 @@ end function
 SS.EO.map = function(o, ip = null, lan = null)
     self.o = o
     self.type = T(o)
-    if self.type != "file" then self.pc = SS.Utils.ds(o, "computer")
+    if self.type == "number" or self.type == "string" then return null
+    if self.type != "file" then 
+        self.pc = SS.Utils.ds(o, "computer")
+    else 
+        self.pc = null
+    end if
     self.is = SS.Utils.user(o)
     if self.is == "unknown" then self.risk = self.risk+1
     self.is_r = (self.is == "root")
@@ -1951,18 +1959,26 @@ SS.EO.cache = function
     return self
 end function
 // mission completion functions
-SS.EO.credentials = function(u = "root")
-    if self.is == "root" then 
-        pc = SS.Utils.ds(self.o, "computer")
-        if pc then;if(pc.change_password(u, SS.cfg.unsecure_pw)) == 1 then return SS.cfg.unsecure_pw;end if;
-    end if
+SS.EO.credentials = function(self, u = "root")
+    if SS.debug then LOG("EO credentials task: ".debug+u+" "+self.type+" : "+self.is)
+    if SS.dbhl.len == 0 and SS.db2 != null then SS.loadHashes(SS.db2)
+    if u == "any" then u = "root"
     if self.pw.indexOf(":") == null then return null
-    for parse in self.pw.split(NL)
+    // if its a router shell, at least we will have root pw
+    for parse in self.pw.split("::")
         p = parse.split(":")
-        if p[0] == u then 
+        if not p or p.len == 1 then continue
+        if SS.debug then LOG("EO:credentials "+p)
+        if p[0] == u then
             return p[1].fromMd5
         end if
     end for
+    if self.is == "root" and self.type != "file" then
+        pc = self.o
+        if self.type != "computer" then pc = self.o.host_computer
+        pw = pc.change_password(u, SS.cfg.unsecure_pw)
+        if (pw) == 1 then return SS.cfg.unsecure_pw
+    end if
     return null
 end function
 SS.EO.sys_kill = function()
@@ -2007,12 +2023,15 @@ end function
 SS.EO.escalate = function(u = "root")
     if self.type != "shell" then return self 
     // brute force shell grab
-    cmd = SS.CMD.getOne("shellfish")
+    cmd = SS.CMD.getOne("shellget")
     bam = SS.BAM.handler(self.o, cmd, [u])
-    if bam != null and T(bam) == "shell" then; self.o = bam; self.is = u; end if;
-    if SS.Utils.User(o) == "root" then return self 
+    if SS.bamres != null and T(SS.bamres) == "shell" then;
+        LOG("Escalation success".ok)
+        self.map(SS.bamres); 
+    end if;
+    if SS.Utils.user(self.o) == "root" then return self 
     // local hack
-
+    return self
 end function
 ///======================= EXPLOIT DB =========================////
 SS.EXP={"exploits":[]}
@@ -2131,7 +2150,6 @@ SS.MD5.cache = []
 SS.MD5.find = function(t)
     if SS.db2 == null then return LOG("Hash table is not configured on this system".warning)
     has = null
-    if SS.debug then LOG("SS.MD5:find --> "+t+" "+T(SS.db2))
     start = time
     for f in SS.db2.get_files
         for each in f.get_content.split("\n")
@@ -2142,13 +2160,10 @@ SS.MD5.find = function(t)
         if has then break
     end for
     SS.Date.timer(start)
-    start = time
-    if SS.dbhl.hasIndex(t) != null then LOG("Index found !!".ok)
-    SS.Date.timer(start)
     if has == null then
         if SS.crypto == null then return LOG("Program is operating under cfg: "+SS.cfg.label)
         LOG("Hash was not found in db, switching to manual . . .".sys)
-        has = SS.crypto.decipher(t)
+        has = SS.crypto.decipher(t.trim)
     end if
     if self.cache.indexOf(t) == null then self.cache.push(t)
     return has
@@ -2254,7 +2269,7 @@ SS.MD5.connect = function(o, a, u = "root", p = 22, prot = "ssh")
     return ret
 end function
 SS.MD5.shell = function(user)
-    if T(SS.dbe) != "file" then return LOG("No hashes found".warning)
+    if T(SS.dbh) != "file" then return LOG("No hashes found".warning)
     if SS.og then LOG(("""What's your vector, Victor?""".yellow).sys)
     for f in SS.dbh.get_files
         if f.is_binary then continue
@@ -2294,19 +2309,21 @@ SS.NPC.fixmekuro = null// MetaMail
 SS.NPC.mailacct = null
 SS.NPC.maillpw = null
 SS.NPC.burner = null
-SS.NPC.target = "any"
 SS.NPC.mission = function(o, mission)
     if SS.cfg.mailacct == null then SS.cfg.mailacct = INPUT("Enter mail acct".prompt,true)
     if SS.cfg.mailpw == null then SS.cfg.mailpw = INPUT("Enter mail pw".prompt,true)
     self.fixmekuro = null
     self.burner = mail_login(SS.cfg.burnmailacct, SS.cfg.burnmailpw)
     if T(self.burner) == "string" then return LOG("Burner error".warning)
-    self.fixmekuro = mail_login(SS.cfg.mailacct, SS.cfg.mailpw)
+    cmd = SS.CMD.getOne("iget")
+    bam = SS.BAM.handler(o, cmd, ["mail"])
+    if SS.bamres == null then return LOG("An issue occured")
+    self.fixmekuro = SS.bamres
     if T(self.fixmekuro) == "string" then return LOG(self.fixmekuro.warning)
     LOG("Analyzing metamail. . .".sys)
-    ret = ""
+    ret = "";g=0;c=0;
     for plz in self.fixmekuro.fetch()
-        self.target = "any"
+        target = "any"
 		target_ip = null
 		target_lan = null
         m = plz.split(NL)
@@ -2321,7 +2338,7 @@ SS.NPC.mission = function(o, mission)
         if mission == "-p" then // credentials
             if word[5] != "credentials" then continue
 			label = "credentials"
-			if word[7] == "the" then self.target = word[9].replace("\<b\>", "").replace("\<\\b\>", "")[:-1]
+			if word[7] == "the" then target = word[9].replace("\<b\>", "")[:-5]
 			LOG("NPC: ".grey+word[5])
 			target_ip = detail[7].replace("<b>", "").replace("</b>","")[:-1]
 			target_lan = detail[25].replace("<b>", "").replace("</b>","")
@@ -2345,18 +2362,34 @@ SS.NPC.mission = function(o, mission)
         target_ip = detail[7].replace("<b>", "").replace("</b>","")[:-1]
         target_lan = detail[25].replace("<b>", "").replace("</b>","")
         result = null
-        result = self.run(id, label, self.target, target_ip, target_lan)
-        reslabel = "FAILED".red.b
-        if result != null then reslabel = "COMPLETE".green.b
-        restring = (" ".fill).red+NL+"Mission Tasks Complete".ok+NL+(label.lblue.b+" - "+reslabel).title.NL+" Target ".wrap.cap(self.target).NL+" IP ".wrap.cap(target_ip).NL+" LAN ".wrap.cap(target_lan).NL+" DAT ".wrap.cap(result)
+        result = self.run(id, label, target, target_ip, target_lan)
+        reslabel = "FAILED".red.b;c = c+1;
+        if result != null then 
+            reslabel = "COMPLETE".green.b
+            g = g+1
+        else 
+            //self.fixmekuro.delete(id)
+        end if
+        restring = (" ".fill).red+NL+"Mission Tasks Complete".ok+NL+(label.lblue.b+" - "+reslabel).title.NL+" Target ".wrap.cap(target).NL+" IP ".wrap.cap(target_ip).NL+" LAN ".wrap.cap(target_lan).NL+" DAT ".wrap.cap(result)
         LOG(restring)
         ret = ret+restring+NL
     end for
-    LOG("Summary".title+NL+ret)
+    if g == 0 then ratio = 0
+    if g > 0 then ratio = floor((g/c)*100)
+    if ratio > 75 then 
+        ratio = str(ratio).green
+    else if ratio > 51 then 
+        ratio = str(ratio).lblue
+    else if ratio > 30 then
+        ratio = str(ratio).yellow
+    else 
+        ratio = str(ratio).red
+    end if
+    LOG((" Mission(s) Summary ").title+("["+"Completion".grey.s+ratio+"%".white+"]")+NL+ret)
     self.fixmekuro = null
 end function
 SS.NPC.run = function(id, label, target, target_ip, target_lan)
-    if SS.debug then LOG(id+" "+label+" "+ target+" "+ target_ip+" "+ target_lan)
+    LOG("".fill+"MISSION START".b.title.b+NL+"ID: ".white+id.NL+"TYPE: ".white+label.NL+"TARGET: ".white+ target.NL+"IP: ".white+ target_ip.NL+"LAN: ".white+ target_lan.NL+"".fill)
     result = null//mission complete switch
     net = new SS.Network 
     net.map(target_ip)
@@ -2390,11 +2423,20 @@ SS.NPC.run = function(id, label, target, target_ip, target_lan)
         res = s.mlib.of(null, data)
         if res.len == 0 then continue
         for r in res
+            if r == null then continue
+            if T(r) == "string" then continue
+            if T(r) == "number" then
+                if label == "credentials" then LOG("><> ><> ><>".red.b+"PASSWORD CHANGE DETECTED".title+"><> ><> ><>".red)  
+                continue;
+            end if;
             task = null
+            eo = null
             eo = new SS.EO;
             eo.map(r)
-            if not eo then continue 
-            if label == "credentials" then 
+            if not eo then continue
+            if SS.debug then LOG(eo)
+            if eo.type == "shell" and eo.is != "root" then eo.escalate 
+            if label == "credentials" then
                 task = eo.credentials(target)
             else if label == "system corruption" then 
                 task = eo.sys_kill
@@ -2403,6 +2445,7 @@ SS.NPC.run = function(id, label, target, target_ip, target_lan)
             else if label == "file_retrieval" then  
                 task = eo.file_get(target)
             end if
+            if SS.debug then LOG("Returning task: ".debug.size(20)+task)
             if task != null then; result = task; break; end if;
         end for 
     end for
@@ -2414,16 +2457,28 @@ SS.NPC.run = function(id, label, target, target_ip, target_lan)
     res = ns.mlib.of(null, target_lan)
     if res.len == 0 then return null
     for r in res
+        type = T(r)
+        if type == "string" or type == "number" then continue
+        if (type == "shell") then
+            if label != "credentials" then continue 
+            if (label == "credentials") and (target != "any") and (r.host_computer.local_ip != target_lan) then continue
+        end if
         task = null
+        eo = null
         eo = new SS.EO;
         eo.map(r)
-        if not eo then continue 
-        if label == "credentials" then 
+        if eo == null then continue
+        if (type == "shell") and (target == "any") then 
+            eo.escalate
+            if SS.debug then LOG(SS.Utils.user(eo.o)) 
+        end if
+        if SS.debug then LOG(eo)
+        if label == "credentials" then
             task = eo.credentials(target)
         else if label == "system corruption" then 
             task = eo.sys_kill
         else if label == "file_deletion" then 
-            task = eo.file_kill(targe)
+            task = eo.file_kill(target)
         else if label == "file_retrieval" then  
             task = eo.file_get(target)
         end if
