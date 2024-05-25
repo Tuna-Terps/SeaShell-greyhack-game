@@ -18,13 +18,12 @@ T = @typeof
 NL = char(10)
 COLUMNS = @format_columns
 CLEAR = function; return clear_screen; end function;
-///==================== Custom Object ========================////
 SS.cb = null
-
-SS.db1 = null
-SS.db1c = 0
-SS.db2 = null
-SS.db2c = 0
+SS.dbe = null
+SS.dbec = 0
+SS.dbh = null
+SS.dbhc = 0
+SS.dbhl = []
 //builder
 SS.pastecb = false
 // BAM runtask
@@ -33,7 +32,6 @@ SS.bamrun = null
 SS.bamargs = []
 SS.bamret = null // return?
 SS.bamres = null// result?
-
 ///==================== Maps ========================////
 string.size = function(self, s)
     if T(s) == "number" then s = str(s)
@@ -489,13 +487,13 @@ SS.Utils.fileFromPath = function(o, p)
     file = null
     for pathIndex in p.split("/")// loop the path
         if pathIndex == "" then continue
-        if SS.debug then LOG("PATHINDEX ".debug+pathIndex)
+        //if SS.debug then LOG("PATHINDEX ".debug+pathIndex)
         if cf.is_folder then cf = cf.get_folders+cf.get_files
         file = null
         for f in cf // loop the dir
-            if SS.debug and file != null then LOG("File loop ".sys+file.name)
+            //if SS.debug and file != null then LOG("File loop ".sys+file.name)
             if f.name == pathIndex then
-                if SS.debug then LOG("File loop c2 ".sys+f.name) 
+                //if SS.debug then LOG("File loop c2 ".sys+f.name) 
                 cf = f
                 file = f
                 break
@@ -503,7 +501,7 @@ SS.Utils.fileFromPath = function(o, p)
         end for 
         if file == null then return null
     end for
-    if SS.debug and file != null then LOG("Utils:fileFromPath ret: ".debug+file.name)
+    //if SS.debug and file != null then LOG("Utils:fileFromPath ret: ".debug+file.name)
     return file
 end function
 SS.Utils.goHome = function(o, u = null)
@@ -1064,6 +1062,7 @@ SS.Network.mapsub = function(ip = null, g = null) // map a subnet, or the gatewa
     _p = function(p = null)
         ret = []
         if not p or p.len == 0 then return null
+        if T(p) == "string" then return null
         for i in p
             p_i = l_d.port_info(i)
             s_p = p_i.split(" ")
@@ -1071,14 +1070,12 @@ SS.Network.mapsub = function(ip = null, g = null) // map a subnet, or the gatewa
         end for
         return ret
     end function
-
     if not g then; l_d = get_router; else; l_d = get_router(ip);end if;
     if l_d == null then return null; 
     v = {};
     v.r = l_d;v.lan = l_d.local_ip ;v.t = "SWITCH".grey;v.essid = l_d.bssid_name;v.bssid = l_d.essid_name;v.kernel = l_d.kernel_version;v.fw = self.fw(l_d.firewall_rules);
     if get_switch(l_d.local_ip) == null then v.t  = "ROUTER".grey;
     v.devices = []
-
     if not g then ; v.devices = [{"lan": ip, "ports": _p(l_d.device_ports(ip))}]; return v ;end if;
     for d in l_d.devices_lan_ip
         if d_l.indexOf(ip) != null then continue;  d_l.push(ip);
@@ -1345,15 +1342,19 @@ SS.MX.i = function(o)// include
         end if
     end while
     if ret == null then return LOG("Unable to load SS.MX on this system".warning)
+    if not ret then return null
     self.x = ret
     return self
 end function
 SS.MX.fi = function(o, ip = null) // forced include
+    if ip == null then ip = SS.cfg.hackip
     if T(self.o) != "shell" then return null
     if not ip then ip = INPUT("Specify repo ip".prompt)
+    o.launch("/bin/apt-get", "update")
     o.launch("/bin/apt-get", "addrepo "+ip)
     o.launch("/bin/apt-get", "update")
     o.launch("/bin/apt-get", "install metaxploit.so")
+    o.launch("/bin/apt-get", "delrepo "+ip)
     self.i(o)
     return self
 end function
@@ -1367,11 +1368,10 @@ SS.MX.l = function(l = null)//
         if f == null then return LOG("error loading metalib folder".warning)
         for fi in f.get_files 
             if not fi.is_binary then continue
-            ml = null 
             ml = self.x.load(fi.path)
             if T(ml) != "MetaLib" then continue
-            ml = new SS.ML.map(ml, "-i")
-            if ml != null then self.libs.push(ml)
+            n = new SS.ML.map(ml, "-f")
+            self.libs.push(n)
         end for
     else 
         ml = self.x.load("/lib/"+l)
@@ -1385,7 +1385,8 @@ SS.MX.l = function(l = null)//
     return self
 end function
 SS.MX.map = function(o, x = null)
-    if x == null and SS.mx != null then self.x = SS.mx
+    self.x = x
+    if self.x == null and SS.mx != null then self.x = SS.mx
     self.o = o
     self.lib = []
     self.rshells = []
@@ -1400,21 +1401,26 @@ SS.ML.v = null // metalib name
 SS.ML.scanned = null
 SS.ML.scanlabel = null
 SS.ML.hasScanned = function(lib, libV) 
-    LOG("ML: <i>Searching db for library: ".sys+lib+" "+libV)
+    LOG("ML: <i>Searching db for library: ".grey.sys+lib+" "+libV)
     exploits = null
-    db_folder = SS.db1
-    if not SS.db1 then; LOG("no exploit folder found".warning) ; return null; end if 
-    for fo in SS.db1.get_folders
-        if (fo.name != lib.split("\.")[0]) and (lib != "kernel_router" and (fo.name != "kernelrouter" and fo.name != "kernelrouter1")) then continue
+    db_folder = SS.dbe
+    if not SS.dbe then; LOG("no exploit folder found".warning) ; return null; end if 
+    for fo in SS.dbe.get_folders
+        n = fo.name 
+        fn = lib.split("\.")[0]
+        if fn[:4] == "kern" then fn = fn.replace("_","")// kernel router and modules
+        if n[-1:] == "1" then n = n.replace("1","")
+        if n[-1:] == "2" then n = n.replace("2","")
+        if (n != fn) then continue
         for fi in fo.get_files
             if fi.name == (lib+"_v"+libV+".db") then
                 exploits = fi.get_content
-                break 
+                return exploits
             end if
         end for
     end for
     s = "Loading vulnerabilities from:</i> ".ok+(lib.red+" v".red+libV.red).b
-    if not exploits then s = "<i>Failed to load requested vulnerabilities file".warning
+    if not exploits then s = "<i>Failed to load requested vulnerabilities".warning
     LOG(s)
     return exploits
 end function
@@ -1425,7 +1431,7 @@ SS.ML.get=function(m)
 	n=m.lib_name+"_v"+m.version+".db"
 	x=m.lib_name.replace("_","").split("\.").pull
 	c = SS.c
-	if SS.db1 then p = SS.db1.path
+	if SS.dbe then p = SS.dbe.path
 	if not p then return print(warning+color.grey+"<i>there was an issue saving file, reinject & try again")
 	l=c.File(p+"/"+x+"/"+n)
 	if l then return l
@@ -1503,9 +1509,11 @@ SS.ML.write=function(z,m)
 		s.push NL
 	end for
 	test = f.set_content(s.join(""))
+    if T(test) == "string" then LOG(test.error)
 	return test
 end function
-SS.ML.scan = function(t)
+SS.ML.scan = function(t, mx = null)
+    if mx == null then mx = SS.mx
     _r=function(z)
         a=-1
         for e in z
@@ -1521,8 +1529,8 @@ SS.ML.scan = function(t)
     q=[]
     x=null
     r=null
-    for a in SS.mx.scan(t)
-        for l in SS.mx.scan_address(t,a).split(NL)
+    for a in mx.scan(t)
+        for l in mx.scan_address(t,a).split(NL)
             if not l.len then continue
             if l.indexOf("Unsafe check")==0 then
                 if x then
@@ -1560,25 +1568,29 @@ SS.ML.scan = function(t)
     self.scanned = c.join("")
     return self.write(_r(self.load(t)),t)
 end function
-SS.ML.map = function(ml, flag)
+SS.ML.map = function(ml, flag, x)
     if not ml then return null
-    if SS.debug then LOG("ML:map "+ml+" flag: "+flag)
+    if SS.debug then LOG("ML: "+ml+" flag: "+flag+" mx: "+T(x))
     if T(ml) == "file" then ml = self.x.load(ml.path)
     if T(ml) != "MetaLib" then return null 
     self.m = ml 
     self.n = ml.lib_name
     self.v = ml.version
+    self.x = x
     self.scanlabel = "unknown".red
     self.scanned = SS.ML.hasScanned(self.n,self.v) 
     if self.scanned == null then
-        LOG("New library detected".sys)
+        LOG(("New "+"MetaLib".green+" detected, moving to scan. . .").sys)
         if flag == "-f" or flag == "-a" then 
-            SS.ML.scan(self.m)
+            SS.ML.scan(self.m, self.x)
+            self.scanned = SS.ML.hasScanned(self.n,self.v) 
             self.scanlabel = "scanned".green
-        else if flag == "-i" and INPUT("Scan & Save 1 | Return 0 ".prompt).to_int == 1 then 
-            SS.ML.scan(self.m)
+        else if flag == "-i" and INPUT(("Scan & Save "+"1".white+" | Return "+"0".white).prompt).to_int == 1 then 
+            SS.ML.scan(self.m, self.x)
+            self.scanned = SS.ML.hasScanned(self.n,self.v) 
             self.scanlabel = "scanned".green
         else 
+            self.scanned = null
             self.scanlabel = "unscanned".orange
         end if
     else 
@@ -1619,7 +1631,7 @@ SS.ML.of = function(vuln = null, data = null)// OVERFLOW
     return ret
 end function
 SS.ML.browse = function(self)
-    if not self.scanned then return null
+    if self.scanned == null then return null
     ret = []
     options = []
     hacks = SS.EXP.format(self.scanned)
@@ -1814,27 +1826,33 @@ SS.NS.lib = null
 SS.NS.libv = null
 SS.NS.scanned = null
 SS.NS.scanlabel = null
-SS.NS.map = function(a, p = null, flag = null, mx=null,)
-    if mx == null then mx = SS.mx
-    if SS.mx == null then; LOG("Program is operating under cfg: ".warning+SS.cfg.label); return null;end if;
-    if p then self.session = mx.net_use(a,p)
-    if not p then self.session = mx.net_use(a, p)
+SS.NS.mx = null
+SS.NS.map = function(a, p = null, flag = null, mx=null)
+    self.mx = mx
+    if self.mx == null then self.mx = SS.mx
+    if self.mx == null then; LOG("Program operating under cfg: ".warning)+SS.cfg.label; return null;end if;
+    if T(p) == "string" then p = p.to_int
+    self.session = self.mx.net_use(a, p)
     if self.session == null then; LOG("Unable to establish net session".warning); return null;end if;
     LOG("Establishing net session . . .".ok)
-    self.addr = a 
-    self.port = to_int(p)
+    self.addr = a
+    if T(p) != "number" then 
+        self.port = p.to_int
+    else 
+        self.port = p
+    end if
     if not is_lan_ip(self.lan) then self.ip = self.addr 
     self.connections = self.session.get_num_conn_gateway
     self.registered = self.session.get_num_users
     self.active = self.session.is_any_active_user
     self.root_active = self.session.is_root_active_user
     self.dump = self.session.dump_lib
-    self.mlib = new SS.ML.map(self.dump, flag)
+    self.mlib = new SS.ML.map(self.dump, flag, self.mx)
     self.lib = self.mlib.n
     self.libv = self.mlib.v
     self.scanned = self.mlib.scanned
     self.scanlabel = self.mlib.scanlabel
-    self.summary = " NetSession ".title.NL+"ADDR".wrap.blue.cap(a).blue+NL+"PORT".wrap.blue.cap(str(p)).blue+NL+"LIB".wrap.blue.cap(self.lib).blue+NL+"SCAN".wrap.blue.cap(self.scanlabel).blue+NL+"Connections".wrap.lblue.cap(self.connections).lblue+NL+"Users".wrap.lblue.cap(self.registered).lblue+NL+"Active user".wrap.lblue.cap(self.active).lblue+NL+"Active root".wrap.lblue.cap(self.root_active).lblue
+    self.summary = " NetSession ".title.NL+"ADDR".wrap.blue.cap(a).blue+NL+"PORT".wrap.blue.cap(str(p)).blue+NL+"LIB".wrap.blue.cap(self.lib).blue+NL+"VER".wrap.blue.cap(self.libv).blue+NL+"SCAN".wrap.blue.cap(self.scanlabel).blue+NL+"Connections".wrap.lblue.cap(self.connections).lblue+NL+"Users".wrap.lblue.cap(self.registered).lblue+NL+"Active user".wrap.lblue.cap(self.active).lblue+NL+"Active root".wrap.lblue.cap(self.root_active).lblue
     return self
 end function
 SS.NS.cache = function(self, r = null)
@@ -1863,11 +1881,14 @@ SS.EO.ip = null
 SS.EO.lan = null
 SS.EO.home = null 
 SS.EO.cfg = null
+SS.EO.users = ["root"]
 SS.EO.e = null // email 
 SS.EO.b = null // bank
 SS.EO.br = null // browser.txt
 SS.EO.risk = 0 // risk
 SS.EO.label = ""
+SS.EO.ln = null// lib name, version
+SS.EO.lv = null// lib name, version
 SS.EO.string = "" // hashing purposes
 SS.EO.isCached = function(self)
     to = T(o)
@@ -1920,6 +1941,7 @@ SS.EO.map = function(o, ip = null, lan = null)
     self.home = SS.Utils.goHome(o, self.is)
     if self.home == "/" then self.risk = self.risk + 1;
     self.cfg = SS.Utils.goConfig(o, self.is)
+    users = null
     if self.pc != null then 
         self.ip = self.pc.public_ip
         self.lan = self.pc.local_ip
@@ -1928,7 +1950,8 @@ SS.EO.map = function(o, ip = null, lan = null)
             self.e = self.pc.File(self.cfg+"/Mail.txt")
             self.b = self.pc.File(self.cfg+"/Bank.txt")
             self.br = self.pc.File(self.cfg+"/Browser.txt")
-        end if 
+        end if
+        if self.pc.File("/home") then users = self.pc.File("/home").get_folders      
     else 
         if ip then; self.ip = ip; else; self.ip = "Unspecified"; end if;
         if lan then; self.lan = lan; else; self.lan = "Unspecified"; end if;
@@ -1938,13 +1961,30 @@ SS.EO.map = function(o, ip = null, lan = null)
             self.b = SS.Utils.fileFromPath(o, self.cfg+"/Bank.txt")
             self.br = SS.Utils.fileFromPath(o, self.cfg+"/Browser.txt")
         end if
+        users = SS.Utils.fileFromPath(o, "/home")
+        if users then users = users.get_folders
     end if
     if self.cfg == null then self.risk = self.risk+1
+    if users then; for u in users; if u.name == "guest" then; continue;end if; self.users.push(u.name); end for; end if;
     if T(self.pw) == "file" then; if self.pw.has_permission("r") then; self.pw = self.pw.get_content;if self.pw.split("\n") then self.pw = self.pw.replace(NL,"::");else ;self.pw = "r".red.b;self.risk=self.risk+1;end if;else;self.pw = "f".red.b;self.risk=self.risk+1;end if;
     if T(self.e) == "file" then; if self.e.has_permission("r") then; self.e = self.e.get_content;else ;self.e = "r".red.b;end if; else;self.e = "f".red.b;end if;
     if T(self.b) == "file" then ;if self.b.has_permission("r") then;self.b = self.b.get_content;else ;self.b = "r".red.b;end if;else;self.b = "f".red.b;end if;
     if T(self.br) == "file" then ;
     if self.b.has_permission("r") then;self.b = self.br.get_content;else ;self.br = "r".red.b;end if;else;self.br = "f".red.b;end if;
+    return self
+end function
+SS.EO.same = function(eo)// our comparitive eo
+    if self.type != "file" then return LOG("Use this with a file".error)
+    if eo.type == "file" and eo.lan == "Unspecified" then return LOG("Cannot compare this file to that file".warning)
+    if self.lan == "Unspecified" then return LOG("Cannot compare that file to this file".warning)
+    match = 0
+    for i in self.users 
+        if eo.users.indexOf(l) != null then match = match + 1
+    end for
+    if match == (self.users.len-1) then 
+        self.ip = eo.ip
+        self.lan = eo.lan
+    end if
     return self
 end function
 SS.EO.cache = function
@@ -1961,7 +2001,7 @@ end function
 // mission completion functions
 SS.EO.credentials = function(self, u = "root")
     if SS.debug then LOG("EO credentials task: ".debug+u+" "+self.type+" : "+self.is)
-    if SS.dbhl.len == 0 and SS.db2 != null then SS.loadHashes(SS.db2)
+    if SS.dbhl.len == 0 and SS.dbh != null then SS.loadHashes(SS.dbh)
     if u == "any" then u = "root"
     if self.pw.indexOf(":") == null then return null
     // if its a router shell, at least we will have root pw
@@ -1981,16 +2021,20 @@ SS.EO.credentials = function(self, u = "root")
     end if
     return null
 end function
-SS.EO.sys_kill = function()
+SS.EO.sys_kill = function(t_l)
+    LOG("TASK: ".white+"SysKill".red+" "+self.lan+" --> ".red+t_l)
+    if self.is != "root" then self = self.escalate
     boot = null; sys = null; 
     if self.type == "file" then 
         boot = SS.Utils.fileFromPath(self.o, "/boot")
         sys = SS.Utils.fileFromPath(self.o, "/sys")
+        if self.lan != t_l then return null
     else
         pc = self.o
         if self.type != "computer" then pc = self.o.host_computer
         boot = pc.File("/boot")
         sys = pc.File("/sys")
+        if t_l != pc.local_ip then return null
     end if
     _c = function(fo)// file corruption task
         if fo == null then return null
@@ -2021,16 +2065,16 @@ SS.EO.academic = function
     return null
 end function
 SS.EO.escalate = function(u = "root")
-    if self.type != "shell" then return self 
+    if self.type != "shell" then return self
+    if self.is == "root" then return self
     // brute force shell grab
-    cmd = SS.CMD.getOne("shellget")
-    bam = SS.BAM.handler(self.o, cmd, [u])
+    SS.BAM.handler(self.o, SS.CMD.getOne("shellget"), [u])
     if SS.bamres != null and T(SS.bamres) == "shell" then;
         LOG("Escalation success".ok)
         self.map(SS.bamres); 
     end if;
-    if SS.Utils.user(self.o) == "root" then return self 
-    // local hack
+    //if SS.Utils.user(self.o) == "root" then return self 
+    // local hack ( ? )
     return self
 end function
 ///======================= EXPLOIT DB =========================////
@@ -2061,10 +2105,15 @@ end function
 SS.EXP.getOne = function(lib, libV)
     LOG("Searching exploit db for:".sys+lib+" "+libV)
     ret = null
-    if SS.db1 == null then return LOG("No exploit folder found".warning)
-    for f in SS.db1.get_folders
+    if SS.dbe == null then return LOG("No exploit folder found".warning)
+    for f in SS.dbe.get_folders
         if ret then break
-        if (folder.name != l.split(".")[0]) and (l != "kernel_router" and (f.name != "kernelrouter" and f.name != "kernelrouter1")) then continue
+        n = fo.name 
+        fn = lib.split("\.")[0]
+        if fn[:4] == "kern" then fn = fn.replace("_","")// kernel router and modules
+        if fn[:-1] == "1" then fn.replace("1","")
+        if fn[:-1] == "2" then fn.replace("2","")
+        if (fo.name != fn) then continue
         for each in folder.get_files
             if ret then break
             if each.name == (library+"_v"+libVersion+".db") then
@@ -2077,9 +2126,9 @@ SS.EXP.getOne = function(lib, libV)
     return ret
 end function
 SS.EXP.getLib = function(lib, libv)
-    if SS.db1 == null then return LOG("Exploit folder not found".warning)
+    if SS.dbe == null then return LOG("Exploit folder not found".warning)
     dir = null 
-    for f in SS.db1.get_folders 
+    for f in SS.dbe.get_folders 
         if f.name == l then dir = f
         if l == "kernel_router" and (f.name == "kernelrouter1" or f.name == "kernelrouter2") then dir = f
         if dir then break
@@ -2148,15 +2197,13 @@ end function
 SS.MD5 = {}
 SS.MD5.cache = []
 SS.MD5.find = function(t)
-    if SS.db2 == null then return LOG("Hash table is not configured on this system".warning)
+    if T(SS.dbh) != "file" then return LOG("Hash table is not configured on this system".warning)
+    if SS.dbhl.len == 0 then SS.loadHashes(SS.dbh)
     has = null
     start = time
-    for f in SS.db2.get_files
-        for each in f.get_content.split("\n")
-            if each.split(":") == null or each.split(":").len == 1 then continue
-            if each.split(":")[1] == t then has = each.split(":")[0]
-            if has then break
-        end for
+    for each in SS.dbhl
+        s = each.split(":")
+        if s[1] == t then has = s[0]
         if has then break
     end for
     SS.Date.timer(start)
@@ -2249,39 +2296,34 @@ SS.MD5.paste = function(o, p = null)
     return self.bt(o)
 end function
 SS.MD5.connect = function(o, a, u = "root", p = 22, prot = "ssh")
-    if T(SS.dbe) != "file" then return LOG("No hashes found".warning)
+    if T(SS.dbh) != "file" then return LOG("No hashes found".warning)
     if T(o) != "shell" then return LOG("A shell is needed".warning)
     if T(p) != "number" then p = p.to_int
-    LOG("Beginning tsunami bruteforce . . .".sys)
+    if SS.dbhl.len == 0 then SS.loadHashes(SS.dbh)
+    LOG("Beginning tsunami bruteforce . . .".lblue.sys)
     ret = null
-    for f in SS.dbh.get_files 
-        if ret then break
-        for each in f.get_content.split(NL)
-            if each.split(":") == null or each.split(":").len == 1 then continue
-            h = each.split(":")[0]
-            svc = o.connect_service(a,p,u,h, prot)
-            if T(svc) == "shell" or T(svc) == "ftpshell" then
-                LOG(("Connection established ! "+h.green.b).ogconnect) 
-                root = svc; break;
-            end if
-        end for
+    //    LOG(o+NL+a+NL+u+NL+p+NL+prot)
+    for each in SS.dbhl
+        h = each.split(":")[0]
+        svc = o.connect_service(a,p,u,h, prot)
+        if T(svc) == "shell" or T(svc) == "ftpshell" then
+            LOG(("Connection established ! "+h.green.b).ogconnect) 
+            ret = svc; break;
+        end if
     end for
     return ret
 end function
 SS.MD5.shell = function(user)
     if T(SS.dbh) != "file" then return LOG("No hashes found".warning)
+    if SS.dbhl.len == 0 then SS.loadHashes(SS.dbh)
     if SS.og then LOG(("""What's your vector, Victor?""".yellow).sys)
-    for f in SS.dbh.get_files
-        if f.is_binary then continue
-        for s in f.get_content.split(NL)
-            parse = s.split(":")
-            if parse == null or parse.len == 1 then continue
-            shell = null
-            shell = get_shell(user, parse[0])
-            if T(shell) != "shell" then continue
-            if SS.og then LOG(("""You have clearance, Clarence!""".green).sys)
-            return shell 
-        end for
+    shell = null
+    for f in SS.dbhl
+        parse = f.split(":")
+        shell = get_shell(user, parse[0])
+        if T(shell) != "shell" then continue
+        if SS.og then LOG(("""You have clearance, Clarence!""".green).sys)
+        return shell 
     end for
     if SS.og then LOG(("""Roger, Roger""".red).sys)
     return null
@@ -2308,20 +2350,25 @@ SS.NPC = {}
 SS.NPC.fixmekuro = null// MetaMail
 SS.NPC.mailacct = null
 SS.NPC.maillpw = null
-SS.NPC.burner = null
-SS.NPC.mission = function(o, mission)
+SS.NPC.fml = null
+SS.NPC.results = []
+SS.NPC.results2 = []
+SS.NPC.d = false 
+SS.NPC.n = false
+SS.NPC.mission = function(o, mission, del = null, notes = null)
     if SS.cfg.mailacct == null then SS.cfg.mailacct = INPUT("Enter mail acct".prompt,true)
     if SS.cfg.mailpw == null then SS.cfg.mailpw = INPUT("Enter mail pw".prompt,true)
     self.fixmekuro = null
-    self.burner = mail_login(SS.cfg.burnmailacct, SS.cfg.burnmailpw)
-    if T(self.burner) == "string" then return LOG("Burner error".warning)
     cmd = SS.CMD.getOne("iget")
     bam = SS.BAM.handler(o, cmd, ["mail"])
     if SS.bamres == null then return LOG("An issue occured")
     self.fixmekuro = SS.bamres
     if T(self.fixmekuro) == "string" then return LOG(self.fixmekuro.warning)
-    LOG("Analyzing metamail. . .".sys)
+    LOG("Analyzing metamail. . .".sys);start = time;
     ret = "";g=0;c=0;
+    self.d = false; self.n = false;
+    if (del == "-d") or (notes == "-d") then self.d = true 
+    if (del == "-n") or (notes == "-n" )then self.n = true 
     for plz in self.fixmekuro.fetch()
         target = "any"
 		target_ip = null
@@ -2368,9 +2415,10 @@ SS.NPC.mission = function(o, mission)
             reslabel = "COMPLETE".green.b
             g = g+1
         else 
-            //self.fixmekuro.delete(id)
+            if self.d then self.fixmekuro.delete(id)
         end if
-        restring = (" ".fill).red+NL+"Mission Tasks Complete".ok+NL+(label.lblue.b+" - "+reslabel).title.NL+" Target ".wrap.cap(target).NL+" IP ".wrap.cap(target_ip).NL+" LAN ".wrap.cap(target_lan).NL+" DAT ".wrap.cap(result)
+        restring = (" ".fill).red+NL+"Mission Tasks Complete".ok+NL+(label.lblue.b+" - "+reslabel).title.NL+" Target ".wrap.cap(target).NL+" IP ".wrap.cap(target_ip).NL+" LAN ".wrap.cap(target_lan).NL+" DAT ".wrap.cap(result)+NL+" SUM ".wrap.cap(self.results[self.results.len-1])
+        if self.n then restring = restring.NL+" NOTE ".wrap+NL+self.results2[self.results2.len-1]
         LOG(restring)
         ret = ret+restring+NL
     end for
@@ -2385,105 +2433,729 @@ SS.NPC.mission = function(o, mission)
     else 
         ratio = str(ratio).red
     end if
-    LOG((" Mission(s) Summary ").title+("["+"Completion".grey.s+ratio+"%".white+"]")+NL+ret)
+    LOG("".fill.NL+"Mission(s) Summary".title+("["+"Completion".grey.s+ratio+"%".white+"]")+NL+ret+NL+"passed".wrap.cap(str(g))+NL+"total".wrap.cap(str(c))+NL+"pct".wrap.cap((ratio+"%".white)))
+    SS.Date.timer(start)
     self.fixmekuro = null
+    SS.BAM.handler(o, cmd, ["mail"])
 end function
-SS.NPC.run = function(id, label, target, target_ip, target_lan)
+//TODO: for file objects, we could cross reference user folders to 
+//determine what lan we are on
+SS.NPC.run = function (id, label, target, target_ip, target_lan)
     LOG("".fill+"MISSION START".b.title.b+NL+"ID: ".white+id.NL+"TYPE: ".white+label.NL+"TARGET: ".white+ target.NL+"IP: ".white+ target_ip.NL+"LAN: ".white+ target_lan.NL+"".fill)
-    result = null//mission complete switch
-    net = new SS.Network 
-    net.map(target_ip)
-    if net == null then return LOG("An issue occured")
-    // open ports to targ?
-    ns_cache = []
-    fwd_libs = []
-    data = SS.cfg.unsecure_pw
-    if label != "credentials" then data = target_lan
-    if net.services.len == 0 then 
-        ns = new SS.NS.map(target_ip, 0, "-f")
-        ns_cache.push(ns)
-    else
-        for s in net.services 
-            if s[4] == target_lan then 
-                fwd_libs.push(s)
-            end if
-        end for
-        if fwd_libs.len == 0 then ns = new SS.NS.map(target_ip, 0)
-    end if
-    for l in fwd_libs
-        ns = new SS.NS
-        ns.map(target_ip, l[3], "-f")
-        if ns.session == null then continue
-        if ns == null then continue
-        ns_cache.push(ns)
-    end for
-    for s in ns_cache
-        if not s then continue
-        if result != null then break
-        res = s.mlib.of(null, data)
-        if res.len == 0 then continue
-        for r in res
-            if r == null then continue
-            if T(r) == "string" then continue
-            if T(r) == "number" then
-                if label == "credentials" then LOG("><> ><> ><>".red.b+"PASSWORD CHANGE DETECTED".title+"><> ><> ><>".red)  
-                continue;
-            end if;
-            task = null
-            eo = null
-            eo = new SS.EO;
-            eo.map(r)
-            if not eo then continue
-            if SS.debug then LOG(eo)
-            if eo.type == "shell" and eo.is != "root" then eo.escalate 
-            if label == "credentials" then
-                task = eo.credentials(target)
-            else if label == "system corruption" then 
-                task = eo.sys_kill
-            else if label == "file_deletion" then 
-                task = eo.file_kill(targe)
-            else if label == "file_retrieval" then  
-                task = eo.file_get(target)
-            end if
-            if SS.debug then LOG("Returning task: ".debug.size(20)+task)
-            if task != null then; result = task; break; end if;
-        end for 
-    end for
-    if result != null then return result
-    // bounce
-    ns = new SS.NS
-    ns.map(target_ip, 0, "-f")
-    if ns == null then return null
-    res = ns.mlib.of(null, target_lan)
-    if res.len == 0 then return null
-    for r in res
-        type = T(r)
-        if type == "string" or type == "number" then continue
-        if (type == "shell") then
-            if label != "credentials" then continue 
-            if (label == "credentials") and (target != "any") and (r.host_computer.local_ip != target_lan) then continue
-        end if
+    sumstring = "*Mission Log*"
+    self.results = []// refesh our list, even though you should restart ss to reuse this god forsaken command
+    self.results2 = []
+    result = null
+    r0 = null // gateway router ns
+    r0shell = null // remote shell exploit object
+    l0 = null // local network
+    l_mx = null// local mx
+    fwd_ports = []// fwd ports
+    prime_ports = []// ports our machine is running remotely
+    local_ports = []// services running locally on the network
+    prime_local = []// serivces our machine is running locally
+    metaxs = []// local metaxploits that we get along the way
+    p_r_sessions = []// PRIME remote sessions
+    r_sessions = [] // MIDS remote sessions
+    p_l_sessions = []//local sessions
+    m_l_sessions = []
+    p_r_obj = [] // PRIME remote objects
+    r_obj = []// MIDS remote objects
+    p_l_obj = []// PRIME local objects
+    l_obj = []// PRIME local objects
+    rem_last = []// remote last options
+    loc_last = []// local last options
+    pw_changes = 0
+    sh = false
+    dat_sw = SS.cfg.unsecure_pw//data switch
+    _t = function(eo, label, target_lan)
         task = null
-        eo = null
-        eo = new SS.EO;
-        eo.map(r)
-        if eo == null then continue
-        if (type == "shell") and (target == "any") then 
-            eo.escalate
-            if SS.debug then LOG(SS.Utils.user(eo.o)) 
-        end if
-        if SS.debug then LOG(eo)
+        if SS.debug then LOG("NPC:task:completion ".debug+"eo: ".white+eo.type+" eolan: ".white+eo.lan+" target: ".white+target_lan)
+        if eo.type == "shell" and eo.is != "root" then eo.escalate
         if label == "credentials" then
             task = eo.credentials(target)
-        else if label == "system corruption" then 
-            task = eo.sys_kill
+        else if label == "system corruption" then
+            task = eo.sys_kill(target_lan)
         else if label == "file_deletion" then 
-            task = eo.file_kill(target)
+            task = eo.file_kill(target, target_lan)
         else if label == "file_retrieval" then  
-            task = eo.file_get(target)
+            task = eo.file_get(target, target_lan)
         end if
-        if task != null then; result = task; break; end if;
-    end for
+        return task
+    end function
+    _check = function(l, lan)// check for local network
+        if l.len == 0 then return null
+        if l0 != null then return l0
+        for p in l
+            SS.BAM.handler(p, SS.CMD.getOne("iget"), ["network", lan])
+            if SS.bamres != null then
+                l0 = SS.bamres; break; 
+            end if;
+        end for
+    end function
+    _mx = function(l)// get a mx lib
+        if l.len == 0 then return null
+        for p in l
+            SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"])
+            if T(SS.bamres) == "MetaxploitLib" then
+                SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"])
+                metaxs.push(SS.bamres)
+            end if;
+        end for
+    end function 
+    _loop = function(ns, dat)//loop a ns
+        objs = ns.mlib.of(null, dat)
+        //if objs.len == 0 then return []
+        out=[]
+        for o in objs
+            if ns.lib != "kernel_router.so" and T(o) == "number" then pw_changes = pw_changes+1
+            if (T(o) == "number") or (T(o) == "string") then continue
+            eo = new SS.EO
+            eo.map(o)
+            if (ns.lib == "kernel_router.so") and (eo.type =="computer") and (eo.is == "root") then LOG("ROOT PC BOUNCE DETECTED".ok)
+            out.push(eo)
+        end for
+        return out
+    end function
+    _rloop = function(ns)
+        r_obj = []
+        o1 = _loop(ns, SS.cfg.unsecure_pw)
+        o2 = _loop(ns, target_lan)
+        if o1.len > 0 then r_obj = r_obj+o1
+        if o2.len > 0 then r_obj = r_obj+o2
+        return r_obj
+    end function
+    // =============== INITIAL MAPPING ===============
+    network = new SS.Network
+    network.map(target_ip)
+    if network == null then return null
+    // router session
+    r0 = new SS.NS.map(target_ip, 0, "-f");if r0 == null then
+        sumstring = sumstring+NL+"Failed to get a router session".grey
+        self.results.push("Failed: Router session failed, likely an error")
+        self.results2.push(sumstring)        
+        return null
+    end if
+    r_obj = _rloop(r0)
+    if r_obj.len == 0 then 
+        LOG("No results from router".grey.sys)
+    else 
+        sumstring = sumstring+NL+"Router objects found".grey
+        for o in r_obj
+            if o.type == "shell" and r0shell == null then r0shell = o
+            LOG("halp? c17")  
+            task = _t(o, label, target_lan)
+            if o.type == "computer" and o.is == "root" then LOG(("ROOT COMPUTER DETECTED ".green.s+o.local_ip.white).sys)
+            if task != null then
+                self.results.push("Completed: Via router objects")
+                self.results2.push(sumstring)       
+                return task
+            end if
+        end for
+    end if
+    if network.services.len == 0 and r0shell == null then// no open ports found, how do we move forward?
+        sumstring = sumstring+NL+"No forwarded ports, and was unable to get a remote shell".grey
+        LOG("No shells or fwd ports, unable to move forward".warning)
+        self.results.push("Failed: No forwarded ports, and unable to etablish an inital shell") 
+        self.results2.push(sumstring)
+        return null
+    end if 
+    if network.services.len > 0 then
+        sumstring = sumstring+NL+"Forwarded ports found".grey
+        LOG("Checking forwarded ports...".sys)
+        if SS.debug then LOG("NPC: c2 forwarded ports".debug.size(20))
+        // if we have fwd ports, we sort and work from there
+        for net in network.services
+            if net[4] == target_lan then prime_ports.push(net)
+            if net[4] != target_lan then fwd_ports.push(net)            
+        end for
+        // =============== POST INITIAL MAPPING
+        if prime_ports.len > 0 then
+            LOG("Remote services found on the machine".green.sys) 
+            for prime in prime_ports 
+                primesesh = new SS.NS.map(target_ip, prime[3], "-f")
+                if primesesh == null or primesesh.session == null then 
+                    if SS.debug then LOG("NPC: c3e1 prime session failed")
+                    continue
+                end if
+                p_r_sessions.push(primesesh) 
+            end for 
+        else; LOG("No prime ports for the target machine".grey.sys);
+            sumstring = sumstring+NL+"No external ports for target machine".grey
+        end if
+        if fwd_ports.len > 0 then
+            sumstring = sumstring+NL+"External ports found aside from the target machine".grey
+            for port in fwd_ports 
+                midssesh = new SS.NS.map(target_ip, port[3], "-f")
+                if midssesh == null or midssesh.session == null then 
+                    if SS.debug then LOG("NPC: c3e2 mids session failed")
+                    continue
+                end if
+                r_sessions.push(midssesh) 
+            end for 
+            else; LOG("No fwd ports on the network".grey.sys);
+                sumstring = sumstring+NL+"No forwarded ports for non target machines".grey
+        end if
+        // =============== HANDLE SESSION MAPPING
+        if p_r_sessions.len > 0 then
+            LOG("Checking prime sessions. . .".green.sys); 
+            sumstring = sumstring+NL+"Prime remote sessions were found".grey
+            // we exploit those objects and possibly get local sessions
+            for r in p_r_sessions 
+                objects = r.mlib.of(null, dat_sw)
+                if objects.len == 0 then 
+                    if SS.debug then LOG("NPC: c4e p_r_session failed")
+                    continue;
+                end if
+            end for
+            for o in objects
+                if T(o) == "number" then pw_changes = pw_changes+1
+                if T(o) == "string" or T(o) == "number" then continue 
+                eo = new SS.EO
+                eo.map(o)
+                eo.escalate
+                if eo.type == "shell" then
+                    r0shell = eo
+                end if
+                p_r_obj.push(eo)
+            end for
+        else;LOG("No prime remote sessions, moving to other forwarded ports".grey.sys);
+        end if
+        if r_sessions.len > 0 then 
+            LOG("Checking remote sessions. . .".sys);
+            sumstring = sumstring+NL+"Remote sessions were found".grey
+            // we exploit those objects and possibly get local sessions
+            for r in r_sessions
+                objects = r.mlib.of(null, dat_sw)
+                if objects.len == 0 then 
+                    if SS.debug then LOG("NPC: c5e r_session failed")
+                    continue;
+                end if
+                for o in objects 
+                    if T(o) == "string" or T(o) == "number" then continue 
+                    eo = new SS.EO
+                    eo.map(o)
+                    eo.escalate
+                    if eo.type == "shell" and ((r0shell == null) or (r0shell.o.host_computer.local_ip != eo.o.host_computer.local_ip)) then
+                        if r0shell == null then r0shell = eo
+                        sumstring = sumstring+NL+("Remote shell was assigned: "+r0shell.o.host_computer.local_ip.white).grey   
+                        r0shell = eo
+                    end if
+                    r_obj.push(eo)
+                end for
+            end for
+        else;LOG("No remote sessions found, checking local".grey.sys);
+            sumstring = sumstring+NL+"No remote sessions were found".grey
+        end if
+         // =============== PRIME REMOTE OBJECTS
+        if p_r_obj.len > 0 then
+            sumstring = sumstring+NL+"Returned prime objects".grey
+            h_w = null
+            LOG("Prime objects found, attempting completion. . .".sys);
+            if SS.debug then LOG("NPC: c4 prime robjects found, going for completion".debug.size(20))
+            for p in p_r_obj
+                if p.type == "shell" then
+                    sumstring = sumstring+NL+"Remote shell reassigned to target shell".grey 
+                    r0shell = p // replace our old eo with a better one
+                end if 
+                LOG("halp? c16")   
+                completed = _t(p, label, target_lan)
+                if not h_w then; SS.Utils.wipe_logs(p.o); h_w = true; end if;
+                if completed != null then
+                    self.results.push("Completed via prime remote object")
+                    self.results2.push(sumstring) 
+                    return completed
+                end if
+            end for
+        else;LOG("No prime objects found, checking other objects".grey.sys);
+            sumstring = sumstring+NL+"No prime objects were found".grey
+        end if
+        // =============== REMOTE OBJECTS, AT THIS POINT ANY SHELL ANYWHERE WORKS
+        if r_obj.len > 0 and r0shell == null then
+            sumstring = sumstring+NL+"Remote objects found, and mission needed a shell".grey
+            if r0shell == null then LOG("Mission still needs a shell".grey.sys);
+            // local mapping, push to prime_local, local_ports, and l_obj
+            h_w = null
+            if SS.debug then LOG("NPC: c5 mids robjects found, fetching local network".debug.size(20))
+            for o in r_obj
+                if not h_w then; SS.Utils.wipe_logs(o.o); h_w = true; end if; 
+                if o.type == "shell" then 
+                    r0shell = o; break;
+                end if
+            end for
+        else;LOG("No remote objects found, we have a shell".grey.sys);
+            sumstring = sumstring+NL+"Remote objects didnt finish the job, a shell is detected".grey
+        end if
+    end if
+    // =============== LOCAL NETWORK GET
+    if r0shell != null then // router map
+        sumstring = sumstring+NL+("We had an launch shell at "+r0shell.o.host_computer.local_ip.white).grey
+        LOG("Remote shell found, ready to map network".sys);
+        SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["network", target_lan])
+        l0 = SS.bamres
+        SS.Utils.wipe_logs(r0shell.o)
+    else;LOG("No remote shell obtained".grey.sys);
+        sumstring = sumstring+NL+"We did not get a remote shell initially".grey
+    end if
+    // local network full mapping and pivot
+    if l0 != null then
+        LOG("Local network has been mapped".ok)
+        sumstring = sumstring+NL+"We mapped the network from our initial shell".grey 
+        SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["mx"])
+        if T(SS.bamres) == "MetaxploitLib" then
+            sumstring = sumstring+NL+"We loaded metaxploit locally".grey 
+            l_mx = new SS.MX
+            l_mx.map(r0shell.o, SS.bamres)
+            LOG(("Local "+T(l_mx.x).red+" obtained on remote shell. . .").sys) 
+            if SS.debug then LOG("NPC: c6 we have mx locally".debug.size(20)) 
+            if l0.services.len > 0 then
+                sumstring = sumstring+NL+"We found locally running services on the target machine".grey  
+                LOG("Internal services found".ok);
+                for s in l0.services 
+                    SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"),  ["ns", s[4], s[3]])
+                    if T(SS.bamres) == "map" then p_l_sessions.push(SS.bamres)
+                end for
+                LOG("Targeting local services, going for completion. . .".sys)
+                if p_l_sessions.len > 0 then
+                    sumstring = sumstring+NL+"Established net sessions at some of these services".grey   
+                    LOG("Prime local sessions found, exploiting".green.sys)
+                    for p in p_l_sessions 
+                        res = p.mlib.of(null, dat_sw)
+                        if res.len > 0 then 
+                            for r in res
+                                if T(r) == "number" then 
+                                    LOG("PW change detected".ok)
+                                    pw_changes = pw_changes+1
+                                    continue 
+                                else if T(r)=="number"then;continue;
+                                end if
+                                eo = new SS.EO
+                                eo.map(r)
+                                if eo.type == "computer" and eo.is == "root" then LOG(("ROOT COMPUTER DETECTED".green.s+p.lib.red.s+p.libv.white).sys)
+                                eo.escalate
+                                LOG("halp? c15")  
+                                task = _t(eo, label, target_lan)
+                                if task != null then
+                                    self.results.push("Completed: Via prime local object")
+                                    self.results2.push(sumstring)  
+                                    return task
+                                end if
+                                p_l_obj.push(eo)
+                            end for
+                        else;LOG("No local objects returned, looking for a tsunami. . .".grey.sys)
+                        end if
+                        // simple bf since dict seemingly takes, FOREVER 
+                        if ((p.lib == "libssh.so") or (p.lib == "libftp.so")) then
+                            sumstring = sumstring+NL+"Detected SSH/FTP running locally".grey   
+                            if pw_changes > 0 then
+                                LOG("Attempting simple connection. . .".green.sys) 
+                                rooted = r0shell.o.connect_service(target_lan, p.port, "root", SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
+                                if T(rooted) == "shell" or T(rooted) == "ftpshell" then
+                                    sumstring = sumstring+NL+"We detected a pw change, and defaulted to a simple connection as root".grey    
+                                    LOG(("Root".red+" connection established").ok)
+                                    eo = new SS.EO
+                                    eo.map(rooted)
+                                    LOG("halp? c14")  
+                                    task = _t(eo, label, target_lan)
+                                    if task != null then
+                                        self.results.push("Completed: PW change brute force ROOT local connection")
+                                        self.results2.push(sumstring)   
+                                        return task
+                                    end if
+                                else if T(rooted) == "string" then
+                                    //if rooted == "Remote host is down" and label == "system corruption" then return true
+                                    LOG("simple connect: ".warning+rooted)
+                                else
+                                    LOG("Root connection failed, moving to regular users. . .".grey.sys)
+                                    for i in r0shell.users
+                                        svc = null 
+                                        rooted = r0shell.o.connect_service(target_lan, p.port, i, SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
+                                        if T(rooted) == "shell" or T(rooted) == "ftpshell" then
+                                            sumstring = sumstring+NL+("We detected a pw change, and defaulted a connection as "+i.white+" and escalated to root").grey     
+                                            LOG("User connection established".ok)
+                                            eo = new SS.EO
+                                            eo.map(svc)
+                                            LOG("halp? c13")  
+                                            task = _t(eo, label, target_lan)
+                                            if task != null then
+                                                self.results.push("Completed: PW change brute force USER -> ROOT local connection")    
+                                                self.results2.push(sumstring)      
+                                                return task
+                                            end if
+                                        else if T(svc) == "string" then
+                                            if (svc == "Remote host is down") and (label == "system corruption") then return true// pretty sure we dont even capture this, so
+                                            LOG("simple connect: ".warning+svc)
+                                        end if
+                                    end for 
+                                end if   
+                            else 
+                                LOG("Launching tsunami. . .".grey.sys)
+                                SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
+                                if T(SS.bamres) == "shell" then
+                                    eo = new SS.EO
+                                    eo.map(SS.bamres)
+                                    //eo.escalate 
+                                    LOG("halp? c12")  
+                                    task = _t(eo, label, target_lan)
+                                    if task != null then
+                                        sumstring = sumstring+NL+"We brute forced a local connection using tsunami".grey    
+                                        self.results.push("Completed: Brute force local connection from tsunami")
+                                        self.results2.push(sumstring)     
+                                        return task
+                                    end if
+                                else;LOG("Internal brute force failed")
+                                end if
+                            end if
+                        end if
+                    end for
+                    // STILL NOT DONE?! LOCAL LIB BOUNCE HOUSE!
+                    if p_l_obj.len > 0 then
+                        sumstring = sumstring+NL+"Moved onto local objects".grey    
+                        for p in p_l_obj
+                            if T(p.o) == "shell" then
+                                p.escalate
+                                LOG("halp? c11")  
+                                task = _t(p, label, target_lan)
+                                if task != null then
+                                    sumstring = sumstring+NL+"Completed mission with a NS shell object".grey     
+                                    self.results.push("Completed: Via exploiting a local service")
+                                    self.results2.push(sumstring)     
+                                    return task
+                                end if
+                                SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"]) 
+                                if SS.bamres != null then  
+                                    LOG(("Local "+T(SS.bamres).red+" obtained on "+"TARGET".green+" shell. . .").sys) 
+                                    mx = new SS.MX.map(p.o, SS.bamres)
+                                    LOG(T(mx.x))
+                                    mx.l("-a")
+                                    for lib in mx.libs 
+                                        local_hacks = lib.of(null, target_lan)
+                                        if local_hacks.len == 0 then continue
+                                        for l in local_hacks
+                                            if T(l) == "number" or T(l) == "string" then continue 
+                                            eo = new SS.EO
+                                            eo.map(l, target_ip, target_lan)
+                                            // TODO:
+                                            if eo.type == "computer" and eo.is == "root" then LOG(("ROOT COMPUTER DETECTED".green).sys)
+                                            eo.escalate
+                                            LOG("is this the troublesom function?") 
+                                            task = _t(eo, label, target_lan)
+                                            if task != null then
+                                                sumstring = sumstring+NL+"Completed mission with a local ML object".grey     
+                                                self.results.push("Completed: Via exploiting a local library")
+                                                self.results2.push(sumstring)      
+                                                return task
+                                            end if
+                                        end for 
+                                    end for
+                                else;LOG("MX was not loaded on the target machine".grey.sys)
+                                    sumstring = sumstring+NL+"We were unable to load MX onto our remote shell".grey     
+                                end if 
+                            else 
+                                LOG("halp? c1") 
+                                task = _t(p, label, target_lan)
+                                if task != null then
+                                    sumstring = sumstring+NL+"Completed mission with a NS non-shell object".grey    
+                                    self.results.push("Completed: Via exploiting a local library")
+                                    self.results2.push(sumstring)       
+                                    return task
+                                end if
+                            end if
+                        end for
+                    else;
+                        LOG("No local objects returned".grey.sys)
+                        sumstring = sumstring+NL+"We did not return any local objects".grey     
+                    end if
+                else;Log("No prime local sessions, moving to local bounce. . .".grey.sys)
+                    sumstring = sumstring+NL+"We had the ability to locally bounce, but we didnt! add me :(".grey     
+                end if
+            else
+                // local router bounce, local lib exploitation
+                LOG("No internal services found, exploiting local libraries. . .".grey.sys);
+                l_mx.l("-a")
+                if l_mx.libs.len > 0 then
+                    sumstring = sumstring+NL+"We had no local services, so we tried a local library bounce".grey      
+                    for lib in l_mx.libs 
+                        lh = lib.of(null, target_lan)
+                        if lh.len == 0 then continue 
+                        for o in lh 
+                            if T(o) == "number" or T(o) == "string" then continue 
+                            eo = new SS.EO
+                            eo.map(o)
+                            eo.escalate
+                            LOG("halp? c10")  
+                            task = _t(eo, label, target_lan)
+                            if task != null then
+                                self.results.push("Completed: Via exploiting a local library")
+                                self.results2.push(sumstring)       
+                                return task
+                            end if
+                        end for
+                    end for
+                else;LOG("Unable to load local libraries".error)
+                    sumstring = sumstring+NL+"We were unable to load the libraries".grey     
+                end if
+                // router local bounce
+            end if
+        else 
+            if SS.debug then LOG("NPC: c6e no mxs returned, checking local services".debug.size(20))
+            // perhaps this is where we try our last ditch efforts
+            if l0.services.len > 0 then
+                LOG("MX not loaded, but we have ports to try".sys)
+                sumstring = sumstring+NL+"Without MX, we rechecked the network for brute force opportunities".grey      
+                for l in l0.services
+                    if l[0] != "ssh" or l[0] != "ftp" then
+                        sumstring = sumstring+NL+("We found a viable service: "+l[0].white).grey       
+                        LOG("NON exploitable service, moving on".grey.sys); 
+                        LOG("Launching tsunami. . .".grey.sys)
+                            SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", l[3], l[0]])
+                            if T(SS.bamres) == "shell" then
+                            eo = new SS.EO
+                            eo.map(SS.bamres)
+                            //eo.escalate 
+                            LOG("halp? c9") 
+                            task = _t(eo, label, target_lan)
+                            if task != null then return task
+                            else;LOG("Internal brute force failed".grey.sys)
+                            end if
+                        continue;
+                    end if  
+                end for
+            else;LOG("MX not loaded on network & No internal services to brute force".grey.sys)
+                sumstring = sumstring+NL+"Unable to find a viable local port to connect to".grey       
+            end if 
+        end if
+    else
+        LOG("Local network was not mapped, rechecking remote. . .".grey.sys)
+        if prime_ports.len > 0 then 
+            if SS.debug then LOG("NPC: c6a local ports to exploit found".debug.size(20))
+            sumstring = sumstring+NL+"Ports were found on the target machine".grey       
+            // desperate times? remote brute force
+            for p in prime_ports 
+                if p[1] != "ssh" or p[1] != "ftp" then continue
+                sumstring = sumstring+NL+("We found ports to connect to "+p[1]).grey        
+                LOG("We have prime ports to try".green.sys)
+                svc = SS.MD5.connect(SS.c, target_ip, "root", s[3], s[1])
+                if T(svc) == "shell" or t(svc) == "ftpshell" then 
+                    eo = new SS.EO
+                    eo.map(eo)
+                    eo.escalate 
+                    LOG("halp? c8") 
+                    task = _t(eo, label, target_lan)
+                    if task != null then
+                        sumstring = sumstring+NL+"We were able to brute force a forwarded port ".grey
+                        self.results.push("Completed: Via connecting to a prime fwd port")
+                        self.results2.push(sumstring)      
+                        return task
+                    end if
+                else;LOG("Remote brute force connection failed".sys.grey)
+                    sumstring = sumstring+NL+"We were unable to brute force the connection ".grey
+                end if
+            end for
+        else if (fwd_ports.len > 0)  and (r0shell == null) then
+            sumstring = sumstring+NL+"We were unable to acquire a remote shell and attempted to leverage fwd ports".grey 
+            if SS.debug then LOG("NPC: c6b forward ports to exploit found".debug.size(20))
+            // desperate measures?
+            for p in prime_ports 
+                if p[1] != "ssh" then continue 
+                LOG("We have fwd ports to try".green.sys)
+                svc = SS.MD5.connect(SS.c, target_ip, "root", s[3], s[1])
+                if T(svc) == "shell" then//for sake of fairness, ftp would be exploitive 
+                    r0shell = eo; 
+                    break;
+                else;LOG("Remote brute force connection failed".sys.grey)
+                end if
+            end for
+            if r0shell != null then
+                sumstring = sumstring+NL+("We got a shell at "+r0shell.o.host_computer.local_ip.white).grey
+                LOG("Remote shell finally found, ready to map network".sys);
+                SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["network", target_lan])
+                l0 = SS.bamres
+                SS.BAM.handler(r0shell.o,SS.CMD.getOne("iget"), ["mx"])
+                l_mx = SS.bamres
+                SS.Utils.wipe_logs(r0shell.o)
+                if T(l0) == "map" and T(l_mx) == "MetaxploitLib" then 
+                    // router bounce and local hacks
+                if l0 == null then; LOG("Unable to map the local network".sys.grey);end if;
+                if l_mx == null then; LOG("Unable to get a local MX".sys.grey);end if;
+                if l0 and l_mx != null then
+                    sumstring = sumstring+NL+"We mapped the network and loaded MX".grey   
+                    if l0.services.len == 0 then 
+                        l_mx = new SS.MX
+                        l_mx.map(r0shell.o, SS.bamres)
+                        LOG(("Local "+T(l_mx.x).red+" obtained on remote shell. . .").sys) 
+                        if l0.services.len > 0 then 
+                            LOG("Internal services found".ok);
+                            sumstring = sumstring+NL+"We found internal services".grey   
+                            for s in l0.services 
+                                SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"),  ["ns", s[4], s[3]])
+                                if T(SS.bamres) == "map" then p_l_sessions.push(SS.bamres)
+                            end for
+                        else 
+                            sumstring = sumstring+NL+"We didnt find internal services, we had the chance to router bounce, but we didnt!".grey   
+                            // local router bounce
+                            SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"),  ["ns", target_ip, 0])
+                            if SS.bamres != null then p_l_sessions.push(SS.bamres)
+                        end if
+                        for p in p_l_sessions 
+                            res = p.mlib.of(null, dat_sw)
+                            if res.len > 0 then
+                                for r in res
+                                    if T(r) == "number" and p.lib != "kernel_router.so" then 
+                                        LOG("PW change detected".ok)
+                                        pw_changes = pw_changes+1
+                                        continue 
+                                    else if T(r)=="number"then;continue;
+                                    end if
+                                    eo = new SS.EO
+                                    eo.map(r)
+                                    eo.escalate
+                                    if eo.lan == target_lan then r0shell = eo // reassign out r0shell
+                                    LOG("halp? c7") 
+                                    task = _t(eo, label, target_lan)
+                                    if task != null then
+                                        self.results.push("Completed: Via exploiting a local library after leveraging fwd ports")
+                                        self.results2.push(sumstring)        
+                                        return task
+                                    end if
+                                    p_l_obj.push(eo)
+                                end for
+                            else;LOG("No local objects returned, looking for a tsunami. . .".grey.sys)
+                            end if
+                            // simple bf since dict seemingly takes, FOREVER 
+                            if ((p.lib == "libssh.so") or (p.lib == "libftp.so")) then
+                                if pw_changes > 0 then
+                                    LOG("Attempting simple connection. . .".green.sys) 
+                                    rooted = r0shell.o.connect_service(target_lan, p.port, "root", SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
+                                    if T(rooted) == "shell" or T(rooted) == "ftpshell" then 
+                                        LOG(("Root".red+" connection established").ok)
+                                        eo = new SS.EO
+                                        eo.map(rooted)
+                                        LOG("halp? c6") 
+                                        task = _t(eo, label, target_lan)
+                                        if task != null then
+                                            self.results.push("Completed: Via PW change -> simple brute force using local services")
+                                            self.results2.push(sumstring)   
+                                            return task
+                                        end if
+                                    else if T(rooted) == "string" then
+                                        //if rooted == "Remote host is down" and label == "system corruption" then return true
+                                        LOG("simple connect: ".warning+rooted)
+                                    else
+                                        LOG("Root connection failed, moving to regular users. . .".grey.sys)
+                                        for i in r0shell.users
+                                            svc = null 
+                                            rooted = r0shell.o.connect_service(target_lan, p.port, SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
+                                            if T(rooted) == "shell" or T(rooted) == "ftpshell" then 
+                                                LOG("User connection established".ok)
+                                                eo = new SS.EO
+                                                eo.map(svc)
+                                                LOG("halp? c5") 
+                                                task = _t(eo, label, target_lan)
+                                                if task != null then
+                                                    self.results.push("Completed: Via PW change -> simple brute force using local services *escalated to root from user*")
+                                                    self.results2.push(sumstring)          
+                                                    return task
+                                                end if
+                                            else if T(svc) == "string" then
+                                                if (svc == "Remote host is down") and (label == "system corruption") then return true
+                                                LOG("simple connect: ".warning+svc)
+                                            end if
+                                        end for 
+                                    end if   
+                                else 
+                                    LOG("Launching tsunami. . .".grey.sys)
+                                    SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
+                                    if T(SS.bamres) == "shell" then
+                                        eo = new SS.EO
+                                        eo.map(SS.bamres)
+                                        //eo.escalate 
+                                        LOG("halp? c4") 
+                                        task = _t(eo, label, target_lan)
+                                        if task != null then 
+                                            self.results.push("Completed: Via tsunami -> brute force using local services")
+                                            self.results2.push(sumstring)          
+                                            return task
+                                        end if
+                                    else;LOG("Internal brute force failed")
+                                    end if
+                                end if
+                            end if
+                        end for
+                        // STILL NOT DONE?! LOCAL LIB BOUNCE HOUSE!
+                        if p_l_obj.len > 0 then
+                            sumstring = sumstring+NL+"We found objects on the target machine".grey    
+                            for p in p_l_obj
+                                if T(p.o) == "shell" then
+                                    p.escalate
+                                    LOG("halp? c3") 
+                                    task = _t(p, label, target_lan)
+                                    if task != null then
+                                        sumstring = sumstring+NL+"We were able to leverage local NS object".grey    
+                                        self.results.push("Completed: Via exploiting prime local shell")
+                                        self.results2.push(sumstring)           
+                                        return task
+                                    end if
+                                    SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"]) 
+                                    if SS.bamres != null then
+                                        sumstring = sumstring+NL+("We loaded MX onto the system as "+p.is.white).grey      
+                                        LOG(("Local "+T(SS.bamres).red+" obtained on "+"TARGET".green+" shell. . .").sys) 
+                                        mx = new SS.MX
+                                        mx.map(p.o, SS.bamres)
+                                        LOG(T(mx.x))
+                                        mx.l("-a")
+                                        for lib in mx.libs 
+                                            local_hacks = lib.of(null, target_lan)
+                                            if local_hacks.len == 0 then continue
+                                            for l in local_hacks
+                                                if T(l) == "number" or T(l) == "string" then continue  
+                                                eo = new SS.EO
+                                                eo.map(l)
+                                                eo.escalate
+                                                LOG("halp? c2")  
+                                                task = _t(eo, label, target_lan)
+                                                if task != null then
+                                                    sumstring = sumstring+NL+"We locally exploited the target machine".grey      
+                                                    self.results.push("Completed: Via exploiting prime local objects' local libraries")      
+                                                    self.results2.push(sumstring)      
+                                                    return task
+                                                end if
+                                            end for
+                                        end for 
+                                else;LOG("MX was not loaded on the target machine".grey.sys)
+                                    sumstring = sumstring+NL+"Unable to load mx on the system".grey      
+                                end if 
+                                else 
+                                    LOG("halp? c1") 
+                                    task = _t(p, label, target_lan)
+                                    if task != null then
+                                        sumstring = sumstring+NL+("We used locally obtained NS exploits on the target machine").grey      
+                                        self.results.push("Completed: Via exploiting prime local object")
+                                        self.results2.push(sumstring)            
+                                        return task
+                                    end if
+                                end if
+                            end for
+                        end if
+                    else;
+                        LOG("No local services returned".grey.sys)
+                        sumstring = sumstring+NL+"Unable to find prime local services".grey      
+                    end if  
+                else;LOG("MX | NS not loaded locally".grey.sys)
+                    sumstring = sumstring+NL+"Failed to load local mx".grey      
+                end if 
+            else
+                LOG("No remote shell was obtained".grey.sys)
+                sumstring = sumstring+NL+"Failed to acquire shell".grey      
+            end if
+        else;
+            LOG("We have exhausted our options, moving forward. . .".grey.sys)
+            sumstring = sumstring+NL+"Failed to load local mx".grey      
+        end if
+    end if
+    if r0shell == null then sumstring = sumstring+NL+"No shell on the network and unable to move forward".grey 
+    self.results.push("Failed: Our efforts were futile")
+    self.results2.push(sumstring)      
     return result
 end function
 ///======================== GFX =========================////
