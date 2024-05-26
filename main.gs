@@ -22,6 +22,7 @@
 // - VIM like file editor
 ///====================== INIT =========================////
 import_code("/home/2NA/src/utils")
+import_code("/home/2NA/src/modules")
 import_code("/home/2NA/src/core")
 // auth_pass auth_user mail_acct mail_pw rshell_ip unsecure_pw
 SS.init("password", "2NA", "mail@bolds.net", "mail", "1.1.1.1", "f1shb0wl") // CHANGE ME
