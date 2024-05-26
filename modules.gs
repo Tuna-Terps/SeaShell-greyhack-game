@@ -12,6 +12,7 @@ SS.NPC.results2 = []
 SS.NPC.d = false 
 SS.NPC.n = false
 SS.NPC.u = []// users
+SS.NPC.pw = []
 SS.NPC.mission = function(o, mission, del = null, notes = null)
     if SS.cfg.mailacct == null then SS.cfg.mailacct = INPUT("Enter mail acct".prompt,true)
     if SS.cfg.mailpw == null then SS.cfg.mailpw = INPUT("Enter mail pw".prompt,true)
@@ -96,6 +97,7 @@ SS.NPC.mission = function(o, mission, del = null, notes = null)
     self.fixmekuro = null
     SS.BAM.handler(o, cmd, ["mail"])
 end function
+//TODO: find the missing end if, im almost positive there is one
 SS.NPC.run = function (id, label, target, target_ip, target_lan)
     LOG("".fill+"MISSION START".b.title.b+NL+"ID: ".white+id.NL+"TYPE: ".white+label.NL+"TARGET: ".white+ target.NL+"IP: ".white+ target_ip.NL+"LAN: ".white+ target_lan.NL+"".fill)
     sumstring = "*Mission Log*"
@@ -123,7 +125,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
     l_obj = []// PRIME local objects
     rem_last = []// remote last options
     loc_last = []// local last options
-    pw_changes = 0
+    self.pw_changes = SS.NPC.pw
     sh = false
     dat_sw = SS.cfg.unsecure_pw//data switch
     _t = function(eo, label, target_lan)
@@ -165,11 +167,13 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         objs = ns.mlib.of(null, dat)
         //if objs.len == 0 then return []
         out=[]
+        pw = null
         for o in objs
-            if ns.lib != "kernel_router.so" and T(o) == "number" then pw_changes = pw_changes+1
+            if ns.lib != "kernel_router.so" and T(o) == "number" then pw = true
             if (T(o) == "number") or (T(o) == "string") then continue
             eo = new SS.EO
             eo.map(o)
+            if (eo.pc != null) and( pw != null) and self.pw_changes.indexOf(eo.pc.local_ip) == null then self.pw_changes.push(eo.pc.local_ip)
             if (ns.lib == "kernel_router.so") and (eo.type =="computer") and (eo.is == "root") then LOG("ROOT PC BOUNCE DETECTED".ok)
             out.push(eo)
         end for
@@ -184,16 +188,17 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         return r_obj
     end function
     _ezb = function(eo, ss)
+        LOG(eo)
         if eo.type != "shell" then return null
         if T(SS.cfg.wf) != "file" then return null
-        if eo.is != "root" then eo.escalate
+        if eo.is != "root" then eo = eo.escalate
         if r0shell == null then r0shell = o
-        if T(SS.cfg.wf) != "file" then return null
         div = eo.o.host_computer.File("/lib/init.so")
         if div then div.rename("init.so"+str(floor(rnd*10)))
         if T(div) == "string" then return null
         drop = SS.s.scp(SS.cfg.wf.path, "/lib", eo.o)
-        if T(drop) == "string" then return null
+        wait(0.1)
+        if T(drop) == "string" then ; LOG(drop.warning);return null; end if;
         if drop == 1 then
             SS.BAM.handler(eo.o, SS.CMD.getOne("iget"), ["mx"])
             if not SS.bamres then return null
@@ -201,10 +206,10 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             _mx.map(eo.o, SS.bamres)
             _mx.l("init.so")
             test = _mx.x.load("/lib/init.so")
-            LOG(test.version)
             if _mx.libs.len<1 then return null 
             root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], target_lan)
-            if root.len == 0 then
+            wait(1)
+            if root.len < 1 then
                 sumstring = sumstring+NL+"Failed to get the root computer".grey
             else
                 LOG("Root computer bounce obtained".red.ok) 
@@ -215,12 +220,11 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     sumstring = sumstring+NL+"Weak library completed the mission".grey
                     SS.NPC.results.push("Completed with root computer bounce")
                     SS.NPC.results2.push(ss)
-                    return true
+                    return task
                 end if
             end if
         else 
-            if drop isa string then sumstring = sumstring+NL+"Failed to drop the cargo".grey
-            if drop2 isa string then sumstring = sumstring+NL+"Failed to drop mx".grey
+            sumstring = sumstring+NL+"Failed to drop the cargo".grey
         end if
         return null
     end function
@@ -243,6 +247,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         for o in r_obj
             if o.type == "shell"  then
                 sumstring = sumstring+NL+"Router had a shell".grey
+                if o.is != "root" then o.escalate
                 r0shell = o
                 ez = _ezb(o, sumstring)
                 if ez != null then
@@ -251,6 +256,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     return ez
                 end if
             end if
+            LOG("halp? c122")
             task = _t(o, label, target_lan)
             if task != null then
                 self.results.push("Completed: Via router objects")
@@ -258,10 +264,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                 return task
             end if
             if self.u.len > 0 then continue
-            if eo.lan != target_lan then continue
-
-            pc = o.o;if T(pc) != "computer" then pc = pc.host_computer 
-
+            if o.lan != target_lan then continue
+            self.u.push(o.users)
         end for
     end if
     if network.services.len == 0 and r0shell == null then// no open ports found, how do we move forward?
@@ -303,8 +307,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                 end if
                 r_sessions.push(midssesh) 
             end for 
-            else; LOG("No fwd ports on the network".grey.sys);
-                sumstring = sumstring+NL+"No forwarded ports for non target machines".grey
+        else;LOG("No fwd ports on the network".grey.sys);
+            sumstring = sumstring+NL+"No forwarded ports for non target machines".grey
         end if
         // =============== HANDLE SESSION MAPPING
         if p_r_sessions.len > 0 then
@@ -317,14 +321,19 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     if SS.debug then LOG("NPC: c4e p_r_session failed")
                     continue;
                 end if
+                hn = null//has number
                 for o in objects
-                    if T(o) == "number" then pw_changes = pw_changes+1
+                    if T(o) == "number" then hn = true 
                     if T(o) == "string" or T(o) == "number" then continue 
                     eo = new SS.EO
                     eo.map(o)
                     eo.escalate
                     if eo.type == "shell" then
                         r0shell = eo
+                        if hn and self.pw_changes.indexOf(eo.lan) == null then
+                            sumstring = sumstring+NL+("PW change detected at "+eo.lan).grey 
+                            self.pw_changes.push(eo.lan)
+                        end if
                         ez = _ezb(eo, sumstring)
                         if ez != null then
                             sumstring = sumstring+NL+"Root bounce via prime object".grey 
@@ -332,6 +341,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                         end if
                     end if
                     p_r_obj.push(eo)
+                    if not eo.pc then continue
+                    if (hn != null) and (self.pw_changes.indexOf(eo.pc.local_ip) == null) then self.pw_changes.push(eo.pc.local_ip)
                 end for
             end for
         else;LOG("No prime remote sessions, moving to other forwarded ports".grey.sys);
@@ -346,12 +357,14 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     if SS.debug then LOG("NPC: c5e r_session failed")
                     continue;
                 end if
-                for o in objects 
+                hn = null//has number
+                for o in objects
+                    if T(o) == "number" then hn = true  
                     if T(o) == "string" or T(o) == "number" then continue 
                     eo = new SS.EO
                     eo.map(o)
                     eo.escalate
-                    if eo.type == "shell" and ((r0shell == null) or (r0shell.o.host_computer.local_ip != eo.o.host_computer.local_ip)) then
+                    if eo.type == "shell" then
                         if r0shell == null then r0shell = eo
                         ez = _ezb(eo, sumstring)
                         if ez != null then
@@ -360,6 +373,10 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                         end if
                         sumstring = sumstring+NL+("Remote shell was assigned: "+r0shell.o.host_computer.local_ip.white).grey   
                         r0shell = eo
+                        if hn != null and self.pw_changes.indexOf(eo.lan) == null then
+                            sumstring = sumstring+NL+("PW change detected at "+eo.lan).grey 
+                            self.pw_changes.push(eo.lan)
+                        end if
                     end if
                     r_obj.push(eo)
                 end for
@@ -390,13 +407,12 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     self.results2.push(sumstring) 
                     return completed
                 end if
-                ez = _ezb(p, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
             end for
         else;LOG("No prime objects found, checking other objects".grey.sys);
             sumstring = sumstring+NL+"No prime objects were found".grey
         end if
         // =============== REMOTE OBJECTS, AT THIS POINT ANY SHELL ANYWHERE WORKS
-        if r_obj.len > 0 and r0shell == null then
+        if (r_obj.len > 0) and (r0shell == null) then
             sumstring = sumstring+NL+"Remote objects found, and mission needed a shell".grey
             if r0shell == null then LOG("Mission still needs a shell".grey.sys);
             // local mapping, push to prime_local, local_ports, and l_obj
@@ -414,6 +430,12 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             end for
         else;LOG("No remote objects found, we have a shell".grey.sys);
             sumstring = sumstring+NL+"Remote objects didnt finish the job, a shell is detected".grey
+            ez = _ezb(r0shell, sumstring)
+            if ez != null then
+                sumstring = sumstring+NL+"Root bounce via prime object".grey 
+                return ez
+            end if 
+            if not r0shell then r0shell = o; break;
         end if
     end if
 
@@ -454,7 +476,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                             for r in res
                                 if T(r) == "number" then 
                                     LOG("PW change detected".ok)
-                                    pw_changes = pw_changes+1
+                                    pw = true
                                     continue 
                                 else if T(r)=="number"then;continue;
                                 end if
@@ -462,9 +484,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                 eo.map(r)
                                 if eo.type == "computer" and eo.is == "root" then LOG(("ROOT COMPUTER DETECTED".green.s+p.lib.red.s+p.libv.white).sys)
                                 eo.escalate
-                                LOG("halp? c15")
                                 if eo.type == "shell" then 
-                                ez = _ezb(eo, sumstring)
+                                    ez = _ezb(eo, sumstring)
                                     if ez != null then
                                         self.results.push("Completed: Via prime local object bounce")
                                         self.results2.push(sumstring)  
@@ -472,6 +493,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                         return ez
                                     end if
                                 end if
+                                LOG("halp? c15")
                                 task = _t(eo, label, target_lan)
                                 if task != null then
                                     self.results.push("Completed: Via prime local object")
@@ -486,7 +508,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                         // simple bf since dict seemingly takes, FOREVER 
                         if ((p.lib == "libssh.so") or (p.lib == "libftp.so")) then
                             sumstring = sumstring+NL+"Detected SSH/FTP running locally".grey   
-                            if pw_changes > 0 then
+                            if self.pw_changes.len > 0 then
                                 LOG("Attempting simple connection. . .".green.sys) 
                                 rooted = r0shell.o.connect_service(target_lan, p.port, "root", SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
                                 if T(rooted) == "shell" or T(rooted) == "ftpshell" then
@@ -503,9 +525,6 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                         return task
                                     end if
                                     ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
-                                else if T(rooted) == "string" then
-                                    //if rooted == "Remote host is down" and label == "system corruption" then return true
-                                    LOG("simple connect: ".warning+rooted)
                                 else
                                     LOG("Root connection failed, moving to regular users. . .".grey.sys)
                                     for i in r0shell.users
@@ -581,7 +600,6 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                             // TODO:
                                             if eo.type == "computer" and eo.is == "root" then LOG(("ROOT COMPUTER DETECTED".green).sys)
                                             eo.escalate
-                                            LOG("is this the troublesom function?") 
                                             task = _t(eo, label, target_lan)
                                             if task != null then
                                                 sumstring = sumstring+NL+"Completed mission with a local ML object".grey     
@@ -610,7 +628,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                         LOG("No local objects returned".grey.sys)
                         sumstring = sumstring+NL+"We did not return any local objects".grey     
                     end if
-                else;LOG("No prime local sessions, moving to local bounce. . .".grey.sys)
+                else;
+                    LOG("No prime local sessions, moving to local bounce. . .".grey.sys)
                     sumstring = sumstring+NL+"We had the ability to locally bounce, but we didnt! add me :(".grey     
                 end if
             else
@@ -621,48 +640,48 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     for lib in l_mx.libs 
                         lh = lib.of(null, target_lan)
                         if lh.len == 0 then continue 
-                        for o in lh 
-                            if T(o) == "number" or T(o) == "string" then continue 
+                        for o in lh
+                            LOG(o)
+                            if not o then continue 
+                            if (T(o) == "number") or (T(o) == "string") then continue 
                             eo = new SS.EO
                             eo.map(o)
-                            eo.escalate
-                            LOG("halp? c10")  
+                            LOG(eo)
+                            wait(0.1)
+                            //ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;  
+                            LOG("halp? c10")
                             task = _t(eo, label, target_lan)
                             if task != null then
                                 SS.NPC.results.push("Completed: Via exploiting a local library")
                                 SS.NPC.results2.push(sumstring)       
                                 return task
                             end if
-                            ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                            // we need to do something with gco, maybe
                         end for
                     end for
                 else;LOG("Unable to load local libraries".error)
                     sumstring = sumstring+NL+"We were unable to load the libraries".grey     
                 end if
-                // router local bounce
             end if
+             // router local bounce    
         else 
             if l0.services.len > 0 then
                 LOG("MX not loaded, but we have ports to try".sys)
                 sumstring = sumstring+NL+"Without MX, we rechecked the network for brute force opportunities".grey      
                 for l in l0.services
-                    if l[0] != "ssh" or l[0] != "ftp" then
-                        sumstring = sumstring+NL+("We found a viable service: "+l[0].white).grey       
-                        LOG("NON exploitable service, moving on".grey.sys); 
-                        LOG("Launching tsunami. . .".grey.sys)
-                            SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", l[3], l[0]])
-                            if T(SS.bamres) == "shell" or T(SS.bamres) == "ftpshell" then
-                            eo = new SS.EO
-                            eo.map(SS.bamres)
-                            //eo.escalate 
-                            LOG("halp? c9") 
-                            task = _t(eo, label, target_lan)
-                            if task != null then return task
-                            else;LOG("Internal brute force failed".grey.sys)
-                            end if
-                            ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
-                        continue;
-                    end if  
+                    if l[0] != "ssh" or l[0] != "ftp" then continue
+                    sumstring = sumstring+NL+("We found a viable service: "+l[0].white).grey       
+                    LOG("NON exploitable service, moving on".grey.sys); 
+                    LOG("Launching tsunami. . .".grey.sys)
+                    SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", l[3], l[0]])
+                    if T(SS.bamres) == "shell" or T(SS.bamres) == "ftpshell" then
+                        eo = new SS.EO
+                        eo.map(SS.bamres)
+                        LOG("halp? c9") 
+                        task = _t(eo, label, target_lan)
+                        if task != null then; return task;else;LOG("Internal brute force failed".grey.sys);end if
+                        ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                    end if
                 end for
             else;LOG("MX not loaded on network & No internal services to brute force".grey.sys)
                 sumstring = sumstring+NL+"Unable to find a viable local port to connect to".grey       
@@ -675,8 +694,15 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             sumstring = sumstring+NL+"Ports were found on the target machine".grey       
             //remote brute force
             for p in prime_ports
-                LOG(p) 
-                if p[0] != "ssh" or p[0] != "ftp" then continue
+                if (p[0] != "ssh") or (p[0] != "ftp") then continue
+                if self.u.len > 0 and self.pw_changes.indexOf(target_lan) != null then 
+                    isu = null
+                    for i in self.u 
+                        
+                        svc = SS.s.connect_service(target_ip)
+
+                    end for
+                end if
                 sumstring = sumstring+NL+("We found ports to connect to "+p[1]).grey        
                 LOG("We have prime ports to try".green.sys)
                 svc = SS.MD5.connect(SS.s, target_ip, "root", s[3], s[0])
@@ -765,14 +791,16 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                             res = p.mlib.of(null, dat_sw)
                             if res.len > 0 then
                                 for r in res
+                                    pw = null
                                     if T(r) == "number" and p.lib != "kernel_router.so" then 
                                         LOG("PW change detected".ok)
-                                        pw_changes = pw_changes+1
+                                        pw = true
                                         continue 
                                     else if T(r)=="number"then;continue;
                                     end if
                                     eo = new SS.EO
                                     eo.map(r)
+                                    if pw != null then LOG("addme")
                                     eo.escalate
                                     if eo.lan == target_lan then r0shell = eo // reassign out r0shell
                                     LOG("halp? c7") 
@@ -789,7 +817,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                             end if
                             // simple bf since dict seemingly takes, FOREVER 
                             if ((p.lib == "libssh.so") or (p.lib == "libftp.so")) then
-                                if pw_changes > 0 then
+                                if self.pw_changes.len > 0 then
                                     LOG("Attempting simple connection. . .".green.sys) 
                                     rooted = r0shell.o.connect_service(target_lan, p.port, "root", SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
                                     if T(rooted) == "shell" or T(rooted) == "ftpshell" then 
@@ -863,7 +891,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                         self.results2.push(sumstring)           
                                         return task
                                     end if
-                                    ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                                    ez = _ezb(eo, sumstring);
+                                    if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                                     SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"]) 
                                     if SS.bamres != null then
                                         sumstring = sumstring+NL+("We loaded MX onto the system as "+p.is.white).grey      
