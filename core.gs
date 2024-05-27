@@ -16,6 +16,7 @@ FEO.map(SS.f, SS.c.public_ip, SS.c.local_ip)
 SS.apt = null
 SS.crypto = null
 SS.mx = null
+SS.mxp = null
 SS.apt_updates = []
 SS.shells = []
 SS.computers = []
@@ -37,6 +38,10 @@ SS.cfg.mailpw = "mail"
 SS.cfg.hackip = ""
 SS.cfg.dat = null // data file
 SS.cfg.macros = null // macro folder
+SS.cfg.wf = null // weak lib file
+SS.cfg.wm = "0x73CBD7B0" // weak lib memory zone
+SS.cfg.wa = "havedoutlinenumbe" // weak lib memory address
+// TODO: weak lib implementation, transferral
 ///==================== SS.CMD() ========================////
 SS.CMD = {}
 SS.CMD.isValid = function(param)
@@ -323,7 +328,11 @@ SS.getDb = function
 	else 
 		LOG("Unable to locate password db".warning)
 	end if
-	if (SS.dbe == null and SS.dbh == null) and (p == null and h == null) then return LOG("Database was not configured".warning)
+	// for now, lets load our weak_lib here
+	if SS.cfg.user == "root" then p = "/root/"+SS.ccd+"/libs/weak/init.so"
+	SS.cfg.wf = SS.Utils.fileFromPath(SS.s, "/home/"+SS.cfg.user+"/libs/STRONG/init.so")
+	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.name); end if;
+	if (SS.dbe == null and SS.dbh == null) then return LOG("Database was not configured".warning)
 	if SS.dbe != null then
 		for each in SS.dbe.get_folders 
 			for f in each.get_files
@@ -337,7 +346,7 @@ end function
 //TODO: fixme
 SS.loadHashes = function(fo)
 	if not fo then return []
-	LOG("Pushing hashes into memory. . .".sys)
+	LOG("Pushing MD5 hashes into memory. . .".sys)
 	_c = []
 	for fi in fo.get_files
 		if fi.is_binary then continue
@@ -347,7 +356,7 @@ SS.loadHashes = function(fo)
 		end for
 	end for
 	SS.dbhl = _c
-	//if SS.debug then LOG("Hashes loaded: ".debug+SS.dbhl)
+	SS.dhc = _c.len
 end function
 SS.setCache = function
 	SS.co.push(SEO)
@@ -473,17 +482,24 @@ SS.getHost = function(a = null, t = null, p = null)
 		if SS.dbh == null then; h = h+NL+"* "+"Script is missing hash database".yellow;else ;h = h+NL+"* "+"Hash database loaded".green;end if;
 		if SS.cfg.dat == null then; h = h+NL+"* "+"Script is missing user config".yellow;else;h = h+NL+"* "+"User config loaded".green; end if;
 		if SS.cfg.macros == null then; h = h+NL+"* "+"Script is missing user macros".yellow;else;h = h+NL+"* "+"User macros loaded".green; end if;
-		return LOG("Program operating under cfg: ".grey+SS.cfg.label+NL+h)
+		LOG(h)
 	else if a == "-e" or a == "-h" then //SET
 		return SS.setHost(t, a, p)
 	else if ["-u", "-m", "-ccd"].indexOf(a) != null then 
 		return SS.setUserConfig(a, t, p)
 	end if
+	if SS.dbhl.len == 0 then SS.loadHashes(SS.dbh)
 	_d = [
 		"SeaShell".title("FFFFFF", 20),
 		"Version".wrap.lblue.cap(SS.version).lblue,
-		"Config".wrap.lblue.cap(SS.cfg.label, null, true).lblue,
 		"Uptime".wrap.lblue.cap(SS.Date.up(time)).lblue,
+		"Config".wrap.lblue.cap(SS.cfg.label, null, true).lblue,
+		"Cache".wrap.lblue.cap(SS.ccd).lblue,
+		"User".wrap.lblue.cap(SS.cfg.user).lblue,
+		"Active".wrap.lblue.cap(SS.Utils.user(SS.c).isRoot(SS.c)).lblue,
+		"Exploits".wrap.lblue.cap(SS.dbec).lblue,
+		"Hashes".wrap.lblue.cap(SS.dhbl.len).lblue,
+
 	]
 	for d in _d ;LOG(d); end for;
 	if SS.mx != null then
@@ -495,12 +511,16 @@ SS.getHost = function(a = null, t = null, p = null)
 		end for
 	end if
 	_d = [
-		"Misc".title("FFFFFF", 20),
-		"User".wrap("A5A5A5").blue.cap(SS.Utils.user(SS.c).isRoot(SS.c)).blue,
-		"Cache".wrap("A5A5A5").blue.cap(SS.ccd.grey).blue,
+		"USER".title("FFFFFF", 20),
 		"Anonymous".wrap("A5A5A5").blue.cap(SS.Utils.ison(SS.anon)).blue,
 		"Old Art".wrap("A5A5A5").blue.cap(SS.Utils.ison(SS.og)).blue,
 		"Debug".wrap("A5A5A5").blue.cap(SS.Utils.ison(SS.debug)).blue,
+		"API".wrap("A5A5A5").blue.cap("server ip").blue,
+		"API1".wrap("A5A5A5").blue.cap(SS.cfg.).blue,
+		"API2".wrap("A5A5A5").blue.cap("addr").blue,
+		"WEAK".wrap("A5A5A5").blue.cap("enabled?").blue,
+		"WEAK1".wrap("A5A5A5").blue.cap("addr").blue,
+		"WEAK2".wrap("A5A5A5").blue.cap("addr").blue,
 	]
 	for d in _d ;LOG(d); end for;
 end function
@@ -862,6 +882,7 @@ Core["build"] = function(o, pF, tF, fN)
 	if T(o) != "shell" then return LOG("Only shells can compile binaries".warning)
 	if pF[0] != "/" then pF = SS.Utils.path(pF)//pathfile
 	if tF[0] != "/" then tF = SS.Utils.path(tF)//targetfile
+	if not Utils.fileFromPath(o, pf) then return LOG("File not found".warning)
 	c = o.build(pF, tF, fN)
 	if c.len > 1 then return LOG(c.warning)
 	//s = (fN.white+" compiled at path: "+pF.yellow).ok
@@ -1050,6 +1071,7 @@ Core["get"] = function(r, op, dp = null)
 	if T(out) == "string" then return LOG(out.warning)
 	LOG("File downloaded to path: ".ok+dp)
 end function
+//TODO: invalid arg handle
 Core["ssh"] = function(o, cs, p = 22)
 	if T(o) != "shell" then return LOG("Object must be of type shell".warning)
 	if cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
@@ -1063,6 +1085,7 @@ Core["ssh"] = function(o, cs, p = 22)
 	LOG(rs)
 	return svc
 end function
+//TODO: invalid arg handle
 Core["ftp"] = function(o, cs, p = 21)
 	if T(o) != "shell" then return LOG("Object must be of type shell".warning)
 	if cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
@@ -1547,7 +1570,7 @@ Core["ns"] = function(addr, p, a = null, d = null)
 	if exploits == null then
 		if INPUT("Press 1 to confirm manual scan".prompt).to_int != 1 then return
 		netsesh.mlib.scan(netsesh.mlib)
-		exploits = netsesh.mlib.scanned
+		exploits = netsesh.mlib.get(netsesh.mlib)
 	end if
 	if not d then d = SS.Utils.datapls
 	if d == ""  or d == " " then d = SS.cfg.unsecure_pw; if d == SS.cfg.unsecure_pw then LOG("Defaulting to unsecure pw . . .".sys)
@@ -1669,17 +1692,18 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	SS.cache(res, i, l)
 end function
 // TODO: local hax revised
-Core["localhax"] = function(o, l, a)
-	if not ["init.so", "kernel_module.so", "net.so", "aptclient.so", "-a"].indexOf(l) then return LOG("Invalid arguments".warning)
+Core["localhax"] = function(o, a, l)
+	if not SS.mx then return LOG("Program operating under CFG: "+SS.cfg.label)
+	if ["init.so", "kernel_module.so", "net.so", "aptclient.so", "-a"].indexOf(l) == null then return LOG("Invalid arguments".warning)
 	m = new SS.MX
 	m.i(o)
 	ip = null // addme
 	lan = null // addme
 	if m.x == null then return null
 	if l == "-a" then// all libraries
-		m.l(l)
+		m.l("-a")
 	else// name
-		m.l
+		m.l(l)
 	end if
 	for l in m.libs 
 		if not l then continue
@@ -1817,7 +1841,6 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 	else if act == "mail" then 
 		SS.bamres = mail_login(SS.cfg.mailacct, SS.cfg.mailpw)
 	else if act == "rcon" then 
-		
 		SS.bamres = SS.MD5.connect(o, d1, d2, d3, d4)
 	else if act == "api" then 
 		SS.bamres = LOG("API needs implementation!")
@@ -1894,24 +1917,29 @@ Core["test"] = function
 	//LOG(test)
 	//netsesh.of(test, "testing")
 
-	m = new SS.MX.i(SS.s)
-	if m == null then return LOG("mx error".debug)
-	m.l
-	LOG(m.libs.len)
-	m.l("-a")
-	LOG(m.libs.len)
-	target_lan = "192.168.1.5"
-	total = 0
-	for lib in m.libs
-		local_hacks = lib.of(null, target_lan)
-		total = total + local_hacks.len
-	end for
-	LOG(total)
-	if m.x == null then return LOG("NO MX")
+	//m = new SS.MX.i(SS.s)
+	//if m == null then return LOG("mx error".debug)
+	//m.l
+	//LOG(m.libs.len)
+	//m.l("-a")
+	//LOG(m.libs.len)
+	//target_lan = "192.168.1.5"
+	//total = 0
+	//for lib in m.libs
+	//	local_hacks = lib.of(null, target_lan)
+	//	total = total + local_hacks.len
+	//end for
+	//LOG(total)
+	//if m.x == null then return LOG("NO MX")
+	//cmd = SS.CMD.getOne("iget")
+	//bam = SS.BAM.handler(SS.s, cmd, ["ns", "1.1.1.1", 22, m.x])
+	////ret1 = SS.bamres//network
+	//LOG("RET "+T(SS.bamres))
 	cmd = SS.CMD.getOne("iget")
-	bam = SS.BAM.handler(SS.s, cmd, ["ns", "1.1.1.1", 22, m.x])
-	//ret1 = SS.bamres//network
-	LOG("RET "+T(SS.bamres))
+	SS.BAM.handler(SS.s, cmd, ["mail"])
+	LOG(SS.bamres.fetch.len)
+
+	LOG(SS.cfg.wf)
 end function
 
 ///======================= SS.CMD LIST =========================////
@@ -2072,6 +2100,8 @@ end function
 SS.BAM.modules = [
 	{"name":"module", "desc":"", "params":[], "usage":"something helpful", "cb":"general", "string":"print('hello there world')"},
 ]
+
+
 //////////////////////////////////////////////////////////////  
 ///======================= CORE =========================////
 ////////////////////////////////////////////////////////////
