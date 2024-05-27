@@ -35,7 +35,7 @@ SS.cfg.burnmailacct = "Oppelli@barner.com"
 SS.cfg.burnmailpw = "Bitch"
 SS.cfg.mailacct = "mail@bolds.net"
 SS.cfg.mailpw = "mail"
-SS.cfg.hackip = ""
+SS.cfg.hackip = "195.189.106.82"
 SS.cfg.dat = null // data file
 SS.cfg.macros = null // macro folder
 SS.cfg.wf = null // weak lib file
@@ -499,7 +499,6 @@ SS.getHost = function(a = null, t = null, p = null)
 		"Active".wrap.lblue.cap(SS.Utils.user(SS.c).isRoot(SS.c)).lblue,
 		"Exploits".wrap.lblue.cap(SS.dbec).lblue,
 		"Hashes".wrap.lblue.cap(SS.dhbl.len).lblue,
-
 	]
 	for d in _d ;LOG(d); end for;
 	if SS.mx != null then
@@ -516,11 +515,11 @@ SS.getHost = function(a = null, t = null, p = null)
 		"Old Art".wrap("A5A5A5").blue.cap(SS.Utils.ison(SS.og)).blue,
 		"Debug".wrap("A5A5A5").blue.cap(SS.Utils.ison(SS.debug)).blue,
 		"API".wrap("A5A5A5").blue.cap("server ip").blue,
-		"API1".wrap("A5A5A5").blue.cap(SS.cfg.).blue,
-		"API2".wrap("A5A5A5").blue.cap("addr").blue,
-		"WEAK".wrap("A5A5A5").blue.cap("enabled?").blue,
-		"WEAK1".wrap("A5A5A5").blue.cap("addr").blue,
-		"WEAK2".wrap("A5A5A5").blue.cap("addr").blue,
+		"API1".wrap("A5A5A5").blue.cap("wip").blue,
+		"API2".wrap("A5A5A5").blue.cap("wip").blue,
+		"WEAK".wrap("A5A5A5").blue.cap(T(SS.cfg.wf)).blue,
+		"WEAK1".wrap("A5A5A5").blue.cap(SS.cfg.wa).blue,
+		"WEAK2".wrap("A5A5A5").blue.cap(SS.cfg.wm).blue,
 	]
 	for d in _d ;LOG(d); end for;
 end function
@@ -2029,7 +2028,7 @@ SS.CMD.list = [
 	["shellfish", "local shell Brute force", ["*"], null, "result", @Core["shellfish"]],
 	["mailfish", "NPC mail Brute force", ["*"], null, null, @SS.MD5["mail"]],
 	["rshell", "MX rshells", ["*", "*", "*"], null, "result", @Core["rshell"]],
-	["npc", "NPC mission competion", ["*", "*", "*"], null, "general", @Core["npc"]],
+	["npc", "NPC mission competion", ["-c|-p|*", "*", "*"], "NPC mission auto completion, simply sign up and reply to the remaining emails".NL+"-c -- > corruption missions, good for mass money collection".NL+"-p --> credentials needed missions, great for coupons".NL+"-clear --> clear your email inbox, this means you are only required to reply to the emails", "general", @Core["npc"]],
 	["md5", "String -> md5", ["*"], null, null, @Core["md5"]],
 	["bam", "", ["*", "*", "*", "*", "*"], "Binary attack module is a remote option for using seashell commands, and specified payloads\n[cmd|info|module] [args]\nex: bam sudo -s | bam touch /home/guest", "result", @Core["bam"]],
 
