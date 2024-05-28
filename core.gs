@@ -312,7 +312,6 @@ SS.checkApt = function
 	end for
 	return ret
 end function
-//TODO: fix
 SS.getDb = function
 	if SS.debug then LOG("setDB".debug)
 	h = SS.Utils.hasFolder(SS.c, "exploits")
@@ -329,8 +328,11 @@ SS.getDb = function
 		LOG("Unable to locate password db".warning)
 	end if
 	// for now, lets load our weak_lib here
+	// TODO: 
 	if SS.cfg.user == "root" then p = "/root/"+SS.ccd+"/libs/weak/init.so"
-	SS.cfg.wf = SS.Utils.fileFromPath(SS.s, "/home/"+SS.cfg.user+"/libs/STRONG/init.so")
+	if SS.cfg.user == "2NA" then p = "/home/"+SS.cfg.user+"/libs/STRONG/init.so"
+	if SS.cfg.user != "root" and SS.cfg.user != "2NA" then p = "/home/"+SS.cfg.user+"/"+SS.ccd+"/libs/weak/init.so"
+	SS.cfg.wf = SS.Utils.fileFromPath(SS.s, p)
 	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.name); end if;
 	if (SS.dbe == null and SS.dbh == null) then return LOG("Database was not configured".warning)
 	if SS.dbe != null then
@@ -498,7 +500,7 @@ SS.getHost = function(a = null, t = null, p = null)
 		"User".wrap.lblue.cap(SS.cfg.user).lblue,
 		"Active".wrap.lblue.cap(SS.Utils.user(SS.c).isRoot(SS.c)).lblue,
 		"Exploits".wrap.lblue.cap(SS.dbec).lblue,
-		"Hashes".wrap.lblue.cap(SS.dhbl.len).lblue,
+		"Hashes".wrap.lblue.cap(SS.dbhl.len).lblue,
 	]
 	for d in _d ;LOG(d); end for;
 	if SS.mx != null then
@@ -1076,6 +1078,8 @@ Core["ssh"] = function(o, cs, p = 22)
 	if cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
 	if p != 22 then p = p.to_int
 	cs = cs.split("@")
+	if not is_valid_ip(cs[1]) then return LOG("Invalid usage: user@ip port")
+	if T(p) == "string" then return LOG("Invalid usage: user@ip port".warning)
 	svc = o.connect_service(cs[1], p, cs[0], INPUT("Enter password: ".prompt, true), "ssh")
 	if T(svc) == "string" then; LOG(svc.warning); return null; end if
 	if svc == null then return
@@ -1089,7 +1093,9 @@ Core["ftp"] = function(o, cs, p = 21)
 	if T(o) != "shell" then return LOG("Object must be of type shell".warning)
 	if cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
 	if p != 21 then p = p.to_int
+	if T(p) == "string" then return LOG("Invalid usage: user@ip port".warning)
 	cs = cs.split("@")
+	if not is_valid_ip(cs[1]) then return LOG("Invalid usage: user@ip port".warning)
 	svc = o.connect_service(cs[1], p, cs[0], INPUT("Enter password: ".prompt, true), "ftp")
 	if T(svc) == "string" then; LOG(svc.warning); return null; end if
 	if svc == null then return
