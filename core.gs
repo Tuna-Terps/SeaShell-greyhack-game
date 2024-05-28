@@ -2097,7 +2097,7 @@ SS.BAM.run = function(o, s)
 	end if
 	if T(payload) == "string" then; LOG("An error occured in setting bam: ".warning+payload); return; end if;
 	compile = o.build(launcher.path, h, 0)
-	//launcher.set_content("><> ><> ><>")
+	launcher.set_content("><> ><> ><>")
 	if T(compile) == "string" and compile.len > 1 then; LOG("An error occured in compilation of bam: ".warning+compile); return; end if;
 	launched = o.launch(launcher.path[:-4])
 	if launched == null then; LOG("An error occured launching bam".warning); return; end if;
