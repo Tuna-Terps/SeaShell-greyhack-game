@@ -1979,7 +1979,7 @@ SS.EO.map = function(o, ip = null, lan = null)
     if T(self.pw) == "file" then; if self.pw.has_permission("r") then; self.pw = self.pw.get_content;if self.pw.split("\n") then self.pw = self.pw.replace(NL,"::");else ;self.pw = "r".red.b;self.risk=self.risk+1;end if;else;self.pw = "f".red.b;self.risk=self.risk+1;end if;
     if T(self.e) == "file" then; if self.e.has_permission("r") then; self.e = self.e.get_content;else ;self.e = "r".red.b;end if; else;self.e = "f".red.b;end if;
     if T(self.b) == "file" then ;if self.b.has_permission("r") then;self.b = self.b.get_content;else ;self.b = "r".red.b;end if;else;self.b = "f".red.b;end if;
-    if T(self.br) == "file" then ;if self.b.has_permission("r") then;self.b = self.br.get_content;else ;self.br = "r".red.b;end if;else;self.br = "f".red.b;end if;
+    if T(self.br) == "file" then ;if self.br.has_permission("r") then;self.br = self.br.get_content;else ;self.br = "r".red.b;end if;else;self.br = "f".red.b;end if;
     return self
 end function
 SS.EO.same = function(eo)// our comparitive eo
