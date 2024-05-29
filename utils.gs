@@ -31,6 +31,7 @@ NL = char(10)
 COLUMNS = @format_columns
 CLEAR = function; return clear_screen; end function;
 ///==================== Maps ========================////
+SS.mutate = function
 string.size = function(self, s)
     if T(s) == "number" then s = str(s)
     return "<size="+s+">"+self+"</size>"
@@ -303,6 +304,9 @@ list.select2 = function()
     ret = ret+NL+"Select".prompt
     return ret
 end function
+// end of mutation
+end function
+SS.mutate// to be reused in sf
 ///======================== DATE & UPTIME =========================////
 SS.Date = {}
 SS.Date.dd = null
@@ -485,13 +489,10 @@ SS.Utils.fileFromPath = function(o, p)
     file = null
     for pathIndex in p.split("/")// loop the path
         if pathIndex == "" then continue
-        //if SS.debug then LOG("PATHINDEX ".debug+pathIndex)
         if cf.is_folder then cf = cf.get_folders+cf.get_files
         file = null
         for f in cf // loop the dir
-            //if SS.debug and file != null then LOG("File loop ".sys+file.name)
             if f.name == pathIndex then
-                //if SS.debug then LOG("File loop c2 ".sys+f.name) 
                 cf = f
                 file = f
                 break
@@ -499,7 +500,6 @@ SS.Utils.fileFromPath = function(o, p)
         end for 
         if file == null then return null
     end for
-    //if SS.debug and file != null then LOG("Utils:fileFromPath ret: ".debug+file.name)
     return file
 end function
 SS.Utils.goHome = function(o, u = null)
@@ -1021,10 +1021,14 @@ end function
 // [ { "t:": type, "v": version "lan": lan, "essid":, "bssid":, "rules:" "devices": [ {"lan":lan, "ports":[] }]} ]
 SS.Network.maplan = function() 
     if self.isLan == false then; LOG("Local use only".warning); return null; end if;
+    if self.router == null then self.router = get_router
     ret = []
     devList = [];subs = []; 
-    for device in self.devices
-        sub = {"lan": device}
+    for rPort in self.router.device_ports(self.router.local_ip)
+        if T(rPort) == "Port" then LOG(rPort.port_info)
+    end for 
+    for device in get_router.devices_lan_ip
+        sub["lan"] = device
         l_d = get_router(device)
         if not l_d then continue
         if devList.indexOf(device) == null then devList.push(device)
@@ -1032,7 +1036,7 @@ SS.Network.maplan = function()
         sub["essid"] = l_d.bssid_name
         sub["bssid"] = l_d.essid_name
         sub["v"] = l_d.kernel_version
-        sub["fw"] = self.fw(l_d.firewall_rules)
+        sub["fw"] = l_d.firewall_rules
         sub.devices = []
         if get_switch(device) == null then sub["t"]  = "ROUTER";
         for subDev in l_d.devices_lan_ip
@@ -1044,6 +1048,7 @@ SS.Network.maplan = function()
             ports = l_d.device_ports(subDev)
             if not ports or ports.len == 0 then; sub_dev.ports = null; continue; end if;
             for i in ports
+                if T(i) == "string" then continue
                 p_i = l_d.port_info(i)
                 s_p = p_i.split(" ")
                 sub_dev.ports.push({"l":s_p[0],"v":s_p[1],"s":i.is_closed, "n":i.port_number, "a":i.get_lan_ip})
@@ -1407,8 +1412,14 @@ SS.ML.hasScanned = function(lib, libV)
         n = fo.name 
         fn = lib.split("\.")[0]
         if fn[:4] == "kern" then fn = fn.replace("_","")// kernel router and modules
-        if n[-1:] == "1" then n = n.replace("1","")
-        if n[-1:] == "2" then n = n.replace("2","")
+        if T((n[-2:].to_int)) == "number" then 
+            n = n.replace(n[-2:], "")
+        else if (T((n[-2:].to_int)) != "number") and (T(n[-1:].to_int) == "number") then 
+            n = n.replace(n[-1:], "")
+        end if
+        //if n[-1:] == "1" then n = n.replace("1","")
+        //if n[-1:] == "2" then n = n.replace("2","")
+        //if n[-1:] == "3" then n = n.replace("3","")
         if (n != fn) then continue
         for fi in fo.get_files
             if fi.name == (lib+"_v"+libV+".db") then
@@ -1437,7 +1448,9 @@ SS.ML.get=function(m)
 	if l then return l
 	l=c.File(p+"/"+x+"1"+"/"+n)
 	if l then return l
-    for i in range(2, 4)
+    l=c.File(p+"/"+x+"2"+"/"+n)
+	if l then return l
+    for i in range(3, 4)
         i=str(i)
         l=c.File(p+"/"+x+i+"/"+n)
         if l then return l
@@ -2082,6 +2095,16 @@ SS.EO.escalate = function(u = "root")
     //if SS.Utils.user(self.o) == "root" then return self 
     // local hack ( ? )
     return self
+end function
+SS.EO.mass_pw_change = function(self)
+    if self.pc == null then return []
+    if self.users.len then return []
+    r = []
+    for u in self.users 
+        p = self.pc.change_password(u, SS.cfg.unsecure_pw)
+        if T(p) != "string" then r.push(1)
+    end for
+    return (r.len == users.len)
 end function
 SS.EO.weakget = function
     if self.type != "shell" or self.type != "ftpshell" then return null
