@@ -12,7 +12,9 @@ SS.NPC.results2 = []
 SS.NPC.d = false 
 SS.NPC.n = false
 SS.NPC.u = []// users
-SS.NPC.pw = []
+SS.NPC.pw = []// pw_changes
+SS.NPC.tusers = []//target users
+SS.NPC.tl = null//target lan
 SS.NPC.mission = function(o, mission, del = null, notes = null)
     if SS.cfg.mailacct == null then SS.cfg.mailacct = INPUT("Enter mail acct".prompt,true)
     if SS.cfg.mailpw == null then SS.cfg.mailpw = INPUT("Enter mail pw".prompt,true)
@@ -138,6 +140,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
     rem_last = []// remote last options
     loc_last = []// local last options
     self.pw_changes = SS.NPC.pw
+    globals.tu = SS.NPC.tusers
+    tl = target_lan
     sh = false
     dat_sw = SS.cfg.unsecure_pw//data switch
     _t = function(eo, label, target_lan)
@@ -185,7 +189,15 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             if (T(o) == "number") or (T(o) == "string") then continue
             eo = new SS.EO
             eo.map(o)
-            if (eo.pc != null) and( pw != null) and self.pw_changes.indexOf(eo.pc.local_ip) == null then self.pw_changes.push(eo.pc.local_ip)
+            eo.escalate
+            // if target users hasnt been defined, push them to the list 
+            if (SS.NPC.tusers.len == 0) and (eo.lan == SS.NPC.tl) then SS.NPC.tusers = eo.users
+            if SS.NPC.tusers.len > 0 and (eo.users == tu) then
+                LOG("C2a")
+                // file objects might be able to handle the job, lets stop sleeping on them 
+                if eo.lan == "Unspecified" then eo.lan = tl
+            end if
+            if (eo.pc != null) and( pw != null) and (self.pw_changes.indexOf(eo.pc.local_ip) == null) then self.pw_changes.push(eo.pc.local_ip)
             out.push(eo)
         end for
         return out
@@ -198,7 +210,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         if o2.len > 0 then r_obj = r_obj+o2
         return r_obj
     end function
-    _ezb = function(eo, ss)
+    _ezb = function(eo, ss, tl)
         if eo.type != "shell" then return null
         if T(SS.cfg.wf) != "file" then return null
         if eo.is != "root" then eo = eo.escalate
@@ -222,11 +234,11 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             if root.len < 1 then
                 sumstring = sumstring+NL+"Failed to get the root computer".grey
             else
-                LOG("Root computer bounce obtained".red.ok)
-                LOG(T(root[0]))
+                LOG("Root computer bounce obtained ".red.ok+root[0].local_ip.s+" "+(root[0].local_ip == tl))
                 eo = new SS.EO
                 eo.map(root[0])
-                task = _t(eo, label, target_lan)
+                if (tu.len == 0) and (eo.lan == tl) then tu = eo.users
+                task = _t(eo, label, tl)
                 if task != null then 
                     sumstring = sumstring+NL+"Weak library completed the mission".grey
                     SS.NPC.results.push("Completed with root computer bounce")
@@ -246,7 +258,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             eo = new SS.EO
             eo.map(eo)
             eo.escalate 
-            LOG("halp? c8") 
+            LOG("Task: bf".grey.sys) 
             task = _t(eo, label, target_lan)
             if task != null then
                 sumstring = sumstring+NL+"We were able to brute force ".grey
@@ -254,7 +266,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                 self.results2.push(sumstring)
                 return task
             end if
-            ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);
+            ez = _ezb(eo, sumstring, target_lan);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);
             return ez;end if;   
         else;LOG("Remote brute force connection failed".sys.grey)
             sumstring = ss+NL+"We were unable to brute force the connection ".grey
@@ -282,17 +294,23 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                 sumstring = sumstring+NL+"Router had a shell".grey
                 if o.is != "root" then o.escalate
                 r0shell = o
-                ez = _ezb(o, sumstring)
+                ez = _ezb(o, sumstring, target_lan)
                 if ez != null then
-                    self.results.push("Completed: Via router bounce")
+                    SS.Utils.wipe_logs(eo.o)
+                    self.results.push("Completed: Via root R bounce")
                     self.results2.push(sumstring) 
                     return ez
                 end if
             end if
-            LOG("halp? c122")
+            if (tu.len == 0) and (o.lan == tl) then tu = o.users
+            if tu.len > 0 and (o.users == tu) then
+                // file objects might be able to handle the job, lets stop sleeping on them 
+                if o.lan == "Unspecified" then o.lan = tl
+            end if
+            LOG("Task: router loop".sys)
             task = _t(o, label, target_lan)
             if task != null then
-                self.results.push("Completed: Via router objects")
+                self.results.push("Completed: Via router object "+o.type.white)
                 self.results2.push(sumstring)       
                 return task
             end if
@@ -300,11 +318,13 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             if o.lan != target_lan then continue
             self.u.push(o.users)
         end for
+        if r0shell != null then sumstring = sumstring+NL+("Router shell was assigned: "+r0shell.o.host_computer.local_ip.white).grey   
+        if r0shell == null then sumstring = sumstring+NL+("No shell from the router").grey   
     end if
     if network.services.len == 0 and r0shell == null then// no open ports found, how do we move forward?
         sumstring = sumstring+NL+"No forwarded ports, and was unable to get a remote shell".grey
         LOG("No shells or fwd ports, unable to move forward".warning)
-        self.results.push("Failed: No forwarded ports, and unable to etablish an inital shell") 
+        self.results.push("Failed: No fwd ports | initial shell") 
         self.results2.push(sumstring)
         return null
     end if 
@@ -361,13 +381,19 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     eo = new SS.EO
                     eo.map(o)
                     eo.escalate
+                    if eo.pc != null and eo.is == "root" then eo.mass_pw_change
+                    if (tu.len == 0) and (eo.lan == tl) then tu = eo.users
+                    if tu.len > 0 and (eo.users == tu) then
+                        // file objects might be able to handle the job, lets stop sleeping on them 
+                        if eo.lan == "Unspecified" then eo.lan = tl
+                    end if
                     if eo.type == "shell" then
                         r0shell = eo
                         if hn and self.pw_changes.indexOf(eo.lan) == null then
                             sumstring = sumstring+NL+("PW change detected at "+eo.lan).grey 
                             self.pw_changes.push(eo.lan)
                         end if
-                        ez = _ezb(eo, sumstring)
+                        ez = _ezb(eo, sumstring, target_lan)
                         if ez != null then
                             self.results.push("Completed: Via root bounce");self.results2.push(sumstring);
                             sumstring = sumstring+NL+"Root bounce via prime object".grey 
@@ -379,6 +405,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     if (hn != null) and (self.pw_changes.indexOf(eo.pc.local_ip) == null) then self.pw_changes.push(eo.pc.local_ip)
                 end for
             end for
+            if (r0shell != null) and (r0shell.lan == target_lan) then sumstring = sumstring+NL+("Remote shell assigned to target: "+r0shell.o.host_computer.local_ip.white).grey   
         else;LOG("No prime remote sessions, moving to other forwarded ports".grey.sys);
         end if
         if r_sessions.len > 0 then 
@@ -398,9 +425,13 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     eo = new SS.EO
                     eo.map(o)
                     eo.escalate
+                    if eo.pc != null and eo.is == "root" then eo.mass_pw_change
                     if eo.type == "shell" then
-                        if r0shell == null then r0shell = eo
-                        ez = _ezb(eo, sumstring)
+                        if r0shell == null then
+                            r0shell = eo
+                            sumstring = sumstring+NL+("Remote shell assigned to: "+r0shell.o.host_computer.local_ip.white).grey   
+                        end if
+                        ez = _ezb(eo, sumstring, target_lan)
                         if ez != null then
                             self.results.push("Completed: Via root bounce");self.results2.push(sumstring);
                             sumstring = sumstring+NL+"Root bounce via mids object".grey 
@@ -426,19 +457,19 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             LOG("Prime objects found, attempting completion. . .".sys);
             for p in p_r_obj
                 if p.type == "shell" then
-                    ez = _ezb(p, sumstring)
+                    ez = _ezb(p, sumstring, target_lan)
                     if ez != null then
                         self.results.push("Completed: Via root bounce");self.results2.push(sumstring);
                         sumstring = sumstring+NL+"Root bounce via prime object".grey 
                         return ez
                     end if
-                    sumstring = sumstring+NL+"Remote shell reassigned to target shell".grey 
                     r0shell = p // replace our old eo with a better one
                 end if 
-                LOG("halp? c16")   
+                LOG("Task: p_r_o".grey.sys) 
                 completed = _t(p, label, target_lan)
                 if not h_w then; SS.Utils.wipe_logs(p.o); h_w = true; end if;
                 if completed != null then
+                    sumstring = sumstring+NL+("Remote shell assigned to target: "+r0shell.o.host_computer.local_ip.white).grey   
                     self.results.push("Completed via prime remote object")
                     self.results2.push(sumstring) 
                     return completed
@@ -458,7 +489,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             for o in r_obj
                 if not h_w then; SS.Utils.wipe_logs(o.o); h_w = true; end if; 
                 if o.type == "shell" then
-                    ez = _ezb(o, sumstring)
+                    ez = _ezb(o, sumstring, target_lan)
                     if ez != null then
                         self.results.push("Completed: Via root bounce");self.results2.push(sumstring);
                         sumstring = sumstring+NL+"Root bounce via prime object".grey 
@@ -467,9 +498,10 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     if not r0shell then r0shell = o; break;
                 end if
             end for
+            if r0shell != null then sumstring = sumstring+NL+("Shell assigned to remote: "+r0shell.o.host_computer.local_ip.white).grey   
         else if r0shell != null then; 
             sumstring = sumstring+NL+"Remote objects failed, a shell is detected".grey;LOG("No remote objects found, we have a shell".grey.sys);
-            ez = _ezb(r0shell, sumstring)
+            ez = _ezb(r0shell, sumstring, target_lan)
             if ez != null then
                 self.results.push("Completed: Via root bounce");self.results2.push(sumstring);
                 sumstring = sumstring+NL+"Root bounce via prime object".grey 
@@ -479,13 +511,19 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             sumstring = sumstring+NL+"Remote objects failed, no shell returned".grey
         end if
     end if
-
     // =============== LOCAL NETWORK GET
     if r0shell != null then // router map
         sumstring = sumstring+NL+("We had a launch shell at "+r0shell.o.host_computer.local_ip.white).grey
+        if _ezb(r0shell, sumstring, target_lan) != null then
+            self.results.push("Completed: Via prime local object bounce")
+            self.results2.push(sumstring)  
+            sumstring = sumstring+NL+"Root bounce via local object".grey 
+            return true
+        end if
         LOG("Remote shell found, ready to map network".sys);
         SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["network", target_lan])
         l0 = SS.bamres
+        r0shell.mass_pw_change
         SS.Utils.wipe_logs(r0shell.o)
     else;LOG("No remote shell obtained".grey.sys);
         sumstring = sumstring+NL+"We did not get a remote shell initially".grey
@@ -524,9 +562,15 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                 eo = new SS.EO
                                 eo.map(r)
                                 if eo.type == "computer" and eo.is == "root" then LOG(("ROOT COMPUTER DETECTED".green.s+p.lib.red.s+p.libv.white).sys)
+                                if (tu.len == 0) and (eo.lan == tl) then tu = eo.users
+                                if tu.len > 0 and (eo.users == tu) then
+                                    // file objects might be able to handle the job, lets stop sleeping on them 
+                                    if eo.lan == "Unspecified" then eo.lan = tl
+                                end if
+                                if eo.pc != null and eo.is == "root" then eo.mass_pw_change
                                 eo.escalate
                                 if eo.type == "shell" then 
-                                    ez = _ezb(eo, sumstring)
+                                    ez = _ezb(eo, sumstring, target_lan)
                                     if ez != null then
                                         self.results.push("Completed: Via prime local object bounce")
                                         self.results2.push(sumstring)  
@@ -534,14 +578,14 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                         return ez
                                     end if
                                 end if
-                                LOG("halp? c15")
+                                LOG("Task: local object".grey.sys) 
                                 task = _t(eo, label, target_lan)
                                 if task != null then
                                     self.results.push("Completed: Via prime local object")
                                     self.results2.push(sumstring)  
                                     return task
                                 end if
-                                ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
+                                ez = _ezb(eo, sumstring, target_lan);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
                                 p_l_obj.push(eo)
                             end for
                         else;LOG("No local objects returned, looking for a tsunami. . .".grey.sys)
@@ -549,64 +593,60 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                         // simple bf since dict seemingly takes, FOREVER 
                         if ((p.lib == "libssh.so") or (p.lib == "libftp.so")) then
                             sumstring = sumstring+NL+"Detected SSH/FTP running locally".grey   
-                            if self.pw_changes.len > 0 then
-                                LOG("Attempting simple connection. . .".green.sys) 
-                                rooted = r0shell.o.connect_service(target_lan, p.port, "root", SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
-                                if T(rooted) == "shell" or T(rooted) == "ftpshell" then
-                                    sumstring = sumstring+NL+"We detected a pw change, and defaulted to a simple connection as root".grey    
-                                    LOG(("Root".red+" connection established").ok)
-                                    eo = new SS.EO
-                                    eo.map(rooted)
-                                    ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
-                                    LOG("halp? c14")  
-                                    task = _t(eo, label, target_lan)
-                                    if task != null then
-                                        self.results.push("Completed: PW change brute force ROOT local connection")
-                                        self.results2.push(sumstring)   
-                                        return task
-                                    end if
-                                    ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
-                                else
-                                    LOG("Root connection failed, moving to regular users. . .".grey.sys)
-                                    for i in r0shell.users
-                                        svc = null 
-                                        rooted = r0shell.o.connect_service(target_lan, p.port, i, SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
-                                        if T(rooted) == "shell" or T(rooted) == "ftpshell" then
-                                            sumstring = sumstring+NL+("We detected a pw change, and defaulted a connection as "+i.white+" and escalated to root").grey     
-                                            LOG("User connection established".ok)
-                                            eo = new SS.EO
-                                            eo.map(svc)
-                                            LOG("halp? c13")  
-                                            task = _t(eo, label, target_lan)
-                                            if task != null then
-                                                self.results.push("Completed: PW change brute force USER -> ROOT local connection")    
-                                                self.results2.push(sumstring)      
-                                                return task
-                                            end if
-                                            ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
-                                        else if T(svc) == "string" then
-                                            if (svc == "Remote host is down") and (label == "system corruption") then return true// pretty sure we dont even capture this, so
-                                            LOG("simple connect: ".warning+svc)
-                                        end if
-                                    end for 
-                                end if   
-                            else 
-                                LOG("Launching tsunami. . .".grey.sys)
-                                SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
-                                if T(SS.bamres) == "shell" then
-                                    eo = new SS.EO
-                                    eo.map(SS.bamres)
-                                    LOG("halp? c12")  
-                                    task = _t(eo, label, target_lan)
-                                    if task != null then
-                                        sumstring = sumstring+NL+"We brute forced a local connection using tsunami".grey    
-                                        self.results.push("Completed: Brute force local connection from tsunami")
-                                        self.results2.push(sumstring)     
-                                        return task
-                                    end if
-                                    ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
-                                else;LOG("Internal brute force failed")
+                            LOG("Attempting simple connection. . .".green.sys) 
+                            rooted = r0shell.o.connect_service(target_lan, p.port, "root", SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
+                            if T(rooted) == "shell" or T(rooted) == "ftpshell" then
+                                sumstring = sumstring+NL+"We detected a pw change, and defaulted to a simple connection as root".grey    
+                                LOG(("Root".red+" connection established").ok)
+                                eo = new SS.EO
+                                eo.map(rooted)
+                                ez = _ezb(eo, sumstring, target_lan);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
+                                LOG("Task: shell1".grey.sys) 
+                                task = _t(eo, label, target_lan)
+                                if task != null then
+                                    self.results.push("Completed: PW change brute force ROOT local connection")
+                                    self.results2.push(sumstring)   
+                                    return task
                                 end if
+                                ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
+                            else
+                                LOG("Root connection failed, moving to regular users. . .".grey.sys)
+                                for i in r0shell.users
+                                    svc = null 
+                                    rooted = r0shell.o.connect_service(target_lan, p.port, i, SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
+                                    if T(rooted) == "shell" or T(rooted) == "ftpshell" then
+                                        sumstring = sumstring+NL+("We detected a pw change, and defaulted a connection as "+i.white+" and escalated to root").grey     
+                                        LOG("User connection established".ok)
+                                        eo = new SS.EO
+                                        eo.map(svc)
+                                        LOG("Task: shell2".grey.sys) 
+                                        task = _t(eo, label, target_lan)
+                                        if task != null then
+                                            self.results.push("Completed: PW change brute force USER -> ROOT local connection")    
+                                            self.results2.push(sumstring)      
+                                            return task
+                                        end if
+                                        ez = _ezb(eo, sumstring, target_lan);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
+                                    else if T(svc) == "string" then
+                                        if (svc == "Remote host is down") and (label == "system corruption") then return true// pretty sure we dont even capture this, so
+                                        LOG("simple connect: ".warning+svc)
+                                    end if
+                                end for 
+                            end if   
+                            LOG("Launching tsunami. . .".grey.sys)
+                            SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
+                            if T(SS.bamres) == "shell" then
+                                eo = new SS.EO
+                                eo.map(SS.bamres)
+                                task = _t(eo, label, target_lan)
+                                if task != null then
+                                    sumstring = sumstring+NL+"We brute forced a local connection using tsunami".grey    
+                                    self.results.push("Completed: Brute force local connection from tsunami")
+                                    self.results2.push(sumstring)     
+                                    return task
+                                end if
+                                ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                            else;LOG("Internal brute force failed")
                             end if
                         end if
                     end for
@@ -616,7 +656,6 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                         for p in p_l_obj
                             if T(p.o) == "shell" then
                                 p.escalate
-                                LOG("halp? c11")  
                                 task = _t(p, label, target_lan)
                                 if task != null then
                                     sumstring = sumstring+NL+"Completed mission with a NS shell object".grey     
@@ -624,7 +663,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                     self.results2.push(sumstring)     
                                     return task
                                 end if
-                                ez = _ezb(p, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                                ez = _ezb(p, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                                 SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"]) 
                                 if SS.bamres != null then  
                                     LOG(("Local "+T(SS.bamres).red+" obtained on "+"TARGET".green+" shell. . .").sys) 
@@ -640,6 +679,11 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                             eo.map(l, target_ip, target_lan)
                                             // TODO:
                                             if eo.type == "computer" and eo.is == "root" then LOG(("ROOT COMPUTER DETECTED".green).sys)
+                                            if (tu.len == 0) and (eo.lan == self.lan) then tu = eo.users
+                                            if tu.len > 0 and (eo.users == tu) then
+                                                // file objects might be able to handle the job, lets stop sleeping on them 
+                                                if eo.lan == "Unspecified" then eo.lan = tl
+                                            end if
                                             eo.escalate
                                             task = _t(eo, label, target_lan)
                                             if task != null then
@@ -648,14 +692,13 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                                 self.results2.push(sumstring)      
                                                 return task
                                             end if
-                                            ez = _ezb(eo, sumstring);self.results.push("Completed: Via root bounce");self.results2.push(sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                                            ez = _ezb(eo, sumstring, target_lan);self.results.push("Completed: Via root bounce");self.results2.push(sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                                         end for 
                                     end for
                                 else;LOG("MX was not loaded on the target machine".grey.sys)
                                     sumstring = sumstring+NL+"We were unable to load MX onto our remote shell".grey     
                                 end if 
                             else 
-                                LOG("halp? c1") 
                                 task = _t(p, label, target_lan)
                                 if task != null then
                                     sumstring = sumstring+NL+"Completed mission with a NS non-shell object".grey    
@@ -674,31 +717,39 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     sumstring = sumstring+NL+"We had the ability to locally bounce, but we didnt! add me :(".grey     
                 end if
             else
+                // TODO: we need to disable firewalls, to get access to the target machines . . .
                 LOG("No internal services found, exploiting local libraries. . .".grey.sys);
                 l_mx.l("-a")
                 if l_mx.libs.len > 0 then
                     sumstring = sumstring+NL+"We had no local services, so we tried a local library bounce".grey      
+                    ez = _ezb(r0shell, sumstring, target_lan);tried = true;if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;LOG("MISSION COMPLETE".green.size(40));return ez;end if;  
+                    ret = null
+                    libs = []
                     for lib in l_mx.libs 
                         lh = lib.of(null, target_lan)
-                        if lh.len == 0 then continue 
-                        for o in lh
-                            LOG(o)
-                            if not o then continue 
-                            if (T(o) == "number") or (T(o) == "string") then continue 
-                            eo = new SS.EO
-                            eo.map(o)
-                            LOG(eo)
-                            wait(0.1)
-                            //ez = _ezb(eo, sumstring);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;  
-                            LOG("halp? c10")
-                            task = _t(eo, label, target_lan)
-                            if task != null then
-                                SS.NPC.results.push("Completed: Via exploiting a local library")
-                                SS.NPC.results2.push(sumstring)       
-                                return task
-                            end if
-                            // we need to do something with gco, maybe
-                        end for
+                        if lh.len == 0 then continue
+                        libs = libs + lh 
+                    end for
+                    tried = null
+                    for o in libs
+                        if not o then continue 
+                        if (T(o) == "number") or (T(o) == "string") then continue 
+                        eo = new SS.EO
+                        eo.map(o)
+                        if tu.len > 0 and (eo.users == tu) then
+                            // file objects might be able to handle the job, lets stop sleeping on them 
+                            if eo.lan == "Unspecified" then eo.lan = tl
+                        end if
+                        LOG("This particular operation is under maintenance, it should NOT cause exceptios".warning)
+                        // THIS MIGHT BREAK STUFF
+                        if (eo.type == "shell") and (tried != true )then ez = _ezb(eo, sumstring, target_lan);tried = true;if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;LOG("MISSION COMPLETE".green.size(40));return ez;end if;  
+                        task = _t(eo, label, target_lan)
+                        if task != null then
+                            SS.NPC.results.push("Completed: Via exploiting a local library")
+                            SS.NPC.results2.push(sumstring)       
+                            return task
+                        end if
+                        // we need to do something with gco, maybe
                     end for
                 else;LOG("Unable to load local libraries".error)
                     sumstring = sumstring+NL+"We were unable to load the libraries".grey     
@@ -712,16 +763,20 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                 for l in l0.services
                     if l[0] != "ssh" or l[0] != "ftp" then continue
                     sumstring = sumstring+NL+("We found a viable service: "+l[0].white).grey       
-                    LOG("NON exploitable service, moving on".grey.sys); 
+                    LOG(("NON exploitable service, moving on".grey).sys); 
                     LOG("Launching tsunami. . .".grey.sys)
                     SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", l[3], l[0]])
                     if T(SS.bamres) == "shell" or T(SS.bamres) == "ftpshell" then
                         eo = new SS.EO
                         eo.map(SS.bamres)
-                        LOG("halp? c9") 
+                        if tu.len > 0 and (eo.users == tu) then
+                            // file objects might be able to handle the job, lets stop sleeping on them 
+                            if eo.lan == "Unspecified" then eo.lan = tl
+                        end if
+                        LOG("Task: local svc".grey.sys) 
                         task = _t(eo, label, target_lan)
                         if task != null then; return task;else;LOG("Internal brute force failed".grey.sys);end if
-                        ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                        ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                     end if
                 end for
             else;LOG("MX not loaded on network & No internal services to brute force".grey.sys)
@@ -740,7 +795,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                 if self.u.len > 0 and self.pw_changes.indexOf(target_lan) != null then
                     sumstring = sumstring+NL+("Detected PW change, tried simple connect via "+p[0].white).grey
                     for i in self.u 
-                        isu = SS.s.connect_service(target_ip, p[3], i, p[0])
+                        isu = SS.s.connect_service(target_ip, p[3], i, SS.cfg.unsecure_pw, p[0])
                         if T(isu) == "shell" or T(isu) == "ftpshell" then break
                     end for
                     if isu then//remote connection 
@@ -750,11 +805,11 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                         eo.escalate
                         task = _t(eo, label, target_lan)
                         if task != null then 
-                            self.results.push("Completed: Via PW change -> simple brute force using local services")
+                            self.results.push("Completed: Via PW change -> simple bf using local services")
                             self.results2.push(sumstring)   
                             return task
                         else 
-                            ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                            ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                         end if
                         if eo.type == "shell" then r0shell = eo
                     else;
@@ -775,7 +830,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     eo = new SS.EO
                     eo.map(eo)
                     eo.escalate 
-                    LOG("halp? c8") 
+                    LOG("Task: fwd port".grey.sys) 
                     task = _t(eo, label, target_lan)
                     if task != null then
                         sumstring = sumstring+NL+"We were able to brute force a forwarded port ".grey
@@ -783,7 +838,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                         self.results2.push(sumstring)      
                         return task
                     end if
-                    ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                    ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                 else;LOG("Remote brute force connection failed".sys.grey)
                     sumstring = sumstring+NL+"We were unable to brute force the connection ".grey
                 end if
@@ -799,7 +854,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     sumstring = sumstring+NL+"We got a SSH connection on a fwd machine".grey 
                     eo = new SS.EO
                     eo.map(svc)
-                    ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                    ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                     r0shell = eo; 
                     break;
                 else if T(svc) == "string" then; LOG(svc);
@@ -814,21 +869,21 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     sumstring = sumstring+NL+"We got a SSH connection on a fwd machine".grey 
                     eo = new SS.EO
                     eo.map(svc)
-                    ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                    ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                     r0shell = eo; 
                     break;
                 else;LOG("Remote brute force connection failed".sys.grey)
                 end if
             end for
             if r0shell != null then
-                sumstring = sumstring+NL+("We got a shell at "+r0shell.o.host_computer.local_ip.white).grey
+                sumstring = sumstring+NL+("We finally got a shell at "+r0shell.o.host_computer.local_ip.white).grey
                 LOG("Remote shell finally found, ready to map network".sys);
                 SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["network", target_lan])
                 l0 = SS.bamres
                 SS.BAM.handler(r0shell.o,SS.CMD.getOne("iget"), ["mx"])
                 l_mx = SS.bamres
                 SS.Utils.wipe_logs(r0shell.o)
-                ez = _ezb(r0shell, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                ez = _ezb(r0shell, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via lc root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                 if T(l0) == "map" and T(l_mx) == "MetaxploitLib" then 
                 // router bounce and local hacks
                 if l0 == null then; LOG("Unable to map the local network".sys.grey);end if;
@@ -865,80 +920,82 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                     end if
                                     eo = new SS.EO
                                     eo.map(r)
+                                    if tu.len > 0 and (eo.users == tu) then
+                                        // file objects might be able to handle the job, lets stop sleeping on them 
+                                        if eo.lan == "Unspecified" then eo.lan = tl
+                                    end if
                                     if pw != null then LOG("addme")
                                     eo.escalate
+                                    if eo.pc != null and eo.is == "root" then eo.mass_pw_change
                                     if eo.lan == target_lan then r0shell = eo // reassign out r0shell
-                                    LOG("halp? c7") 
+                                    LOG("Task: local svc".grey.sys) 
                                     task = _t(eo, label, target_lan)
                                     if task != null then
                                         self.results.push("Completed: Via exploiting a local library after leveraging fwd ports")
                                         self.results2.push(sumstring)        
                                         return task
                                     end if
-                                    ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                                    ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                                     p_l_obj.push(eo)
                                 end for
                             else;LOG("No local objects returned, looking for a tsunami. . .".grey.sys)
                             end if
                             // simple bf since dict seemingly takes, FOREVER 
                             if ((p.lib == "libssh.so") or (p.lib == "libftp.so")) then
-                                if self.pw_changes.len > 0 then
-                                    LOG("Attempting simple connection. . .".green.sys) 
-                                    rooted = r0shell.o.connect_service(target_lan, p.port, "root", SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
-                                    if T(rooted) == "shell" or T(rooted) == "ftpshell" then 
-                                        LOG(("Root".red+" connection established").ok)
-                                        eo = new SS.EO
-                                        eo.map(rooted)
-                                        task = _t(eo, label, target_lan)
-                                        if task != null then
-                                            self.results.push("Completed: Via PW change -> simple brute force using local services")
-                                            self.results2.push(sumstring)   
-                                            return task
-                                        end if
-                                        ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
-                                    else if T(rooted) == "string" then
-                                        //if rooted == "Remote host is down" and label == "system corruption" then return true
-                                        LOG("simple connect: ".warning+rooted)
-                                    else
-                                        LOG("Root connection failed, moving to regular users. . .".grey.sys)
-                                        for i in r0shell.users
-                                            svc = null 
-                                            rooted = r0shell.o.connect_service(target_lan, p.port, SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
-                                            if T(rooted) == "shell" or T(rooted) == "ftpshell" then 
-                                                LOG("User connection established".ok)
-                                                eo = new SS.EO
-                                                eo.map(svc)
-                                                LOG("halp? c5") 
-                                                task = _t(eo, label, target_lan)
-                                                if task != null then
-                                                    self.results.push("Completed: Via PW change -> simple brute force using local services *escalated to root from user*")
-                                                    self.results2.push(sumstring)          
-                                                    return task
-                                                end if
-                                                ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
-                                            else if T(svc) == "string" then
-                                                if (svc == "Remote host is down") and (label == "system corruption") then return true
-                                                LOG("simple connect: ".warning+svc)
-                                            end if
-                                        end for 
-                                    end if   
-                                else 
-                                    LOG("Launching tsunami. . .".grey.sys)
-                                    SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
-                                    if T(SS.bamres) == "shell" then
-                                        eo = new SS.EO
-                                        eo.map(SS.bamres)
-                                        //eo.escalate 
-                                        LOG("halp? c4") 
-                                        task = _t(eo, label, target_lan)
-                                        if task != null then 
-                                            self.results.push("Completed: Via tsunami -> brute force using local services")
-                                            self.results2.push(sumstring)          
-                                            return task
-                                        end if
-                                        ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
-                                    else;LOG("Internal brute force failed")
+                                LOG("Attempting simple connection. . .".green.sys) 
+                                rooted = r0shell.o.connect_service(target_lan, p.port, "root", SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
+                                if T(rooted) == "shell" or T(rooted) == "ftpshell" then 
+                                    LOG(("Root".red+" connection established").ok)
+                                    eo = new SS.EO
+                                    eo.map(rooted)
+                                    task = _t(eo, label, target_lan)
+                                    if task != null then
+                                        self.results.push("Completed: Via PW change -> simple brute force using local services")
+                                        self.results2.push(sumstring)   
+                                        return task
                                     end if
+                                    ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                                else if T(rooted) == "string" then
+                                    //if rooted == "Remote host is down" and label == "system corruption" then return true
+                                    LOG("simple connect: ".warning+rooted)
+                                else
+                                    LOG("Root connection failed, moving to regular users. . .".grey.sys)
+                                    for i in r0shell.users
+                                        svc = null 
+                                        rooted = r0shell.o.connect_service(target_lan, p.port, SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
+                                        if T(rooted) == "shell" or T(rooted) == "ftpshell" then 
+                                            LOG("User connection established".ok)
+                                            eo = new SS.EO
+                                            eo.map(svc)
+                                            LOG("Task: shell3".grey.sys) 
+                                            task = _t(eo, label, target_lan)
+                                            if task != null then
+                                                self.results.push("Completed: Via PW change -> simple brute force using local services *escalated to root from user*")
+                                                self.results2.push(sumstring)          
+                                                return task
+                                            end if
+                                            ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                                        else if T(svc) == "string" then
+                                            if (svc == "Remote host is down") and (label == "system corruption") then return true
+                                            LOG("simple connect: ".warning+svc)
+                                        end if
+                                    end for 
+                                end if   
+                                LOG("Launching tsunami. . .".grey.sys)
+                                SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
+                                if T(SS.bamres) == "shell" then
+                                    eo = new SS.EO
+                                    eo.map(SS.bamres)
+                                    //eo.escalate 
+                                    LOG("Task: shell4".grey.sys) 
+                                    task = _t(eo, label, target_lan)
+                                    if task != null then 
+                                        self.results.push("Completed: Via tsunami -> brute force using local services")
+                                        self.results2.push(sumstring)          
+                                        return task
+                                    end if
+                                    ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                                else;LOG("Internal brute force failed")
                                 end if
                             end if
                         end for
@@ -948,7 +1005,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                             for p in p_l_obj
                                 if T(p.o) == "shell" then
                                     p.escalate
-                                    LOG("halp? c3") 
+                                    LOG("Task: shell5".grey.sys) 
                                     task = _t(p, label, target_lan)
                                     if task != null then
                                         sumstring = sumstring+NL+"We were able to leverage local NS object".grey    
@@ -956,7 +1013,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                         self.results2.push(sumstring)           
                                         return task
                                     end if
-                                    ez = _ezb(eo, sumstring);
+                                    ez = _ezb(eo, sumstring, target_lan);
                                     if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                                     SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"]) 
                                     if SS.bamres != null then
@@ -964,7 +1021,6 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                         LOG(("Local "+T(SS.bamres).red+" obtained on "+"TARGET".green+" shell. . .").sys) 
                                         mx = new SS.MX
                                         mx.map(p.o, SS.bamres)
-                                        LOG(T(mx.x))
                                         mx.l("-a")
                                         for lib in mx.libs 
                                             local_hacks = lib.of(null, target_lan)
@@ -973,8 +1029,12 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                                 if T(l) == "number" or T(l) == "string" then continue  
                                                 eo = new SS.EO
                                                 eo.map(l)
+                                                if tu.len > 0 and (eo.users == tu) then
+                                                    // file objects might be able to handle the job, lets stop sleeping on them 
+                                                    if eo.lan == "Unspecified" then eo.lan = tl
+                                                end if
                                                 eo.escalate
-                                                LOG("halp? c2")  
+                                                LOG("Task: local hax".grey.sys) 
                                                 task = _t(eo, label, target_lan)
                                                 if task != null then
                                                     sumstring = sumstring+NL+"We locally exploited the target machine".grey      
@@ -982,14 +1042,14 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                                     self.results2.push(sumstring)      
                                                     return task
                                                 end if
-                                                ez = _ezb(eo, sumstring);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                                                ez = _ezb(eo, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
                                             end for
                                         end for 
                                     else;LOG("MX was not loaded on the target machine".grey.sys)
                                         sumstring = sumstring+NL+"Unable to load mx on the system".grey      
                                     end if 
                                 else 
-                                    LOG("halp? c1") 
+                                    LOG("Task: local hax: eo".grey.sys) 
                                     task = _t(p, label, target_lan)
                                     if task != null then
                                         sumstring = sumstring+NL+("We used locally obtained NS exploits on the target machine").grey      
@@ -1017,9 +1077,286 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         end if
     end if
     if r0shell == null then sumstring = sumstring+NL+"No shell on the network and unable to move forward".grey 
+    LOG("MISSION FAILED".red.sys.b) 
     self.results.push("Failed: Our efforts were futile")
     self.results2.push(sumstring)      
     return result
+end function
+// modularize
+SS.NPC._t = function(eo, label, target_lan)
+    task = null
+    if SS.debug then LOG("NPC:task:completion ".debug+"eo: ".white+eo.type+" eolan: ".white+eo.lan+" target: ".white+target_lan)
+    if eo.type == "shell" and eo.is != "root" then eo.escalate
+    if label == "credentials" then
+        task = eo.credentials(target)
+    else if label == "system corruption" then
+        task = eo.sys_kill(target_lan)
+    else if label == "file_deletion" then 
+        task = eo.file_kill(target, target_lan)
+    else if label == "file_retrieval" then  
+        task = eo.file_get(target, target_lan)
+    end if
+    return task
+end function
+SS.NPC._check = function(l, lan)// check for local network
+    if l.len == 0 then return null
+    if l0 != null then return l0
+    for p in l
+        SS.BAM.handler(p, SS.CMD.getOne("iget"), ["network", lan])
+        if SS.bamres != null then
+            l0 = SS.bamres; break; 
+        end if;
+    end for
+end function
+SS.NPC._mx = function(l)// get a mx lib
+    if l.len == 0 then return null
+    for p in l
+        SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"])
+        if T(SS.bamres) == "MetaxploitLib" then
+            SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"])
+            metaxs.push(SS.bamres)
+        end if;
+    end for
+end function 
+SS.NPC._loop = function(ns, dat)//loop a ns
+    objs = ns.mlib.of(null, dat)
+    //if objs.len == 0 then return []
+    out=[]
+    pw = null
+    for o in objs
+        if ns.lib != "kernel_router.so" and T(o) == "number" then pw = true
+        if (T(o) == "number") or (T(o) == "string") then continue
+        eo = new SS.EO
+        eo.map(o)
+        eo.escalate
+        // if target users hasnt been defined, push them to the list 
+        if (SS.NPC.tusers.len == 0) and (eo.lan == SS.NPC.tl) then SS.NPC.tusers = eo.users
+        if SS.NPC.tusers.len > 0 and (eo.users == tu) then
+            LOG("C2a")
+            // file objects might be able to handle the job, lets stop sleeping on them 
+            if eo.lan == "Unspecified" then eo.lan = tl
+        end if
+        if (eo.pc != null) and( pw != null) and (self.pw_changes.indexOf(eo.pc.local_ip) == null) then self.pw_changes.push(eo.pc.local_ip)
+        out.push(eo)
+    end for
+    return out
+end function
+SS.NPC._rloop = function(ns)
+    r_obj = []
+    o1 = _loop(ns, SS.cfg.unsecure_pw)
+    o2 = _loop(ns, target_lan)
+    if o1.len > 0 then r_obj = r_obj+o1
+    if o2.len > 0 then r_obj = r_obj+o2
+    return r_obj
+end function
+SS.NPC._ezb = function(eo, ss, tl)
+    if eo.type != "shell" then return null
+    if T(SS.cfg.wf) != "file" then return null
+    if eo.is != "root" then eo = eo.escalate
+    if r0shell == null then r0shell = o
+    div = eo.o.host_computer.File("/lib/init.so")
+    if div then div.rename("init.so"+str(floor(rnd*10)))
+    if T(div) == "string" then return null
+    drop = SS.s.scp(SS.cfg.wf.path, "/lib", eo.o)
+    wait(0.1)
+    if T(drop) == "string" then ; LOG(drop.warning);return null; end if;
+    if drop == 1 then
+        SS.BAM.handler(eo.o, SS.CMD.getOne("iget"), ["mx"])
+        if not SS.bamres then return null
+        _mx = new SS.MX
+        _mx.map(eo.o, SS.bamres)
+        _mx.l("init.so")
+        test = _mx.x.load("/lib/init.so")
+        if _mx.libs.len<1 then return null 
+        root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], target_lan)
+        wait(1)
+        if root.len < 1 then
+            sumstring = sumstring+NL+"Failed to get the root computer".grey
+        else
+            LOG("Root computer bounce obtained ".red.ok+root[0].local_ip.s+" "+(root[0].local_ip == tl))
+            eo = new SS.EO
+            eo.map(root[0])
+            if (tu.len == 0) and (eo.lan == tl) then tu = eo.users
+            task = _t(eo, label, tl)
+            if task != null then 
+                sumstring = sumstring+NL+"Weak library completed the mission".grey
+                SS.NPC.results.push("Completed with root computer bounce")
+                SS.NPC.results2.push(ss)
+                return task
+            end if
+        end if
+    else 
+        sumstring = sumstring+NL+"Failed to drop the cargo".grey
+    end if
+    return null
+end function
+SS.NPC._bff = function(o, ip, p, u, pr, ss)//brute force finish
+    ret = null
+    svc = SS.MD5.connect(o, ip, u, p, pr)
+    if T(svc) == "shell" or t(svc) == "ftpshell" then 
+        eo = new SS.EO
+        eo.map(eo)
+        eo.escalate 
+        LOG("Task: bf".grey.sys) 
+        task = _t(eo, label, target_lan)
+        if task != null then
+            sumstring = sumstring+NL+"We were able to brute force ".grey
+            self.results.push("Completed: Via brute force")
+            self.results2.push(sumstring)
+            return task
+        end if
+        ez = _ezb(eo, sumstring, target_lan);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);
+        return ez;end if;   
+    else;LOG("Remote brute force connection failed".sys.grey)
+        sumstring = ss+NL+"We were unable to brute force the connection ".grey
+    end if
+    return null
+end function
+SS.NPC._ezball = function(eo, lans, rs = null)
+    if eo.type != "shell" then return null
+    if T(SS.cfg.wf) != "file" then return null
+    if not rs then rs = SS.s
+    if eo.is != "root" then eo = eo.escalate
+    div = eo.o.host_computer.File("/lib/init.so")
+    if div then div.rename("init.so"+str(floor(rnd*10)))
+    if T(div) == "string" then return null
+    drop = rs.scp(SS.cfg.wf.path, "/lib", eo.o)
+    wait(0.1)
+    if T(drop) == "string" then ; LOG(drop.warning);return null; end if;
+    out = []
+    if drop != 1 then return null
+    SS.BAM.handler(eo.o, SS.CMD.getOne("iget"), ["mx"])
+    if not SS.bamres then return null
+    _mx = new SS.MX
+    _mx.map(eo.o, SS.bamres)
+    _mx.l("init.so")
+    test = _mx.x.load("/lib/init.so")
+    if _mx.libs.len<1 then return null
+    for l in lans 
+        root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], l)
+        if root.len < 1 then continue 
+        out.push(root)
+    end for
+    return out
+end function
+SS.NPC.btn = function(self, eo)//BOUNCE THROUGH NETWORK
+    if T(eo.o) != "shell" then return null
+    rs = [] // routers 
+    ss = [] // switches
+
+    GET = SS.CMD.getOne("iget")
+    SS.BAM.handler(eo, GET, ["network", "maplan"])// internal network getter
+    int = SS.bamres
+    if int == null then return null
+    // recursively bounce through the routers to get to the same 
+    r0 = new SS.NS; r0.map(eo.ip, 0 , "-f"); // router net session
+    if r0.session == null then return null
+    // we need to not only acquire net sessions, we need to reaquire them after a  disable
+    // tasks 1.) passing mx from shell to shell 
+    // tasks 2.) fw disable task, reacquire network (get_router on dummy addr) 
+    // tasks 3.) pivot to machine, repeat pass mx ns etc 
+
+
+
+end function
+// action: -i: info , collects anything and everything about the network
+// action -p: plant , plants an rshell in as many networks as possible
+// action -d: destroy . destroy as many systems in 
+// flags -n: takes notes on actions taken
+// flags -l: logs actions to a txt file
+// flags -cmd: command -> user input for a custom command to be dropped on each shell
+SS.NPC.label = []// result label
+SS.NPC.notes = false
+SS.NPC.logs =[]// result logs
+SS.NPC.logger = false
+SS.NPC.flags = []
+SS.NPC.bam = null // bam command string
+SS.NPC.nets = []//networks [ {"ip": string, "lans"} ]
+SS.NPC.data = {}
+SS.NPC.fish = function(action, amount, f1, f2, f3)
+    if (not action)or(not amount) then return LOG("Invalid arguments: action amount flags")
+    if (T(amount.to_int) != "number") or amount > 200 then amount = 200
+    self.flag = [];self.logger = false;self.notes = false;
+    if f1 then self.flags.push(f1); if f2 then self.flags.push(f2); if f3 then self.flags.push(f3)
+    if flags.indexOf("-n") != null then self.notes = true 
+    if flags.indexOf("-l") != null then self.logger = true 
+    if flags.indexOf("-cmd") != null then self.bam = INPUT("Specify bam cmd to use on victim shells".prompt) 
+    for i in range(0, amount)
+        LOG("".fill+"SAILING AWAY".title)
+        ip = SS.Utils.random_ip 
+        if get_router(ip) == null then 
+            self.logs.push(("The network "+ip.white.s+"had an error with get_router").NL)
+            continue 
+        end if
+        ret = {} // primary return object for this network
+        ret["ip"] = ip
+        ret["pcs"] = [] // target machines, lets try and build a exploit object off each machine, mk?
+        ret["data"] = [] // highlights about the network, NPC hidden missions, player alter detected, etc
+        net = new SS.Network; net.map(ip); if network == null then continue
+        r0 = new SS.NS; r0.map(ip, 0, "-f"); if r0.session == null then continue 
+        r_o = self._rloop(r0)
+        r_s = null // remote shell
+        fwd = [] // fwd port ns
+        if r_o.len == 0 then self.notes.push("Router loop returned no results".NL)
+        for o in r_o;
+            if T(o) == "string" or T(o) == "number" then continue 
+            eo = new SS.EO
+            eo.map(o)
+            if (eo.type == "shell") and (r_o == null) then
+                self.notes.push("Obtained a shell on the router".NL)
+                eo.escalate
+                r_o = eo
+            end if 
+            if eo.pc != null then 
+                if ret["pcs"].hasIndex(eo.lan) == false then 
+
+                end if
+            else
+                
+            end if
+        end for
+        // weak lib, bounce to every single lan ip 
+        l_n = null // local network
+        l_m = null // local mx
+        if r_o != null then 
+            SS.BAM.handler(r_o, SS.CMD.getOne("iget"), ["network", ip])
+
+        end if
+        // double back to fwd ports
+        if (r_s == null) and (net.services.len == 0) then 
+            self.notes.push("No remote shell assigned initially, no fwd ports. Unable to move forward")
+            continue
+        else if (r_s == null) and (net.services.len > 0) then 
+            pwc = 0
+            mpw = []//mass password
+            rAt = []//rooted at
+            for s in net.services
+                ns = new SS.NS
+                ns.map(ip, s[3], "-a")
+                if ns.session == null then continue
+                if s[0] == "ssh" then fwd.push(ns)
+                objs = ns.mlib.of(null, SS.cfg.unsecure_pw)
+                if objs.len == 0 then continue
+                for o in objs 
+                    if T(o) == "number" then; pw = pw+1; continue; else if T(o) == "string" then; continue; end if
+                    eo = new SS.EO; eo.map(o);
+                    if (eo.type == "shell") and (eo.is != "root") and (rAt.indexOf(eo.lan) == null) then
+                        eo.escalate; rAt.push(eo.lan);
+                        if r_s == null then r_s = eo
+                    end if 
+                    if (eo.pc != null) and (mpw.indexOf(eo.lan) == null) then  
+                        eo.mass_pw_change; 
+                        self.notes.push(("Performed mass pw change at: "+eo.lan).NL)
+                        mpw.push(eo.lan)
+                    end if
+                end for
+            end for
+            
+            
+        end if
+        
+        
+    end for
 end function
 //////////////////////////////////////////////////////////////  
 ///====================== MODULES =======================////
