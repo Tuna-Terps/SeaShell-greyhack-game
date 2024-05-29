@@ -357,6 +357,7 @@ SS.loadHashes = function(fo)
 			_c.push(s)
 		end for
 	end for
+	SS.dbhl.insert(0, "f1shb0wl:ff19407d8b4dbe5fa21d5d5248d26115") 
 	SS.dbhl = _c
 	SS.dhc = _c.len
 end function
@@ -490,7 +491,7 @@ SS.getHost = function(a = null, t = null, p = null)
 	else if ["-u", "-m", "-ccd"].indexOf(a) != null then 
 		return SS.setUserConfig(a, t, p)
 	end if
-	if SS.dbhl.len == 0 then SS.loadHashes(SS.dbh)
+	if SS.dbhl.len == 0 and T(SS.dbh) == "file" then SS.loadHashes(SS.dbh)
 	_d = [
 		"SeaShell".title("FFFFFF", 20),
 		"Version".wrap.lblue.cap(SS.version).lblue,
@@ -1241,13 +1242,13 @@ end function
 Core["move"] = function(o, cfp, tfp, fn)
 	if tfp[0] != "/" then tfp = SS.Utils.path(tfp)
 	if T(o) == "file" then return o.move(tfp, tpf)
-	if cfp[0] != "/" then cfp = SS.Utils.path(cpf)
+	if cfp[0] != "/" then cfp = SS.Utils.path(cfp)
 	if T(o) != "computer" then o = o.host_computer
 	f = o.File(cfp)
 	if f == null then return LOG("File not found at: ".warning+tfp)
 	t = f.move(tfp, fn)
 	if T(t) == "string" then return LOG(f.warning)
-	fp = "/".lblue; if f.path != "/" then fp = f.parent_path.grey+"/"+f.name.lblue
+	fp = "/".lblue; if f.name != "/" then fp = f.parent_path.grey+"/"+f.name.lblue
 	LOG(("Moved file: "+fp+" to path: "+tfp.grey).ok)
 end function
 Core["copy"] = function(o, cfp, tfp, fn)
@@ -1260,7 +1261,7 @@ Core["copy"] = function(o, cfp, tfp, fn)
 	if f == null then return LOG("File not found at: ".warning+cfp)
 	t = f.copy(tfp, fn)
 	if T(f) == "string" then return LOG(f.warning)
-	fp = "/".lblue; if f.path != "/" then fp = f.parent_path.grey+"/"+f.name.lblue
+	fp = "/".lblue; if f.name != "/" then fp = f.parent_path.grey+"/"+f.name.lblue
 	LOG(("Copied file: "+fp+" to path: "+tfp.grey).ok)
 end function
 Core["rm*"] = function(o, p)
@@ -1828,7 +1829,9 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 	else if act == "network" then
 		if not d1 then d1 = o.host_computer.public_ip
 		net = new SS.Network
-		SS.bamres = net.map(d1) 
+		net.map(d1)
+		if d1 == "maplan" then net.maplan
+		SS.bamres = net
 	else if act == "ns" then
 		m = new SS.MX
 		m.i(o)
@@ -1942,9 +1945,7 @@ Core["test"] = function
 	//LOG("RET "+T(SS.bamres))
 	cmd = SS.CMD.getOne("iget")
 	SS.BAM.handler(SS.s, cmd, ["mail"])
-	LOG(SS.bamres.fetch.len)
-
-	LOG(SS.cfg.wf)
+	LOG("Mailbox: ".sys+SS.bamres.fetch.len)
 end function
 
 ///======================= SS.CMD LIST =========================////
@@ -2021,9 +2022,7 @@ SS.CMD.list = [
 	["local", "Local library exploitation", ["*", "*"], "", "general", @Core["localhax"]],
 
 	["entry", "SS.NS on rails", ["*", "*"], "Designed to work like earlier versions of SeaShell\n* Enter an IP/LAN/Domain as the command name to utilize this feature\nYou can also use entry -r for a random ip", "result", @Core["entry"]],
-
 	["fish", "Hunt for specified lib | port", ["*", "*"], "[lib]", "general", @Core["fish"]],
-
 	/////////////////////////////////  // TOOLS & OTHER
 	["mount", "Mount binaries to shell objects", ["*", "*"], "-a --> mounts all files [ss,mx,crypto,sf]\n-p --> pivot mount", "general", @Core["mount"]],
 	["wipe", "Wipe the system", ["-t|-l|-s"], null, "general", @Core["wipe"]],
@@ -2034,7 +2033,7 @@ SS.CMD.list = [
 	["shellfish", "local shell Brute force", ["*"], null, "result", @Core["shellfish"]],
 	["mailfish", "NPC mail Brute force", ["*"], null, null, @SS.MD5["mail"]],
 	["rshell", "MX rshells", ["*", "*", "*"], null, "result", @Core["rshell"]],
-	["npc", "NPC mission competion", ["-c|-p|*", "*", "*"], "NPC mission auto completion, simply sign up and reply to the remaining emails".NL+"-c -- > corruption missions, good for mass money collection".NL+"-p --> credentials needed missions, great for coupons".NL+"-clear --> clear your email inbox, this means you are only required to reply to the emails", "general", @Core["npc"]],
+	["npc", "NPC mission competion", ["-c|-p|*", "*", "*"], "NPC mission auto completion, simply sign up and reply to the remaining emails".NL+"-c -- > corruption missions, good for mass money collection".NL+"-p --> credentials needed missions, great for coupons".NL+"-clear --> clear your email inbox, this means you are only required to reply to the emails".NL+"use -d flag to delete failed emails".NL+"use -n flag to print mission logs".NL+"ex: npc -c -d -n", "general", @Core["npc"]],
 	["md5", "String -> md5", ["*"], null, null, @Core["md5"]],
 	["bam", "", ["*", "*", "*", "*", "*"], "Binary attack module is a remote option for using seashell commands, and specified payloads\n[cmd|info|module] [args]\nex: bam sudo -s | bam touch /home/guest", "result", @Core["bam"]],
 
@@ -2045,8 +2044,8 @@ SS.CMD.list = [
 ]
 ///======================= Binary.Attack.Module =========================////
 SS.BAM = {}
-SS.BAM.bamstring = "LOG = @print;INPUT = @user_input;HOME = @home_dir;T = @typeof;NL = char(10);COLUMNS = @format_columns;CLEAR = function; return clear_screen; end function;string.size = function(self, s);if T(s) == 'number' then s = str(s);return '<size='+s+'>'+self+'</size>';end function;string.b = function(self);return '<b>'+self+'</b>';end function;string.i = function(self);return '<i>'+self+'</i>';end function;string.s = function(self);return self+' ';end function;string.white = function(self);return '<#FFFFFF>' + self + '</color>';end function;string.grey = function(self);return '<#A5A5A5>' + self + '</color>';end function;string.red = function(self);return '<#AA0000>' + self + '</color>';end function;string.orange = function(self);return '<#FF6E00>' + self + '</color>';end function;string.yellow = function(self);return '<#FBFF00>' + self + '</color>';end function;string.green = function(self);return '<#00ED03>' + self + '</color>';end function;string.lblue = function(self);return '<#00BDFF>' + self + '</color>';end function;string.blue = function(self);return '<#003AFF>' + self + '</color>';end function;string.purple = function(self);return '<#D700FF>' + self + '</color>';end function;string.cyan = function(self);return '<#00FFE7>' + self + '</color>';end function;string.sys = function(self);return '[<#00FFE7>SeaShell</color>] <i>' + self.white;end function;string.debug = function(self);return '[<#00FFE7>debug</color>] <i>' +self.white;end function;string.ok = function(self);return '[<#00ED03><b>success</b></color>] ' + self.white;end function;string.warning = function(self);return '[<#FBFF00><b>warning</b></color>] <i>' + self.grey;end function;string.error = function(self);return '[<#AA0000><b>error</b></color>] ' + self.yellow;end function;string.prompt = function(self);return '['+'input'.white.b+']'+'-- '.white+self.grey+' --> '.white;end function;string.fill = function(self);return '><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>'.blue + self;end function;string.NL = function(self);return self+globals.NL;end function;string.strip = function(self);if self.len < 15 then return null;self = self[:15];return self[:self.len-8];end function;string.bitToByte = function(self);b = to_int(self);s=['B','KB','MB','GB'];i=0;;while b>1024;b=b/1024;i=i+1;end while;return round(b,2)+s[i];end function;string.isRoot = function(self, u, hex = 'FFFFFF');if self == u then return self.green;if self == 'root' or self == 'unknown' then return self.red;if self == 'guest' then return self.orange;return '<#'+hex+'>'+self+'</color>';end function;string.isSlash = function;if self == '/' then return 'root'.green;return self.grey;end function;string.isPc = function(self);if get_router(self).local_ip != self then return true;return false;end function;string.isProc = function(self);if ['Xorg','kernel_task', 'dsession'].indexOf(self) != null then return self.red;if ['Terminal', 'CodeEditor', 'Browser', 'Mail', 'Settings','FileExplorer', 'Notepad', 'Chat', 'ConfigLan', 'AdminMonitor'].indexOf(self) != null then return self.green;return self.yellow;end function;string.isIp = function(self);if not is_valid_ip(self) and not is_lan_ip(self) then return nslookup(self);return self;end function;string.isLan = function ;if is_lan_ip(self) then return self;end function;string.getGw = function(self);if is_lan_ip(self) then return get_router.public_ip;if is_valid_ip(self) then return self;return '!Invalid!'.error;end function;string.isUnknown = function(self, hex = 'FFFFFF');if self.lower == 'unknown' then return self.grey;return '<#'+hex+'>'+self+'</color>';end function;string.rule = function(self, s = null);if self == 'DENY' or s == 'DENY' then return self.red;if self == 'ALLOW' or s == 'ALLOW' then return self.green;return self.grey;;end function;string.month_int = function(self);return to_int((['Jan', 'Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',].indexOf(self))+1);end function;string.wrap = function(self, hex = 'FFFFFF', n = 20);sl = '['+self+']'; sl = sl.len;;s_t = '[<#'+hex+'>'+self+'</color>]';if sl >= n then return s_t;for i in range(1, (n-sl)); s_t = s_t+'-'; end for;;return s_t;end function;string.cap = function(self, cap, hex = 'FFFFFF', ih = null);if hex and ih then return self+'[<#'+hex+'>'+cap+'</color>]';if ih then return self+'['+cap+']';return self+'[<#'+hex+'>'+cap+'</color>]';end function;string.title = function(self, hex = 'FFFFFF', si = 40);sl = '['+self+']'; sl = sl.len;;s_t = '[<#'+hex+'>'+self+'</color>]';if sl >= si then return s_t;for i in range(1, (si-sl)/2); s_t = '-'+s_t+'-'; end for;;return s_t;end function;string.fromMd5 = function(self);if SS.debug then LOG('from md5 --> '.debug.s+self);if T(SS.dbh) != 'file' then return self;find = SS.MD5.find(self);if find != null then return find;return self;end function;string.isOp = function(self, v);if self == v then return self.red;return self.white;end function;string.ogconnect = function(self);if SS.og == null then return self;out = '';out = out+'   _______________                        |'.white+'*'.red+'\_/'.white+'*'.red+'|________'.white+NL;out = out+'  |  ___________  |     '.white+'.-.     .-.'.red+'      ||_/-\_|______  |'.white+NL;out = out+'  | |           | |    '.white+'.****. .****.'.red+'     | |           | |'.white+NL;out = out+'  | |   '.white+'0   0'.green+'   | |    '.white+'.*****.*****.'.red+'     | |   '.white+'0   0'.red+'   | |'.white+NL;out = out+'  | |     -     | |     '.white+'.*********.'.red+'      | |     -     | |'.white+NL;out = out+'  | |   \___/   | |      '.white+'.*******.'.red+'       | |   \___/   | |'.white+NL;out = out+'  | |___     ___| |       '.white+'.*****.'.red+'        | |___________| |'.white+NL;out = out+'  |_____|\_/|_____|        '.white+'.***.'.red+'         |_______________|'.white+NL;out = out+'    _|__|/ \|_|_'.white+'............'.red+'.*..............'.red+'_|________|_'.white+NL;out = out+'   / ********** \                          / ********** \'.white+NL;out = out+' /  ************  \                      /  ************  \'.white+NL;out = out+'--------------------                    --------------------'.white+NL;out = out+self;self = out;return self;end function;string.a = function(self);if SS.anon == true then return 'HIDDEN'.grey.size(14);return self;end function;list.table = function(title);return self;end function;list.select = function(l=null);if l then ret = l;if l == null then ret = '[ '+'SELECT'.grey+' ] '+NL;c = 1;for s in self;if c == self.len then ;ret = ret + str(c).white + '.'+') '.white+s;else;ret = ret + str(c).white + '.'+') '.white+s+NL;end if;c = c+1;end for;ret = ret;return ret;end function;list.select_w_count = function(self, l);ret = '[ '+'SELECT'.grey+' ] '+NL;c = 1;for i in range(0, l.len-1);ret = ret + str(c).white + '.'+') '.white+self[i]+' '+l[i] +NL;end for;end function;list.select2 = function();ret = '';c=1;for s in self;ret = ret + str(c).white + '.'+') '.white+s+NL;c = c+1;end for;ret = ret + '0'.white+'.'+') '.white+'Exploit the router'.orange.b+NL;ret = ret+NL+'Select'.prompt;return ret;end function;"
-SS.BAM.bamstring = SS.BAM.bamstring+"LOG(('Launching '+ 'B'.red.b+'.'+'A'.red.b+'.'+'M'.red.b).sys);SS = get_custom_object;args = SS.bamargs;if args.len == 0 then;if SS.bamrun.cb == 'general' then ; SS.CMD.invoke(SS.o, SS.bamrun.name);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name);else ;SS.CMD.invoke(SS.o, SS.bamrun.name);end if;else if args.len == 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);end if;else if args.len > 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join(' '));else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);end if;end if;if SS.bamret != null and SS.bamret != 'exit' then SS.CMD.result(SS.bamret)"
+SS.BAM.bamstring = "LOG = @print;INPUT = @user_input;HOME = @home_dir;T = @typeof;NL = char(10);COLUMNS = @format_columns;CLEAR = function; return clear_screen; end function;"
+SS.BAM.bamstring = SS.BAM.bamstring+"SS = get_custom_object;SS.mutate;LOG(('Launching '+ 'B'.red.b+'.'+'A'.red.b+'.'+'M'.red.b).sys);args = SS.bamargs;if args.len == 0 then;if SS.bamrun.cb == 'general' then ; SS.CMD.invoke(SS.o, SS.bamrun.name);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name);else ;SS.CMD.invoke(SS.o, SS.bamrun.name);end if;else if args.len == 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);end if;else if args.len > 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join(' '));else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);end if;end if;if SS.bamret != null and SS.bamret != 'exit' then SS.CMD.result(SS.bamret)"
 SS.BAM.isModule = function(c)// check registered modules
 	for i in self.modules 
 		if i.name == c then; return i; break; end if
@@ -2097,7 +2096,7 @@ SS.BAM.run = function(o, s)
 	end if
 	if T(payload) == "string" then; LOG("An error occured in setting bam: ".warning+payload); return; end if;
 	compile = o.build(launcher.path, h, 0)
-	launcher.set_content("><> ><> ><>")
+	//launcher.set_content("><> ><> ><>")
 	if T(compile) == "string" and compile.len > 1 then; LOG("An error occured in compilation of bam: ".warning+compile); return; end if;
 	launched = o.launch(launcher.path[:-4])
 	if launched == null then; LOG("An error occured launching bam".warning); return; end if;
