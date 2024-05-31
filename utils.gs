@@ -43,6 +43,18 @@ end function
 string.i = function(self)
     return "<i>"+self+"</i>"
 end function
+string.angle = function(n)
+    if T(n)!= "number" then n = n.to_int 
+    return "<rotate="+str(n)+">"+self+"</rotate>"
+end function
+string.voffset = function(n)
+    if T(n)!= "number" then n = n.to_int 
+    return "<voffset="+str(n)+">"+self+"</voffset>"
+end function
+string.pos = function(n)
+    if T(n)!= "number" then n = n.to_int 
+    return "<pos="+str(n)+">"+self+"</pos>"
+end function
 string.s = function(self)
     return self+" "
 end function
@@ -271,6 +283,9 @@ string.a = function(self)
 end function
 string.crab = function(self)
     return ("C".red.b+".".white+"R".red.b+".".white+"A".red.b+".".white+"B".red.b).s+(self.white.i)
+end function
+string.raft = function(self)
+    return ("R".red.b+".".white+"A".red.b+".".white+"F".red.b+".".white+"T".red.b).s+(self.white.i)
 end function
 // ======== LISTS
 list.table = function(title)
@@ -1223,14 +1238,14 @@ SS.Server.proxtunnel = function(o)
     base = o
     try_connection = function()
         if typeof(base) != "shell" then return print("warning, must be of type shell")
-        ip = user_input("IP/LAN > ")
+        ip = INPUT("Specify IP | LAN".prompt)
         if not is_valid_ip(ip) and not is_lan_ip(ip) then
             print("warning, not a valid ip") 
             return base
         end if
-        u = user_input("User > ")
+        u = INPUT("Specify User | Enter for root ".prompt)
         if u.len == 0 then u = "root"
-        password = user_input("PW > ",true)
+        password = INPUT("ENTER PW".prompt,true)
         connection = base.connect_service(ip, 22, u, password, "ssh")
         if T(connection) == "shell" then
             SS.Utils.wipe_logs(base)
@@ -1241,13 +1256,18 @@ SS.Server.proxtunnel = function(o)
         return base
     end function
     try_launch = function(shell)
-        p = user_input("rshell-self.interface path [enter for /bin] > ")
-        if p.len == 0 then p = "/bin/rshell-self.interface"
-        attempt = shell.launch(p)
+        p = INPUT("Specify path for C.R.A.B walk | Enter for default")
+        if p.len == 0 then p = "/root/"+SS.ccd+"/sf.src"
+        if p != "/root/"+SS.ccd+"/sf.src" then 
+            args = INPUT("C.R.A.B not selected, specify an argument")
+            if args.len == 0 then attempt = shell.launch(p) else attempt = shell.launch(p, args)
+        else
+            attempt = shell.launch(p)
+        end if
         if attempt == 0 then LOG("Failed to launch - double check LAN & path, and try again")
     end function
     while 1
-        i = INPUT("CURRENTLY @ <color=white>"+base.host_computer.public_ip+"</color>:<color=grey>"+base.host_computer.local_ip+"</color>\n0.) Exit\n1.) Connect to the next machine\n2.) Pass object to surf mode\n3.) Start a terminal\n--> ").to_int
+        i = INPUT("CURRENTLY @ ".sys+base.host_computer.public_ip.white+":"+base.host_computer.local_ip.grey.NL+"0".lblue+".".white+")".lblue+" Exit".NL+"1".lblue+".".white+")".lblue+"Connect to the next machine".NL+"2".lblue+".".white+")".lblue+"Pass object to surf mode".NL+"3".lblue+".".white+")".lblue+" Start a terminal\n--> ").to_int
         if i == 0 then break
         if i == 1 then base = try_connection
         if i == 2 then return base
@@ -1259,7 +1279,7 @@ SS.Server.API.memzone = null
 SS.Server.API.memval = null
 SS.Server.API.interface = {}
 SS.Server.API.set = function(ip, mem=null, value=null)
-    if not is_valid_ip(ip) then return null 
+    if not is_valid_ip(ip) then return LOG("Invalid IP specified".warning) 
     self.ip = ip
     if mem then self.memzone = mem 
     if value then self.memval = value
