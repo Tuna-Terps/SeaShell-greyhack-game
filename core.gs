@@ -16,7 +16,7 @@ FEO.map(SS.f, SS.c.public_ip, SS.c.local_ip)
 SS.apt = null
 SS.crypto = null
 SS.mx = null
-SS.mxp = null
+SS.cmx = null
 SS.apt_updates = []
 SS.shells = []
 SS.computers = []
@@ -29,13 +29,14 @@ SS.macros = []
 SS.cfg = {} // cfg
 SS.cfg.label = null
 SS.cfg.i = null // item: cache/config folder
+SS.cfg.ip = SS.c.public_ip
 SS.cfg.start_time = current_date
 SS.cfg.unsecure_pw = "f1shb0wl"
 SS.cfg.burnmailacct = "Oppelli@barner.com"
 SS.cfg.burnmailpw = "Bitch"
 SS.cfg.mailacct = "mail@bolds.net"
 SS.cfg.mailpw = "mail"
-SS.cfg.hackip = "195.189.106.82"
+SS.cfg.hackip = "214.85.237.165"
 SS.cfg.dat = null // data file
 SS.cfg.macros = null // macro folder
 SS.cfg.wf = null // weak lib file
@@ -186,7 +187,7 @@ SS.CMD.prompt = function(eo)
 	if SS.debug then LOG("debugging user: ".debug+user+" "+T(user))
 	if user == "root" then sym = "#"
 	space = 3.9+(user.len+host.len)*0.6
-	s =  NL+"<pos=04>—{"+user.isRoot(user, "FFFFFF")+"@".cyan+host+"}—[<b>"+tsym+"</b>]—{"+ ip.white.size(14).a +":"+ lan.grey.size(14) +"}—["+SS.Utils.dash(SS.cwd, user).white.size(14)+"]<voffset=-0.5em><space=-"+space+"em><pos=00>|<voffset=-1em><space=-0.6em>|<voffset=-1.5em><pos=04>——:~"+sym.white+" "	
+	s =  NL+"<pos=04>—{"+user.isRoot(user, "FFFFFF")+"@".cyan+host+"}—[<b>"+tsym+"</b>]—{"+ ip.white.size(14).a +":"+ lan.grey.size(14).a +"}—["+SS.Utils.dash(SS.cwd, user).white.size(14)+"]<voffset=-0.5em><space=-"+space+"em><pos=00>|<voffset=-1em><space=-0.6em>|<voffset=-1.5em><pos=04>——:~"+sym.white+" "	
 	return INPUT(s)
 end function
 SS.CMD.result = function(o)
@@ -226,7 +227,7 @@ SS.CMD["cmd_list"] = function(usage = null)
 		tData.push({"[ "+"ARGS".white+" ]": [10,0,0,0]})
 		tData.push({"[ "+"DESC".white+" ]            </u>/\n": [33,0,0,0]})
 		for c in SS.commands
-			if c["name"] == "get" then continue
+			if c["name"] == "iget" then continue
 			tData.push({c["name"].white: [1,0,0,0]})
 			tData.push({c["params"]: [10,0,0,0]})
 			tData.push({c["desc"].size(14).grey+"\n": [33,0,0,0]})
@@ -278,7 +279,9 @@ end function
 SS.getLibConfig = function(self)
 	SS.mx = SS.Utils.hasLib(SS.s, "metaxploit.so")
 	SS.crypto = SS.Utils.hasLib(SS.s, "crypto.so")
-	if SS.mx != null then 
+	SS.cmx = null
+	if SS.mx != null then
+		SS.cmx = SS.mx 
 		if SS.crypto == null then
 			ret = "MX".yellow
 		else 
@@ -348,8 +351,8 @@ end function
 //TODO: fixme
 SS.loadHashes = function(fo)
 	if not fo then return []
-	LOG("Pushing MD5 hashes into memory. . .".sys)
-	_c = []
+	LOG("Pushing MD5 hashes into memory. . .".grey.sys)
+	_c = ["f1shb0wl:ff19407d8b4dbe5fa21d5d5248d26115"]
 	for fi in fo.get_files
 		if fi.is_binary then continue
 		for s in fi.get_content.split(NL)
@@ -357,7 +360,6 @@ SS.loadHashes = function(fo)
 			_c.push(s)
 		end for
 	end for
-	SS.dbhl.insert(0, "f1shb0wl:ff19407d8b4dbe5fa21d5d5248d26115") 
 	SS.dbhl = _c
 	SS.dhc = _c.len
 end function
@@ -386,7 +388,14 @@ SS.sail = function
 	return SS.surf_mode(SEO, SS.CMD.chain(params.join(" ").replace(",", ";")))
 end function
 SS.surf_mode = function(o, args = null)
-	LOG("".sys+"<b>~^~~~^~~^~".blue+"SURF MODE".cyan+"~".blue+"[ ".cyan+"ENABLED".green+" ]".cyan+"~^~~~^~~~".blue)
+	if get_shell.host_computer.public_ip != SS.cfg.ip then 
+		SS.remote = true
+		l = "REMOTE".purple 
+	else 
+		SS.remote = false
+		l = "LOCAL".lblue
+	end if
+	LOG("".sys+"<b>~~~^~~^~".blue+"SURF"+"~".blue+"MODE".cyan+"~".blue+"[ ".cyan+"ENABLED".green+" ]".cyan+"~^~~^~~~".blue+"</i>".cap(l).blue)
 	SS.obj = o
 	res = null;
 	if args then
@@ -428,7 +437,7 @@ SS.surf_mode = function(o, args = null)
 		end if 
 		if SS.debug and res then LOG("response found")
 	end while
-	return LOG("".sys+"<b>~^~~~^~~^~".blue+"SURF MODE".cyan+"~".blue+"[ ".cyan+"DISABLED".red+" ]".cyan+"~^~~~^~~~^~".blue)
+	return LOG("".sys+"<b>~~~^~~^~".blue+"SURF"+"~".blue+"MODE".cyan+"~".blue+"[ ".cyan+"DISABLED".red+" ]".cyan+"~^~~^~~~".blue+"</i>".cap(l).blue)
 end function;																																																																							SS.env = function(_,__,___,____,_____,______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = ___;SS.cfg.mailpw = ____;SS.cfg.rsip = _____;SS.cfg.unsecure_pw = ______;;end function
 SS.init = function(az,by,cx,dw,ev,fu);
 	if INPUT(("["+"Auth Required".red+"]").b+" ", true) != az then EXIT("><> ><> ><>".red);																																																				SS.env(az,by,cx,dw,ev,fu);
@@ -652,7 +661,7 @@ SS.cfgDat = function(item, change)
 		end if
 		c = c+1
 	end for
-	data.remove(c);
+	data.remove(c-1);
 	if edit == null then return LOG("Incorrect setting".warning)
 	if isn then 
 		change = change.to_int
@@ -677,7 +686,7 @@ SS.cfgDat = function(item, change)
 end function
 // TODO: set macro function
 SS.setMacros = function(data)
-	if data.len == 0 then return LOG("No content in user.macro".warning)
+	return LOG("wip".warning)
 
 end function
 ///==================== CORE() ========================////
@@ -1200,7 +1209,7 @@ Core["chmod"] = function(o, r, u, pa)
 	if f == null then LOG("Unable to chmod file: not found".warning)
 	out = f.chmod(u, rec)
 	if out.len > 1 then return LOG(out.warning)
-	fp = "/".lblue; if f.path != "/" then fp = f.parent_path.grey+"/"+f.name.lblue
+	fp = "/".lblue; if f.path != "/" and (f.parent != null )then fp = f.parent_path.grey+"/"+f.name.lblue
 	LOG((fp+" has been given permissions: "+u).ok)
 end function
 Core["chgrp"] = function(o, r, u, pa)
@@ -1730,13 +1739,24 @@ Core["localhax"] = function(o, a, l)
 		SS.cache(res, ip, lan)
 	end for
 end function
-Core["fish"] = function(obj, lib, libVersion)
+Core["fish"] = function(obj, lib, libVersion, a = null)
+	if not lib then return LOG("specify library or -p to fish".warning) 
 	ip = null
-	if lib == "kernel_router" then 
+	if lib == "kernel_router" then
+		if not libVersion then return LOG("specify kernel version to fish".warning)  
 		ip = SS.Utils.router_fish(libVersion)
-	else if lib == "-p" then 
+	else if lib == "-p" then
+		if not libVersion then return LOG("specify port to fish".warning)
+		if (a != null) and (T(a.to_int) == "number") then 
+			_c=[]
+			for i in range(0, a.to_int)
+				_c.push("target found: ".sys+SS.Utils.port_fish(libVersion).NL)
+			end for
+			return LOG(_c.join)
+		end if
 		ip = SS.Utils.port_fish(libVersion)
-	else 
+	else
+		if not libVersion then return LOG("specify library version to fish".warning) 
 		ip = SS.Utils.lib_fish(lib, libVersion)
 	end if
 	if ip then ; LOG(ip.ok); return Core.entry(obj, ip); end if
@@ -1801,7 +1821,7 @@ Core["rshell"] = function(o, a, i = null, d = null)
 	if x.x == null then return LOG("Unable to load metaxploit".warning)
 	return x.rs(a, i, d)
 end function
-Core["bam"] = function(o, cmd, a1=null,a2=null,a3=null,a4=null)
+Core["crab"] = function(o, cmd, a1=null,a2=null,a3=null,a4=null)
 	if T(o) != "shell" then return LOG(("B.A.M requires a "+"shell".red).warning)
 	args = []
 	if a1 != null then args.push(a1)
@@ -1818,8 +1838,13 @@ Core["bam"] = function(o, cmd, a1=null,a2=null,a3=null,a4=null)
 		return LOG("Neither a command or module")
 	end if
 end function
+Core["surf"] = function(o)
+	if T(o) != "shell" then return LOG("BAM can only be invoked with a shell")
+	SS.BAM.handler(o, SS.CMD.getOne("iget"), ["surf"])
+	return SS.bamres
+end function
 Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// internal get
-	SS.bamres = null
+	SS.bamres = null;
 	if act == "mx" or act == "rshell" then 
 		m = new SS.MX
 		m.i(o)
@@ -1840,8 +1865,9 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 		netsesh = new SS.NS.map(d1, d2, "-f", m.x)
 		if netsesh == null or netsesh.session == null then return null
 		SS.bamres = netsesh//.mlib.of(null, d1)
-	else if act == "shell" then
-		//ret = get_shell
+	else if act == "surf" then
+		SS.bamret = o
+		return SS.bamret
 	else if act == "rootshell" then
 		SS.bamres = Core["shellfish"]// res, not a ret as that goes to surf mode
 	else if act == "scan" then
@@ -1852,6 +1878,8 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 		SS.bamres = SS.MD5.connect(o, d1, d2, d3, d4)
 	else if act == "api" then 
 		SS.bamres = LOG("API needs implementation!")
+	else if act == "result" then 
+		
 	else 
 		LOG("Invalid use of iget".error)
 	end if
@@ -1860,10 +1888,11 @@ end function
 Core["proxybounce"] = function(o)
 	if T(o) != "shell" or T(o) != "ftpshell" then return LOG("A shell is required".warning)
 	server = new SS.Server
-	server.proxtunnel(o)
+	res = server.proxtunnel(o)
+	if T(res) == "shell" then return res
 end function
 Core["npc"] = function(o, t=null,d=null,n=null)
-	if T(o) != "shell" then return LOG("Need a shell for bam".warning)
+	if T(o) != "shell" then return LOG("Need a shell for crab".warning)
 	if not t then t = "-p"
 	LOG("Beginning NPC mission completion. . .".ok)
 	SS.NPC.mission(o, t, d, n)
@@ -1871,6 +1900,7 @@ end function
 Core["shellfish"] = function(_, u = "root")
 	result = null
 	result = SS.MD5.shell(u)
+	if T(result) == "shell" then SS.cache(result)
 	SS.bamres = result
 	return result
 end function
@@ -1878,73 +1908,21 @@ Core["md5"] = function(s)
 	if not s then return LOG("Provide a string to return an md5".warning)
 	LOG(md5(s).ok)
 end function
+Core["loadmx"] = function(o, act)
+	if act == "-clear" then; SS.cmx = SS.mx; LOG("Loading home MX".ok); return; end if
+	if T(o) != "shell" then return LOG("Invalid type shell is needed".warning)
+	SS.BAM.handler(o, SS.CMD.getOne("iget"), ["mx"])
+	if T(SS.bamres) != "MetaxploitLib" then return LOG("Unable to load mx".warning)
+	LOG("Loading MX object from: ".sys+o.host_computer.public_ip)
+	mx = new SS.MX
+	mx.map(o,  SS.bamres)
+	SS.mxlibs.push(mx)
+	// TODO: current metaxploit
+	SS.cmx = mx.x
+
+end function
 Core["test"] = function
-	// menu tests
-	//t_o = [
-	//	{"name": "Page 1", "options": ["choice1".green, "choice2".yellow, "choice3".red, ]},
-	//	{"name": "Page 2", "options": ["choice1".green, "choice2".yellow, "choice3".red, ]},
-	//	{"name": "Page 3", "options": ["choice1".green, "choice2".yellow, "choice3".red, ]},
-	//]
-	//menu = SS.Utils.menu("Testing", t_o )
-	// network tests
-	//NET = SS.Network.map(get_shell.host_computer.local_ip)
-	//NET.maplan 
-	//LOG(NET.subnets)
-	//eo = new SS.EO ; eo.map(get_shell("root", "root"));
-	//SS.shells.push(eo)
-	//LOG(eo.info)
-	//eo = new SS.EO ; eo.map(SS.f);
-	//SS.files.push(eo)
-	//
-	//eo = new SS.EO ; eo.map(SS.f, SS.c.public_ip);
-	//SS.files.push(eo)
-	//LOG(eo.info)
-
-	// time
-	//LOG(floor(time))
-	//LOG(SS.Date.now)
-
-	//start = time
-	//wait(5)
-	//SS.Date.timer(start)
-
-	//netsesh = new SS.NS.map("1.1.1.1", 22, "-i")
-	////netsesh = new SS.NS.map("172.16.16.8", 80, "-i")
-	//if netsesh.session == null then return
-	//LOG(netsesh.summary)
-	//LOG(netsesh.addr)
-	//LOG(T(netsesh.dump))
-	//ret = []
-	//LOG("sessions "+SS.sessions.len)
-	//netsesh.cache
-	//LOG("sessions "+SS.sessions.len)
-	//netsesh.cache
-	//LOG("sessions "+SS.sessions.len)
-	
-	//test = netsesh.browse()
-	//LOG(test)
-	//netsesh.of(test, "testing")
-
-	//m = new SS.MX.i(SS.s)
-	//if m == null then return LOG("mx error".debug)
-	//m.l
-	//LOG(m.libs.len)
-	//m.l("-a")
-	//LOG(m.libs.len)
-	//target_lan = "192.168.1.5"
-	//total = 0
-	//for lib in m.libs
-	//	local_hacks = lib.of(null, target_lan)
-	//	total = total + local_hacks.len
-	//end for
-	//LOG(total)
-	//if m.x == null then return LOG("NO MX")
-	//cmd = SS.CMD.getOne("iget")
-	//bam = SS.BAM.handler(SS.s, cmd, ["ns", "1.1.1.1", 22, m.x])
-	////ret1 = SS.bamres//network
-	//LOG("RET "+T(SS.bamres))
-	cmd = SS.CMD.getOne("iget")
-	SS.BAM.handler(SS.s, cmd, ["mail"])
+	SS.BAM.handler(SS.s, SS.CMD.getOne("iget"), ["mail"])
 	LOG("Mailbox: ".sys+SS.bamres.fetch.len)
 end function
 
@@ -1954,10 +1932,10 @@ SS.CMD.list = [
 	// 	//////////////////////////////////    // SEASHELL
 	["-h", "Displays all SeaShell commands", ["*"], "* no arguments --> prints all registered commands\n[cmdName] --> gives detailed information on most commands", null, @SS.CMD["cmd_list"]],
 	["-e", "Exit Surf Mode", [], "As you pass objects, seashell will create a new surf loop, using -e will help you close these", "result", SS["quit"]],
-	["-c", "Clear the screen", [], null, null, @CLEAR],
-	["-anon", "Toggle anonymous mode", ["-s|*"], null, null, @Core["anon"]],
-	["-dev", "Toggle debug mode", ["-s|*"], null, null, @Core["dev"]],
-	["-og", "Toggle original artwork", ["-s|*"], null, null, @OGT],
+	["-c", "Clear the screen", [], "Clears the screen", null, @CLEAR],
+	["-anon", "Toggle anonymous mode", ["-s|*"], "Tries to hide as many IPs as possible, streaming mode made this rather obsolete but good to have", null, @Core["anon"]],
+	["-dev", "Toggle debug mode", ["-s|*"], "debugging mode, no need to worry", null, @Core["dev"]],
+	["-og", "Toggle original artwork", ["-s|*"], "This is old art from all previous versions of seashell, nostaliga trumps concisiveness", null, @OGT],
 	["cache", "SeaShell Cache Menu", ["-o|-ns|-net", "*|-c"], "-c", "result", @SS["getMemCache"]],
 	["-cfg", "SeaShell config", ["*","*","*"], "* --> prints general config info\n-i --> host config info"+NL+"-e|-h [-b|-d] --> manage hash and exploit databases"+NL+"-u|-m|-ccd [-b|-d] --> manage user config", null, @SS["getHost"]],
 	["apt", "APT client update tool", ["*|-u|--", "*|-f"], "install [libName] --> install a package\n-u --> updates the machine\n-- [*|-f] upgrades the machine, use -f to force update all\naddrepo [ip] --> add a new repository\ndelrepo [ip] --> remove a new repository\search [lib] --> searches for all packages\show [ip] --> shows all packages in a repo\n", null, @Core["apt"]],
@@ -1971,23 +1949,23 @@ SS.CMD.list = [
 	["ps", "Computer process list", ["*"], "List computer processes, use additional flag to enter resmon", "general", @Core["ps"]],
 	["kill", "Kill a specified process", ["*", "*"], "[pid|name] [-a|*]\npid --> with no argument will close the pid\nname --> with no argument will close the first program containing the name, use -a for all ", "general", @Core["kill"]],
 	["user", "Prints current user | Add/Del User", ["-a|-d|*", "*"], "-a [username] --> add a user\n-d [username] --> delete a user", "general", @Core["me"]],
-	["passwd", "Change a user's password [requires root]", ["*"], null, "general", @Core["passwd"]],
+	["passwd", "Change a user's password [requires root]", ["*"], "[user] --> this requires root permission", "general", @Core["passwd"]],
 	["groups", "Group View | Add/Del Group", ["-a|-d|*", "*", "*"], "-a [username] [group] --> add a group\n-d [username] [group] --> delete a group", "general", @Core["groups"]],
 	["secure", "Secure PC permissions [requires root]", ["-s|-h|-p", ], "-s --> secures a server config\n-h --> secure home config\n-p --> attempts to patch the system to working order", "general", @Core["secure"]],
 
 	["pwd", "Print working directory", [], "Print SeaShell's working directory", null, @Core["pwd"]],
-	["touch", "Creates a file", ["*", "*"], null, "general", @Core["touch"]],
-	["build", "Build binary", ["*","*","*" ], "[src] [dest] [import] Build a src file into a compiled binary", "general", @Core["build"]],
-	["mkdir", "Creates a folder", ["*", "*"], null, "general", @Core["mkdir"]],
+	["touch", "Creates a file", ["*", "*"], "[path] [name]", "general", @Core["touch"]],
+	["build", "Build binary", ["*","*","*" ], "[srcPath] [buildPath] [import] Build a src file into a compiled binary", "general", @Core["build"]],
+	["mkdir", "Creates a folder", ["*", "*"], "[path] [name]", "general", @Core["mkdir"]],
 
-	["cat", "Show contents of a file", ["*"], null, "general", @Core["cat"]],
-	["rn", "Rename a file/directory", ["*", "*"], null, "general", @Core["rn"]],
-	["copy", "Copies content of the specified file", ["*", "*", "*"], null, "general", @Core["copy"]],
-	["move", "Moves file to the specified directory", ["*", "*"], null, "general", @Core["move"]],
+	["cat", "Show contents of a file", ["*"], "[path]", "general", @Core["cat"]],
+	["rn", "Rename a file/directory", ["*", "*"], "[path] [name]", "general", @Core["rn"]],
+	["copy", "Copies content of the specified file", ["*", "*", "*"], "[dir] [dest] [name]", "general", @Core["copy"]],
+	["move", "Moves file to the specified directory", ["*", "*"], "[dir] [dest]", "general", @Core["move"]],
 	["rm", "Deletes the specified file", ["*"], null, "general", @Core["rm*"]],
-	["chmod", "Changes file permissions", ["-r|-d", "*", "*"], null, "general", @Core["chmod"]],
-	["chgrp", "Changes file group", ["*", "*", "*"], null, "general", @Core["chgrp"]],
-	["chown", "Changes file owner", ["*", "*", "*"], null, "general", @Core["chown"]],
+	["chmod", "Changes file permissions", ["-r|-d", "*", "*"], "[-r|-d] permissions path", "general", @Core["chmod"]],
+	["chgrp", "Changes file group", ["*", "*", "*"], "[-r|-d] groupname path", "general", @Core["chgrp"]],
+	["chown", "Changes file owner", ["*", "*", "*"], "[-r|-d] ownername path", "general", @Core["chown"]],
 	["edit", "Edit contents of a file", ["*", "-c|*"], null, "general", @Core["edit"]],
 
 	["ssh", "Create SSH connection *requires SSH", ["*", "*"], "p1: user@ip"+NL+"p2: port, default is 22", "result", @Core["ssh"]],
@@ -2005,47 +1983,51 @@ SS.CMD.list = [
 	["ping", "Ping a specified device", ["*"], null, "general", @Core["ping"]],
 
 	["ifconfig", "Configure Internet Connection", ["*", "*", "*"], null, "general", @Core["ifconfig"]],
-	["iwconfig", "Connect to WIFI", ["*", "*", "*", "*"], null, "general", @Core["iwconfig"]],
-	["iwlist", "List WIFI networks", ["*", ], null, "general", @Core["iwlist"]],
+	["iwconfig", "Connect to WIFI", ["*", "*", "*", "*"], "[netdevice][essid][bssid][password]\nex: iwconfig wlan0 E3:AD:BD.. Aquarium Password", "general", @Core["iwconfig"]],
+	["iwlist", "List WIFI networks", ["*", ], "[device] ex: iwlist wlan0", "general", @Core["iwlist"]],
 
-	["airmon", "Manage Monitor Mode", ["start|stop", "*"], "[action] [device] --> begin to start or stop monitoring mode", "general", @Core["airmon"]],
-	["aireplay", "WIFI Frame Injection", ["*", "*"], null, null, @Core["aireplay"]],
-	["aircrack", "Key Cracking Program", ["*"], null, "general", @Core["aircrack"]],
-	["sniff", "Sniff device for incoming connections", [], null, null, @Core["sniff"]],
-	["smtp", "List mail users", ["*", "*"], "[addr] [port]", null, @Core["smtp"]],
-	["nslookup", "[domain] Returns ip of a domain", ["*"], null, null, @Core["nslookup"]],
-	["whois", "[ip] SS.Network administration info", ["*"], null, null, @Core["whois"]],
-	["router", "Simple router scan", ["*"], null, null, @Core["router"]],
-	["nmap", "SS.Network mapping tool", ["*", "*"], null, null, @Core["nmap"]],
-	["scanlan", "Local network mapping", ["*"], null, null, @Core["scanlan"]],
+	["airmon", "Manage Monitor Mode", ["start|stop", "*"], "[action] [device] --> begin to start or stop monitoring mode\nex: airmon start wlan0", "general", @Core["airmon"]],
+	["aireplay", "WIFI Frame Injection", ["*", "*"], "[essid] [bssid]\nMonitor and listen for ACKS", null, @Core["aireplay"]],
+	["aircrack", "Key Cracking Program", ["*"], "[path] specify a file path for aircrack to generate the key", "general", @Core["aircrack"]],
+	["sniff", "Sniff device for incoming connections", [], "Works exactly like sniffer", null, @Core["sniff"]],
+	["smtp", "List mail users", ["*", "*"], "[addr] [port]", "Works exactly like smtp-users-list", @Core["smtp"]],
+	["nslookup", "[domain] Returns ip of a domain", ["*"], "Works exactly like nslookup", null, @Core["nslookup"]],
+	["whois", "[ip] SS.Network administration info", ["*"], "Works exactly like whois", null, @Core["whois"]],
+	["router", "Simple router scan", ["*"], "Works exactly like a scanrouter", null, @Core["router"]],
+	["nmap", "SS.Network mapping tool", ["*", "*"], "Network mapping tool [addr] [flag?]\nflags:\n-w --> with whois \n -a --> full assesment of whois, router info, etc.", null, @Core["nmap"]],
+	["scanlan", "Local network mapping", [], "Poor Man's scanlan", null, @Core["scanlan"]],
 	["ns", "Manual NetSessions", ["*","*","*","*"] , "[addr] [port] [action|null] [data|null]".NL+"[addr] target address".NL+"[port] target port".NL+"[action|memory zone]".NL+"-s --> select specific exploits to overflow".NL+"-a --> exploit all vulnerabilities".NL+"[data|memory value]".NL+"* --> defaults to unsecure password change".NL+"*LAN --> attempts lan bounce".NL+"*PW --> changes pw to given value", null, @Core["ns"] ],
-	["local", "Local library exploitation", ["*", "*"], "", "general", @Core["localhax"]],
+	["mx", "Load an aquired metaxploit lib", ["*|-clear"], "With no argument, mx will return a new MX object from the current host. Use -clear to revert to SS mx", "general", @Core["loadmx"]],
+
+	["local", "Local library exploitation", ["*", "*"], "Local hacking tool, use first argument -a|-s to use all, or selective amount of exploits\nOur second argument is either the name of the lib, or use -a to hack them all!", "general", @Core["localhax"]],
 
 	["entry", "SS.NS on rails", ["*", "*"], "Designed to work like earlier versions of SeaShell\n* Enter an IP/LAN/Domain as the command name to utilize this feature\nYou can also use entry -r for a random ip", "result", @Core["entry"]],
-	["fish", "Hunt for specified lib | port", ["*", "*"], "[lib]", "general", @Core["fish"]],
+	["fish", "Hunt for specified lib | port", ["*", "*", "*"], "[-p|libname] [port|version] [amount*]\nFish is your primary way to look for targets\n-p [port] [amount*] if amount is specified, it will not start entry", "general", @Core["fish"]],
 	/////////////////////////////////  // TOOLS & OTHER
 	["mount", "Mount binaries to shell objects", ["*", "*"], "-a --> mounts all files [ss,mx,crypto,sf]\n-p --> pivot mount", "general", @Core["mount"]],
-	["wipe", "Wipe the system", ["-t|-l|-s"], null, "general", @Core["wipe"]],
+	["wipe", "Wipe the system", ["-t|-l|-s"], "-t --> this will wipe any seashell items from the machine\n-l --> will wipe the server logs\n-s --> will wipe the SYSTEM", "general", @Core["wipe"]],
 	//["sea", "[action] [recon] [bam] <i>Collects all objects</i>", ["*", "*","*" ], null, null, @Core["exp.mass_loop"]],
 	//["db", "[name] [version] database search", ["*", "*"], null, null, @Core["browse_exploits"]],
 	//["api", "[connect|exploits|hashes|build] Utilize the NPM api", ["*"], null, "general", @Client["handle"]],
-	["tsunami", "Brute force connection", ["*", "*", "*", "*"], "[ip][user][port][protocol]", "result", @SS.MD5["connect"]],
-	["shellfish", "local shell Brute force", ["*"], null, "result", @Core["shellfish"]],
-	["mailfish", "NPC mail Brute force", ["*"], null, null, @SS.MD5["mail"]],
-	["rshell", "MX rshells", ["*", "*", "*"], null, "result", @Core["rshell"]],
-	["npc", "NPC mission competion", ["-c|-p|*", "*", "*"], "NPC mission auto completion, simply sign up and reply to the remaining emails".NL+"-c -- > corruption missions, good for mass money collection".NL+"-p --> credentials needed missions, great for coupons".NL+"-clear --> clear your email inbox, this means you are only required to reply to the emails".NL+"use -d flag to delete failed emails".NL+"use -n flag to print mission logs".NL+"ex: npc -c -d -n", "general", @Core["npc"]],
-	["md5", "String -> md5", ["*"], null, null, @Core["md5"]],
-	["bam", "", ["*", "*", "*", "*", "*"], "Binary attack module is a remote option for using seashell commands, and specified payloads\n[cmd|info|module] [args]\nex: bam sudo -s | bam touch /home/guest", "result", @Core["bam"]],
+	["tsunami", "Brute force connection", ["*", "*", "*", "*"], "[ip][user][port][protocol]\nTSUNAMI is a brute force logging tool, it utilizes the hash database to find NPC passwords, results not garunteed!", "result", @SS.MD5["connect"]],
+	["shellfish", "local shell Brute force", ["*"], "Shellfish is a brute force shell getter, utilizing the hash database it will try to return a shell.\nIt's important to note that on success, this will launch a surf mode on the new host. Meaning crab is enabled by default.", "result", @Core["shellfish"]],
+	["mailfish", "NPC mail Brute force", ["*"], "Mail login brute force, simply provide a email address, results not always garunteed but is a great pivoting resource", null, @SS.MD5["mail"]],
+	["wifish", "WiFi Brute force", ["*", "*"], "bssid essid", null, @SS.MD5["wifish"]],
 
-	["shellget", "local shell Brute force", ["*"], "This command doesnt return the shell to surf mode, rather used internally", "general", @Core["shellfish"]],
+	["rshell", "MX rshells", ["*", "*", "*"], "rshell function still wip\n-l --> Rshell Interface\n-p [ip] --> plant an rshell client\n! --> run a payload on the clients (will prompt for command)\n-c --> ", "result", @Core["rshell"]],
+	["npc", "NPC mission competion", ["-c|-p|*", "*", "*"], "NPC mission auto completion, simply sign up and reply to the remaining emails\nPrimary arguments:\n-c --> corruption missions\n-p --> credentials missions\n-clear --> clears any mission emails from inbox\nFLAGS can be added in any combination in this command\n-d --> deletes failed missions\n-n --> gives mission logs".NL+"-c -- > corruption missions, good for mass money collection".NL+"-p --> credentials needed missions, great for coupons".NL+"-clear --> clear your email inbox, this means you are only required to reply to the emails".NL+"use -d flag to delete failed emails".NL+"use -n flag to print mission logs".NL+"ex: npc -c -d -n", "general", @Core["npc"]],
+	["md5", "String -> md5", ["*"], "A simple md5 hash conversion, its important to note these md5s do not work the same as the md5s from password hashes, try f1shbowl and decipher it", null, @Core["md5"]],
+	["crab", "", ["*", "*", "*", "*", "*"], "Command Relay Access Bridge is a remote option for using seashell commands, and specified payloads\n[cmd|info|module] [args]\nex: crab sudo -s | crab touch /home/guest\nIn essence, the command relay access bridge acts as a way to use commands you can only normally use on a machine you have originated from.", "result", @Core["crab"]],
+	["surf", "New surf loop", [], "Begin surfing on a new host, essentially a toggle for crab.\nSurf Mode is a recursive loop of the main program, you can use this to loop and perform local operations on remote hosts".NL+"This will allow you to use commands like 'sudo' instead of having to specify its being used with crab like `crab sudo`", "result", @Core["surf"]],
+	["shellget", "Local shell brute force", ["*"], "Shellget works exactly as shellfish does, the only difference is that it does NOT start a surf mode loop on the host\nThis is useful when you simply want to add a root shell to the object cache", "general", @Core["shellfish"]],
 	["test", "testing function", [], null, null, @Core["test"]],
-	["iget", "*InternalUse*", ["*", "*", "*", "*", "*", "*"], null, "general", @Core["iget"]],
-	["quit", "Exit SeaShell", [], null, null, @EXIT],
+	["iget", "*InternalUse*", ["*", "*", "*", "*", "*", "*"], "Theres nothing to know about this command, you should not be using it!", "general", @Core["iget"]],
+	["quit", "Exit SeaShell", [], "A full exit from seashell, kills all surf mode loops", null, @EXIT],
 ]
 ///======================= Binary.Attack.Module =========================////
 SS.BAM = {}
 SS.BAM.bamstring = "LOG = @print;INPUT = @user_input;HOME = @home_dir;T = @typeof;NL = char(10);COLUMNS = @format_columns;CLEAR = function; return clear_screen; end function;"
-SS.BAM.bamstring = SS.BAM.bamstring+"SS = get_custom_object;SS.mutate;LOG(('Launching '+ 'B'.red.b+'.'+'A'.red.b+'.'+'M'.red.b).sys);args = SS.bamargs;if args.len == 0 then;if SS.bamrun.cb == 'general' then ; SS.CMD.invoke(SS.o, SS.bamrun.name);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name);else ;SS.CMD.invoke(SS.o, SS.bamrun.name);end if;else if args.len == 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);end if;else if args.len > 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join(' '));else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);end if;end if;if SS.bamret != null and SS.bamret != 'exit' then SS.CMD.result(SS.bamret)"
+SS.BAM.bamstring = SS.BAM.bamstring+"SS = get_custom_object;SS.mutate;LOG(('Now walking. . .').crab.sys);args = SS.bamargs;if args.len == 0 then;if SS.bamrun.cb == 'general' then ; SS.CMD.invoke(SS.o, SS.bamrun.name);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name);else ;SS.CMD.invoke(SS.o, SS.bamrun.name);end if;else if args.len == 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);end if;else if args.len > 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join(' '));else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);end if;end if;if SS.bamret != null and SS.bamret != 'exit' then SS.CMD.result(SS.bamret)"
 SS.BAM.isModule = function(c)// check registered modules
 	for i in self.modules 
 		if i.name == c then; return i; break; end if
@@ -2066,7 +2048,7 @@ SS.BAM.frun = function(s)
 	return ret
 end function
 SS.BAM.handler = function(o, cmd, args, isModule = null)
-	if T(o) != "shell" then ; LOG("must be of type shell for bam".warning); return;end if;
+	if T(o) != "shell" then ; LOG("must be of type shell for crab".warning); return;end if;
 	SS.o = o
 	SS.bamrun = cmd
 	SS.bamargs = args
@@ -2094,12 +2076,12 @@ SS.BAM.run = function(o, s)
 		LOG("Something else happens".warning) 
 		return 
 	end if
-	if T(payload) == "string" then; LOG("An error occured in setting bam: ".warning+payload); return; end if;
+	if T(payload) == "string" then; LOG("An error occured in setting crab: ".warning+payload); return; end if;
 	compile = o.build(launcher.path, h, 0)
-	//launcher.set_content("><> ><> ><>")
-	if T(compile) == "string" and compile.len > 1 then; LOG("An error occured in compilation of bam: ".warning+compile); return; end if;
+	launcher.set_content("><> ><> ><>")
+	if T(compile) == "string" and compile.len > 1 then; LOG("An error occured in compilation of crab: ".warning+compile); return; end if;
 	launched = o.launch(launcher.path[:-4])
-	if launched == null then; LOG("An error occured launching bam".warning); return; end if;
+	if launched == null then; LOG("An error occured launching crab".warning); return; end if;
 end function
 SS.BAM.modules = [
 	{"name":"module", "desc":"", "params":[], "usage":"something helpful", "cb":"general", "string":"print('hello there world')"},
