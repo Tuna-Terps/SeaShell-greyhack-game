@@ -20,6 +20,7 @@ SS.dbec = 0
 SS.dbh = null
 SS.dbhc = 0
 SS.dbhl = []
+SS.remote = false
 OGT = function; s=true;if SS.og then s=null;SS.og=s;end function;
 EXIT = function(s=null);if not s then s = "Exiting...".sys return exit(s); end function;
 ///==================== FuncRefs ========================////
@@ -267,6 +268,9 @@ end function
 string.a = function(self)
     if SS.anon == true then return "HIDDEN".grey.size(14)
     return self
+end function
+string.crab = function(self)
+    return ("C".red.b+".".white+"R".red.b+".".white+"A".red.b+".".white+"B".red.b).s+(self.white.i)
 end function
 // ======== LISTS
 list.table = function(title)
@@ -593,7 +597,7 @@ SS.Utils.hasLib = function(o, l, p = null, clean = null)
     return lib
 end function
 SS.Utils.loadLib = function(o, mx, n)
-    if SS.mx == null then return LOG("program is operating under cfg: ".warning+SS.cfg.label)
+    if SS.cmx == null then return LOG("program is operating under cfg: ".warning+SS.cfg.label)
     LOG("Attempting to load metalib: ".sys+n)
     if T(o) == "shell" or T(o) == "ftpshell" then r = o.host_computer.File("/")
     if T(o) == "file" then r = SS.Utils.rootFromFile(o)
@@ -866,65 +870,7 @@ SS.Utils.secure = function(o, a)
     end if
 end function
 ///======================== Menu =========================////
-// title: string
-// options: list
-// option: {"name": "name", "options": [choice:string]}
-// todo : cb: FuncRef
-SS.Utils.menu = function(title, options, cb = null)
-    LOG("Loading menu: ".sys+title)
-    selecting = true
-    selected_menu = 0//selectedmenu
-    selected_option = 0
-    in_main = true
-    while selecting == true
-        if SS.debug then LOG("Utils:menu Start ".debug+NL+"current_menu: "+selected_menu+NL+"current_option : "+selected_option+NL+"in_main: "+in_main) 
-        if selecting == false then break
-        c = 1
-        choices = (title.cyan+":"+" Main Menu".white).title("FFFFFF", 80).blue
-        inp = null
-        if selected_menu == 0 then 
-            in_main = true
-            for o in options
-                choices = choices+NL+str(c).white+"."+") ".white+o.name//.info
-                c=c+1;
-            end for
-            LOG(choices)
-            inp = INPUT("["+"SELECT MENU".green+"] "+"--".white+" 0 to return".grey+" --> ".white)
-            if inp == "0" or inp == "" then break
-            if inp.val > c-1 then continue
-            i = inp.to_int
-            if T(i) == "string" then continue 
-            selected_menu = i;
-            continue
-        else
-            choices = options[selected_menu-1]["options"]
-            if SS.debug then LOG("Utils:menu choices: "+choices)
-            in_main = false
-            LOG((title.blue+": "+options[selected_menu-1]["name"].white).title("00FFE7", 80)+choices.select)
-            inp	= INPUT("["+"CHOOSE OPTION".green+"]"+" --".white+" press 0 to return ".grey+"--> ".white)
-            if inp == "exit" then break
-            i = inp.to_int
-            if T(i) == "string" then continue
-            if i == 0 then 
-                selected_menu = 0
-                continue
-            end if
-            if i > choices.len then continue
-            selected_option = i;
-        end if
-        if inp.val-1 > choices.len then continue
-        if SS.debug then LOG("Utils:menu c1".debug)
-        selection = null
-        if selected_menu > 0 and in_main == false then confirm = INPUT("1".white+"."+")".white+" Confirm".green+NL+"-- ".white+"* press any to return *".grey+" --> ".white)
-        if (confirm == null) or (confirm == " ") or (confirm.val > 2) or (confirm.val == 0) then 
-            continue
-        else
-            break
-        end if
-    end while
-    if SS.debug then LOG("Utils:menu ".debug+selected_menu-1+" "+selected_option-1) 
-    return [selected_menu-1, selected_option-1]
-end function            
+            
 ///======================== FILE EDIT =========================////
 //TODO: FILE EDIT test
 SS.Inputs = {}
@@ -987,6 +933,7 @@ SS.Network.admin = null
 SS.Network.email = null
 SS.Network.phone = null
 SS.Network.neurobox = " false"
+SS.Network.mappedlan = null
 SS.Network.is = function(self)
     self.who = whois(self.ip)
     self.wp = self.who.split(NL)
@@ -1019,46 +966,67 @@ SS.Network.drop = function(ip)
     end for
 end function
 // [ { "t:": type, "v": version "lan": lan, "essid":, "bssid":, "rules:" "devices": [ {"lan":lan, "ports":[] }]} ]
-SS.Network.maplan = function() 
-    if self.isLan == false then; LOG("Local use only".warning); return null; end if;
-    if self.router == null then self.router = get_router
+SS.Network.maplan = function
     ret = []
-    devList = [];subs = []; 
-    for rPort in self.router.device_ports(self.router.local_ip)
-        if T(rPort) == "Port" then LOG(rPort.port_info)
-    end for 
+    devList = [];subs = [];c = 0;
     for device in get_router.devices_lan_ip
-        sub["lan"] = device
-        l_d = get_router(device)
-        if not l_d then continue
+        subnet = {}
+        lanDev = get_router(device)
+        if not lanDev then continue
         if devList.indexOf(device) == null then devList.push(device)
-        sub["t"] = "SWITCH";
-        sub["essid"] = l_d.bssid_name
-        sub["bssid"] = l_d.essid_name
-        sub["v"] = l_d.kernel_version
-        sub["fw"] = l_d.firewall_rules
-        sub.devices = []
-        if get_switch(device) == null then sub["t"]  = "ROUTER";
-        for subDev in l_d.devices_lan_ip
-            sub_dev = {} 
-            sub_dev.ports = []
+        lanVer = lanDev.kernel_version
+        isSw = "SWITCH"; if get_switch(device) == null then isSw = "ROUTER"
+        if c == 0 then isSw = "GATEWAY"
+        subnet["lan"] = device
+        subnet["kernel"] = lanDev.kernel_version
+        subnet["type"] = isSw
+        subnet["bssid"] = lanDev.bssid_name
+        subnet["essid"] = lanDev.essid_name
+        subnet["rules"] = lanDev.firewall_rules
+        subnet["ports"] = []
+        _p = lanDev.device_ports(device)
+        if (_p) and (_p.len > 0) then 
+            for p in _p 
+                if T(p) == "string" then continue
+                i = lanDev.port_info(p)
+                if i == null then continue
+                subnet["ports"].push([p.port_number, p.is_closed, i])
+            end for
+        end if
+        subnet["subdevices"] = []
+        for subDev in lanDev.devices_lan_ip
             if devList.indexOf(subDev) then continue;
             if subs.indexOf(subDev) then continue;
             subs.push(subDev)
-            ports = l_d.device_ports(subDev)
-            if not ports or ports.len == 0 then; sub_dev.ports = null; continue; end if;
-            for i in ports
-                if T(i) == "string" then continue
-                p_i = l_d.port_info(i)
-                s_p = p_i.split(" ")
-                sub_dev.ports.push({"l":s_p[0],"v":s_p[1],"s":i.is_closed, "n":i.port_number, "a":i.get_lan_ip})
+            subdevice = {}
+            subdevice["lan"] = subDev
+            subdevice["ports"] = []
+            ports = lanDev.device_ports(subDev)
+            if not ports or ports.len == 0 then continue 
+            for p in ports
+                if T(p) == "string" then continue
+                i = lanDev.port_info(p)
+                if i == null then continue
+                subdevice["ports"].push([p.port_number, p.is_closed, i])
             end for
-            sub.devices.push(sub_dev) // push sub devices to 
+            subnet["subdevices"].push(subdevice)
         end for
-        self.subnets.push(sub) 
+        ret.push(subnet)
+        c = c+1 
+    end for 
+    self.mappedlan = ret
+    return self
+end function
+SS.Network.getRouter = function(lan)
+    rc = []
+    for s in self.mappedlan
+        if rc.indexOf(s["lan"]) == null then rc.push(s["lan"])
+        for sd in s.subdevices 
+            if sd["lan"] == lan then return [s, rc]
+        end for 
     end for
-    return self 
-end function // ip: string  g: bool | null
+    return []
+end function
 SS.Network.mapsub = function(ip = null, g = null) // map a subnet, or the gateway
     if SS.debug then LOG("init:mapsub:".debug+self)
     d_l = [];
@@ -1389,12 +1357,12 @@ SS.MX.l = function(l = null)//
 end function
 SS.MX.map = function(o, x = null)
     self.x = x
-    if self.x == null and SS.mx != null then self.x = SS.mx
+    if self.x == null and SS.cmx != null then self.x = SS.cmx
     self.o = o
     self.lib = []
     self.rshells = []
     self.rsip = null
-    if T(x) != "metaxploitLib" then return null
+    if T(x) != "MetaxploitLib" then return null
     return self
 end function
 SS.ML = {"exploits":[], "file":null}
@@ -1532,7 +1500,7 @@ SS.ML.write=function(z,m)
 	return test
 end function
 SS.ML.scan = function(t, mx = null)
-    if mx == null then mx = SS.mx
+    if mx == null then mx = SS.cmx
     _r=function(z)
         a=-1
         for e in z
@@ -1601,8 +1569,14 @@ SS.ML.map = function(ml, flag, x)
     self.scanned = self.get(ml)
     if self.scanned.get_content.len < 1 then
         LOG("ML: New library detected".sys) 
+        r = null
+        if (get_shell.host_computer.public_ip != SS.cfg.ip) and (INPUT("Manual scan needed for kernel router on remote".warning+NL+"Press 1 to use host to find these values quicker").to_int!=1) then 
+            //(self.n == "kernel_router.so") and
+            LOG("Defaulting to local connection for scan . . .".sys)
+            r=SS.ML.getBetterScan(self.n, self.v)
+        end if
         if flag == "-f" or flag == "-a" then 
-            SS.ML.scan(self.m, self.x)
+            if (r == null) then SS.ML.scan(self.m, self.x)
             self.scanned = SS.ML.hasScanned(self.n,self.v) 
             self.scanlabel = "scanned".green
         else if flag == "-i" and INPUT(("Scan & Save "+"1".white+" | Return "+"0".white).prompt).to_int == 1 then 
@@ -1652,6 +1626,7 @@ SS.ML.of = function(vuln = null, data = null)// OVERFLOW
     end if
     return ret
 end function
+// TODO: selection error
 SS.ML.browse = function(self)
     if self.scanned == null then return null
     ret = []
@@ -1691,6 +1666,13 @@ SS.ML.browse = function(self)
         if ret.len == 0 then break
     end while
     return ret
+end function
+SS.ML.getBetterScan = function(l, v)
+    if l == "kernel_router.so" then rip = SS.Utils.router_fish(v)
+    if not rip then return null
+    ns = new SS.NS.map(rip, 0, "-f", SS.cmx)
+    if (ns == null )or (ns.session == null) then return null
+    return true
 end function
 ///==== RSHELL
 SS.MX.rs = function(a, i = null, d = null)
@@ -1851,12 +1833,12 @@ SS.NS.scanlabel = null
 SS.NS.mx = null
 SS.NS.map = function(a, p = null, flag = null, mx=null)
     self.mx = mx
-    if self.mx == null then self.mx = SS.mx
+    if self.mx == null then self.mx = SS.cmx
     if self.mx == null then; LOG("Program operating under cfg: ".warning)+SS.cfg.label; return null;end if;
     if T(p) == "string" then p = p.to_int
     self.session = self.mx.net_use(a, p)
     if self.session == null then; LOG("Unable to establish net session".warning); return null;end if;
-    LOG("Establishing net session . . .".ok)
+    LOG("Establishing net session: ".ok+a.white.s+str(p).lblue)
     self.addr = a
     if T(p) != "number" then 
         self.port = p.to_int
@@ -2097,6 +2079,7 @@ SS.EO.escalate = function(u = "root")
     return self
 end function
 SS.EO.mass_pw_change = function(self)
+    if self.is != "root" then self.escalate
     if self.pc == null then return []
     if self.users.len then return []
     r = []
@@ -2333,7 +2316,12 @@ end function
 SS.MD5.connect = function(o, a, u = "root", p = 22, prot = "ssh")
     if T(SS.dbh) != "file" then return LOG("No hashes found".warning)
     if T(o) != "shell" then return LOG("A shell is needed".warning)
-    if T(p) != "number" then p = p.to_int
+    if T(p) != "number" then 
+        p = p.to_int
+    else if T(p) == "string" then 
+        return LOG("Invalid port parameter".warning)
+    end if
+    if (a == null ) or (not is_valid_ip(a)) then return LOG("Provide a valip ip".warning)
     if SS.dbhl.len == 0 then SS.loadHashes(SS.dbh)
     LOG("Beginning tsunami bruteforce . . .".lblue.sys)
     ret = null
@@ -2346,6 +2334,7 @@ SS.MD5.connect = function(o, a, u = "root", p = 22, prot = "ssh")
             ret = svc; break;
         end if
     end for
+    if not ret then LOG("Hash was not found in database".warning)
     return ret
 end function
 SS.MD5.shell = function(user)
@@ -2357,28 +2346,48 @@ SS.MD5.shell = function(user)
         parse = f.split(":")
         shell = get_shell(user, parse[0])
         if T(shell) != "shell" then continue
-        if SS.og then LOG(("""You have clearance, Clarence!""".green).sys)
+        if SS.og then LOG(("""You have clearance, Clarence!""".green).sys) else LOG("shellfish found a a result".ok)
         return shell 
     end for
-    if SS.og then LOG(("""Roger, Roger""".red).sys)
+    if SS.og then LOG(("""Roger, Roger""".red).sys) else LOG("failed to acquire shell".warning)
     return null
 end function
 SS.MD5.mail = function(addr)
-    if T(SS.dbe) != "file" then return LOG("No hashes found".warning)
+    if T(SS.dbh) != "file" then return LOG("No hashes found".warning)
+    if SS.dbhl.len == 0 then SS.loadHashes(SS.dbh)
     LOG("Beginning mail bruteforce . . .".sys)
 	ret = null
-    for files in SS.dbh.get_files
-        if ret then break
-		for each in files.get_content.split("\n")//.split(":")
-			if each.split(":") == null or each.split(":").len == 1 then continue
-			h = each.split(":")[0]
-            attempt = mail_login(addr, h)
-			if typeof(attempt) != "string" then
-                LOG(("Mail login established ! "+h.green.b).ok) 
-                ret = attempt; break;
-			end if
-		end for
+    for f in SS.dbhl
+        h = f.split(":")[0]
+        attempt = mail_login(addr, h)
+        if typeof(attempt) != "string" then
+            LOG(("Mail login established ! "+h.green.b).ok) 
+            return attempt 
+        end if
 	end for
+    LOG("Unable to find mail password".warning)
+end function
+SS.MD5.wifish = function(o, bssid, essid)
+    pc = SS.Utils.ds(o, "computer")
+    if pc == null then return null
+    if T(SS.dbh) != "file" then return LOG("No hashes found".warning)
+    if SS.dbhl.len == 0 then SS.loadHashes(SS.dbh)
+    LOG("WiFishing . . .".sys)
+	ret = null
+    for f in SS.dbhl
+        h = f.split(":")[0]
+        LOG(bssid+" "+essid)
+        attempt = pc.connect_wifi("wlan0", bssid, essid, h)
+        LOG("0 ".red+attempt)
+        if attempt == 1 then;LOG(("WiFish success ! "+h.green.b).ok) ;return attempt ;end if;
+        attempt = pc.connect_wifi("wlan1", bssid, essid, h)
+        LOG("1 ".red+attempt)
+        if attempt == 1 then;LOG(("WiFish success ! "+h.green.b).ok) ;return attempt ;end if;
+       attempt = pc.connect_wifi("wlan2", bssid, essid, h)
+       if attempt == 1 then;LOG(("WiFish success ! "+h.green.b).ok) ;return attempt ;end if;
+       LOG("2 ".red+attempt)
+    end for
+    LOG("Unable to find wifi brute force".warning)
 end function
 
 ///======================== GFX =========================////
