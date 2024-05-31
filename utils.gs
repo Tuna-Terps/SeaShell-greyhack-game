@@ -870,7 +870,61 @@ SS.Utils.secure = function(o, a)
     end if
 end function
 ///======================== Menu =========================////
-            
+SS.Utils.menu = function(title, options, cb = null)
+    LOG("Loading menu: ".sys+title)
+    selecting = true
+    selected_menu = 0//selectedmenu
+    selected_option = 0
+    in_main = true
+    while selecting == true
+        if SS.debug then LOG("Utils:menu Start ".debug+NL+"current_menu: "+selected_menu+NL+"current_option : "+selected_option+NL+"in_main: "+in_main) 
+        if selecting == false then break
+        c = 1
+        choices = (title.cyan+":"+" Main Menu".white).title("FFFFFF", 80).blue
+        inp = null
+        if selected_menu == 0 then 
+            in_main = true
+            for o in options
+                choices = choices+NL+str(c).white+"."+") ".white+o.name//.info
+                c=c+1;
+            end for
+            LOG(choices)
+            inp = INPUT("["+"SELECT MENU".green+"] "+"--".white+" 0 to return".grey+" --> ".white)
+            if inp == "0" or inp == "" then break
+            if inp.val > c-1 then continue
+            i = inp.to_int
+            if T(i) == "string" then continue 
+            selected_menu = i;
+            continue
+        else
+            choices = options[selected_menu-1]["options"]
+            if SS.debug then LOG("Utils:menu choices: "+choices)
+            in_main = false
+            LOG((title.blue+": "+options[selected_menu-1]["name"].white).title("00FFE7", 80)+choices.select)
+            inp	= INPUT("["+"CHOOSE OPTION".green+"]"+" --".white+" press 0 to return ".grey+"--> ".white)
+            if inp == "exit" then break
+            i = inp.to_int
+            if T(i) == "string" then continue
+            if i == 0 then 
+                selected_menu = 0
+                continue
+            end if
+            if i > choices.len then continue
+            selected_option = i;
+        end if
+        if inp.val-1 > choices.len then continue
+        if SS.debug then LOG("Utils:menu c1".debug)
+        selection = null
+        if selected_menu > 0 and in_main == false then confirm = INPUT("1".white+"."+")".white+" Confirm".green+NL+"-- ".white+"* press any to return *".grey+" --> ".white)
+        if (confirm == null) or (confirm == " ") or (confirm.val > 2) or (confirm.val == 0) then 
+            continue
+        else
+            break
+        end if
+    end while
+    if SS.debug then LOG("Utils:menu ".debug+selected_menu-1+" "+selected_option-1) 
+    return [selected_menu-1, selected_option-1]
+end function              
 ///======================== FILE EDIT =========================////
 //TODO: FILE EDIT test
 SS.Inputs = {}
@@ -1854,6 +1908,7 @@ SS.NS.map = function(a, p = null, flag = null, mx=null)
     self.active = self.session.is_any_active_user
     self.root_active = self.session.is_root_active_user
     self.dump = self.session.dump_lib
+    if self.dump then LOG("Searching DB for MetaLib: ".grey.sys+self.dump.lib_name.white.s+self.dump.version.red)
     self.mlib = new SS.ML.map(self.dump, flag, self.mx)
     self.lib = self.mlib.n
     self.libv = self.mlib.v
