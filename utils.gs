@@ -1419,23 +1419,25 @@ SS.ML.get=function(m)
     l=c.File(p+"/"+x+"2"+"/"+n)
 	if l then return l
     for i in range(3, 4)
+        ni = i+1 
         i=str(i)
+        ni = str(ni)
         l=c.File(p+"/"+x+i+"/"+n)
         if l then return l
-        if c.File(p+"/"+x) then
-            r=c.touch(p+"/"+x,n)
+        if c.File(p+"/"+x+i) then
+            r=c.touch(p+"/"+(x+i),n)
             if r isa string then
                 LOG("ML: Exceeded file cap, creating sub directory".warning)
                 c.create_folder(p,(x+i))
                 c.touch(p+"/"+(x+i),n)
                 return c.File(p+"/"+(x+i)+"/"+n)
             else
-                return c.File(p+"/"+x+"/"+n)
+                return c.File(p+"/"+(x+i)+"/"+n)
             end if
         else
-            c.create_folder(p,x)
-            c.touch(p+"/"+x,n)
-            return c.File(p+"/"+x+"/"+n)
+            c.create_folder(p,(x+i))
+            c.touch(p+"/"+(x+i),n)
+            return c.File(p+"/"+(x+i)+"/"+n)
         end if
     end for
 end function
