@@ -18,9 +18,10 @@ SS.NPC.tl = null//target lan
 SS.NPC.cache = [] // object cache
 SS.NPC.shellips = []
 SS.NPC.disables = []
+SS.NPC.p4t = false//prompt for tsunami
+SS.NPC.skip = false// force skip tsunami
+SS.NPC.logger = false
 SS.NPC.storeshell = function(eo)// TODO: fixme
-    
-
     if T(eo) == "shell" then 
         neo = new SS.EO
         neo.map(eo)
@@ -28,31 +29,46 @@ SS.NPC.storeshell = function(eo)// TODO: fixme
     
     end if
 end function
-SS.NPC.mission = function(o, mission, del = null, notes = null)
-    if SS.cfg.mailacct == null then SS.cfg.mailacct = INPUT("Enter mail acct".prompt,true)
-    if SS.cfg.mailpw == null then SS.cfg.mailpw = INPUT("Enter mail pw".prompt,true)
+SS.NPC.mission = function(o, mission, del = null, notes = null, force=null)
+    if SS.cfg.mailacct == "" then SS.cfg.mailacct = INPUT("Enter mail acct".prompt,true)
+    if SS.cfg.mailpw == "" then SS.cfg.mailpw = INPUT("Enter mail pw".prompt,true)
     self.fixmekuro = null
     cmd = SS.CMD.getOne("iget")
     bam = SS.BAM.handler(o, cmd, ["mail"])
     if SS.bamres == null then return LOG("An issue occured")
     self.fixmekuro = SS.bamres
     if T(self.fixmekuro) == "string" then return LOG(self.fixmekuro.warning)
-    LOG("Analyzing metamail. . .".sys);start = time;
+    LOG(("Analyzing metamail. . .".sys)+NL+("Launching raft. . .").raft.sys);start = time;
     ret = "";g=0;c=0;
-    self.d = false; self.n = false;
-    if (del == "-d") or (notes == "-d") then self.d = true 
-    if (del == "-n") or (notes == "-n" )then self.n = true 
+    self.d = false; self.n = false;self.p4t = false;self.skip=false;self.logger = false
+    args=[]
+    if del != null then args.push(del)
+    if notes != null then args.push(notes)
+    if force != null then args.push(force)
+    if args.indexOf("-d") != null then self.d = true 
+    if args.indexOf("-n") != null then self.n = true
+    if (args.indexOf("-l") != null) or (mission == "-monitor") then self.logger = true
+    logbot = null
+    if self.logger == true then ;logbot = new SS.Logger;logbot.map("RAFT", true);end if
+    if self.logger == true and ((args.indexOf("-monitor") != null) or( mission == "-monitor")) then return logbot.monitor("")
+    if (args.indexOf("?f") != null) and (args.indexOf("!f") == null) then self.p4t = true 
+    if (args.indexOf("!f") != null) and (args.indexOf("?f") == null) then self.skip = true 
     if mission == "-clear" or (del == "-clear" ) then
         LOG("Clearing mailbox . . .") 
-        for plz in self.fixmekuro.fetch()
+        m = self.fixmekuro.fetch();sw = null
+        if m.len > 250 then sw = true
+        for plz in m
             m = plz.split(NL)
             id = m[2].split(" ")[1]
 		    if m[4] != "Subject: Mission Contract" then continue
             d = self.fixmekuro.delete(id)
             if d isa string then LOG(d.warning)
             if d == 1 then LOG("Deleted email: ".ok+id)
+            if sw then wait(0.1)
         end for
         return
+    else if mission == "-inbox" then 
+        return LOG("Mailbox: ".sys+self.fixmekuro.fetch.len)
     end if
     for plz in self.fixmekuro.fetch()
         target = "any"
@@ -105,6 +121,12 @@ SS.NPC.mission = function(o, mission, del = null, notes = null)
         restring = (" ".fill).red+NL+"Mission Tasks Complete".ok+NL+(label.lblue.b+" - "+reslabel).title.NL+" Target ".wrap.cap(target).NL+" IP ".wrap.cap(target_ip).NL+" LAN ".wrap.cap(target_lan).NL+" DAT ".wrap.cap(result)+NL+" NOTE ".wrap.cap(self.results[self.results.len-1])
         if self.n then restring = restring.NL+self.results2[self.results2.len-1]
         LOG(restring)
+        if (self.logger == true) and (logbot != null) then
+            d = (label+" "+target_ip.a+" "+target_lan+" "+self.results[self.results.len-1])
+            //if self.n then d = d+NL+self.results2[self.results2.len-1]
+            cr = "COMPLETED: ".raft
+            logbot.entry( d,(cr+str(c)))
+        end if
         ret = ret+restring+NL
     end for
     if g == 0 then ratio = 0
@@ -118,15 +140,14 @@ SS.NPC.mission = function(o, mission, del = null, notes = null)
     else 
         ratio = str(ratio).red
     end if
-    LOG("".fill.NL+"Mission(s) Summary".title+("["+"Completion".grey.s+ratio+"%".white+"]")+NL+ret+NL+"passed".wrap.cap(str(g))+NL+"total".wrap.cap(str(c))+NL+"pct".wrap.cap((ratio+"%".white)))
-    SS.Date.timer(start)
+    LOG("".fill.NL+"Mission(s) Summary".title+("["+"Completion".grey.s+ratio+"%".white+"]")+NL+ret+NL+("Analyzing results. . .".raft).sys.NL+"passed".wrap.cap(str(g))+NL+"total".wrap.cap(str(c))+NL+"percent".wrap.cap((ratio+"%".white))+NL+"time".wrap.cap(SS.Date.timer(start, true))+NL+"logged".wrap.cap(self.logger))
     self.fixmekuro.fetch
     self.fixmekuro = null
-    SS.BAM.handler(o, cmd, ["mail"])
+    //SS.BAM.handler(o, cmd, ["mail"])
 end function
 //TODO: find the missing end if, im almost positive there is one
 SS.NPC.run = function (id, label, target, target_ip, target_lan)
-    LOG("".fill+"MISSION START".b.title.b+NL+"ID: ".white+id.NL+"TYPE: ".white+label.NL+"TARGET: ".white+ target.NL+"IP: ".white+ target_ip.NL+"LAN: ".white+ target_lan.NL+"".fill)
+    LOG("".fill+"MISSION START".b.title.b.NL+"ID: ".white+id.NL+"TYPE: ".white+label.NL+"TARGET: ".white+ target.NL+"IP: ".white+ target_ip.NL+"LAN: ".white+ target_lan.NL+"".fill)
     sumstring = "*"+"Mission Log".lblue+"*"
     self.results = SS.NPC.results
     self.results2 = SS.NPC.results2
@@ -157,6 +178,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
     tl = target_lan
     sh = false
     dat_sw = SS.cfg.unsecure_pw//data switch
+    need_new_shell = false
     _t = function(eo, label, target_lan)
         task = null
         if SS.debug then LOG("NPC:task:completion ".debug+"eo: ".white+eo.type+" eolan: ".white+eo.lan+" target: ".white+target_lan)
@@ -202,7 +224,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             if (T(o) == "number") or (T(o) == "string") then continue
             eo = new SS.EO
             eo.map(o)
-            eo.escalate
+            //eo.escalate
             // if target users hasnt been defined, push them to the list 
             if (SS.NPC.tusers.len == 0) and (eo.lan == SS.NPC.tl) then SS.NPC.tusers = eo.users
             if SS.NPC.tusers.len > 0 and (eo.users == tu) then
@@ -232,11 +254,18 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         if r0shell == null then r0shell = eo
         div = eo.o.host_computer.File("/lib/init.so")
         if div then div.rename("init.so"+str(floor(rnd*10)))
-        if T(div) == "string" then return null
-        drop = SS.s.scp(SS.cfg.wf.path, "/lib", eo.o)
         wait(0.1)
-        if T(drop) == "string" then ; LOG(drop.warning);return null; end if;
-        if drop == 1 then
+        if T(div) == "string" then return null
+        //SS.bamrgs = SEO
+        SS.BAM.handler(eo.o, SS.CMD.getOne("iget"), ["wl"])
+        //drop = SS.s.scp(SS.cfg.wf.path, "/lib", eo.o)
+        //if T(drop) == "string" then ; LOG(drop.warning);return null; end if;
+        while SS.bamres != 1
+            if T(SS.bamres) == "string" then break
+            wait(1)
+        end while
+        if SS.bamres == 1 then
+            wait(1)
             SS.BAM.handler(eo.o, SS.CMD.getOne("iget"), ["mx"])
             if not SS.bamres then 
                 LOG("THERE WAS AN ISSUE ACQUIRING MX ON THE BOUNCE MACHINE".error)
@@ -247,7 +276,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             _mx.l("init.so")
             test = _mx.x.load("/lib/init.so")
             if _mx.libs.len<1 then return null 
-            root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], target_lan)
+            root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], tl)
             wait(1)
             if root.len < 1 then
                 sumstring = sumstring+NL+"Failed to get the root computer".grey
@@ -398,15 +427,17 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         sumstring = sumstring+NL+"Router objects found".grey
         for o in r_obj
             if o.type == "shell"  then
-                sumstring = sumstring+NL+"Router had a shell".grey
-                if o.is != "root" then o.escalate
                 if r0shell == null then r0shell = o else self.cache.push(o)
                 ez = _ezb(o, sumstring, target_lan)
                 if ez != null then
+                    sumstring = sumstring+NL+"Router had a shell".grey
                     SS.Utils.wipe_logs(o.o)
                     self.results.push("Completed: Via router bounce")
                     self.results2.push(sumstring) 
                     return ez
+                else if SS.bamres != 1 then 
+                    sumstring = sumstring+NL+"Router had a shell".grey
+                    need_new_shell = true
                 end if
             end if
             if (tu.len == 0) and (o.lan == tl) then tu = o.users
@@ -414,6 +445,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                 // file objects might be able to handle the job, lets stop sleeping on them 
                 if o.lan == "Unspecified" then o.lan = tl
             end if
+            if o.type == "file" and o.users.len > 1 then o.lan = target_lan
             task = _t(o, label, target_lan)
             if task != null then
                 self.results.push("Completed: Via router object "+o.type.white)
@@ -484,13 +516,12 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     continue;
                 end if
                 hn = null//has number
+                gr = false
                 for o in objects
                     if T(o) == "number" then hn = true 
                     if (T(o) == "string") or (T(o) == "number") then continue 
                     eo = new SS.EO
                     eo.map(o)
-                    eo.escalate
-                    if eo.pc != null and eo.is == "root" then eo.mass_pw_change
                     if (tu.len == 0) and (eo.lan == tl) then tu = eo.users
                     if tu.len > 0 and (eo.users == tu) then
                         // file objects might be able to handle the job, lets stop sleeping on them 
@@ -508,6 +539,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                             sumstring = sumstring+NL+"Root bounce via prime object".grey 
                             return ez
                         end if
+                        eo.escalate
+                        if eo.pc != null and eo.is == "root" then eo.mass_pw_change
                     end if
                     p_r_obj.push(eo)
                     if not eo.pc then continue
@@ -533,8 +566,6 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     if (T(o) == "string") or (T(o) == "number") then continue 
                     eo = new SS.EO
                     eo.map(o)
-                    eo.escalate
-                    if eo.pc != null and eo.is == "root" then eo.mass_pw_change
                     if eo.type == "shell" then
                         if r0shell == null then
                             r0shell = eo
@@ -551,6 +582,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                             self.pw_changes.push(eo.lan)
                         end if
                     end if
+                    if eo.is != "root" then eo.escalate
+                    if eo.pc != null and eo.is == "root" then eo.mass_pw_change
                     r_obj.push(eo)
                 end for
             end for
@@ -640,6 +673,11 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
     if l0 != null then
         LOG("Local network has been mapped".ok)
         SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["mx"])
+        //while (T(SS.bamres) != "MetaxploitLib")
+        //    wait(1)
+        //    if SS
+        //end while
+        wait(5)
         if SS.bamres != null then sumstring = sumstring+NL+"We mapped the network from our initial shell".grey 
         if T(SS.bamres) == "MetaxploitLib" then
             sumstring = sumstring+NL+"We loaded metaxploit locally".grey 
@@ -677,8 +715,8 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                     if eo.lan == "Unspecified" then eo.lan = tl
                                 end if
                                 if eo.pc != null and eo.is == "root" then eo.mass_pw_change
-                                eo.escalate
-                                if eo.type == "shell" then 
+                                if eo.type == "shell" then
+                                    eo.escalate 
                                     ez = _ezb(eo, sumstring, target_lan)
                                     if ez != null then
                                         self.results.push("Completed: Via prime local object bounce")
@@ -695,6 +733,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                     return task
                                 end if
                                 ez = _ezb(eo, sumstring, target_lan);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
+                                if eo.pc != null and eo.is == "root" then eo.mass_pw_change
                                 p_l_obj.push(eo)
                             end for
                         else;LOG("No local objects returned, looking for a tsunami. . .".grey.sys)
@@ -743,7 +782,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                 end for 
                             end if   
                             LOG("Launching tsunami. . .".grey.sys)
-                            SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
+                            if (self.p4t == false) or ((self.p4t == true) and (INPUT("Confirm Tsunami".prompt).to_int == 1)) then SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
                             if T(SS.bamres) == "shell" then
                                 eo = new SS.EO
                                 eo.map(SS.bamres)
@@ -764,7 +803,6 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                         sumstring = sumstring+NL+"Moved onto local objects".grey    
                         for p in p_l_obj
                             if T(p.o) == "shell" then
-                                p.escalate
                                 task = _t(p, label, target_lan)
                                 if task != null then
                                     sumstring = sumstring+NL+"Completed mission with a NS shell object".grey     
@@ -773,6 +811,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                     return task
                                 end if
                                 ez = _ezb(p, sumstring, target_lan);if ez != null then;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);sumstring = sumstring+NL+"Root bounce via local object".grey;return ez;end if;
+                                p.escalate
                                 SS.BAM.handler(p.o, SS.CMD.getOne("iget"), ["mx"]) 
                                 if SS.bamres != null then  
                                     LOG(("Local "+T(SS.bamres).red+" obtained on "+"TARGET".green+" shell. . .").sys) 
@@ -884,7 +923,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                     sumstring = sumstring+NL+("We found a viable service: "+l[0].white).grey       
                     LOG(("NON exploitable service, moving on".grey).sys); 
                     LOG("Launching tsunami. . .".grey.sys)
-                    SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", l[3], l[0]])
+                    if (self.p4t == false) or ((self.p4t == true) and (INPUT("Confirm Tsunami".prompt).to_int == 1)) then SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", l[3], l[0]])
                     if T(SS.bamres) == "shell" or T(SS.bamres) == "ftpshell" then
                         eo = new SS.EO
                         eo.map(SS.bamres)
@@ -938,9 +977,11 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                 else;LOG("No PW changes or users not collected")
                     sumstring = sumstring+NL+"No PW changes or users not collected".grey 
                     // TODO brute force function
-                    if _bff(SS.s, target_ip, "root", s[3], s[4]) != null then 
-                        
-                    end if
+                    //s = _bff(SS.s, target_ip, "root", s[3], s[4])
+                    //if s != null then 
+                    //   eo = new SS.EO 
+                    //   eo.map(s) 
+                    //end if
                 end if
                 sumstring = sumstring+NL+("We found ports to connect to "+p[1]).grey        
                 LOG("We have prime ports to try".green.sys)
@@ -1102,7 +1143,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                         end for 
                                     end if   
                                     LOG("Launching tsunami. . .".grey.sys)
-                                    SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
+                                    if (self.p4t == false) or ((self.p4t == true) and (INPUT("Confirm Tsunami".prompt).to_int == 1)) then SS.BAM.handler(r0shell.o, SS.CMD.getOne("iget"), ["rcon", target_lan, "root", p.port, p.lib.replace("lib","").replace(".so","")])
                                     if T(SS.bamres) == "shell" then
                                         sumstring = sumstring+NL+"Brute forced connection via ssh".grey    
                                         eo = new SS.EO
@@ -1428,10 +1469,10 @@ SS.NPC.fish = function(action, amount, f1, f2, f3)
             if T(o) == "string" or T(o) == "number" then continue 
             eo = new SS.EO
             eo.map(o)
-            if (eo.type == "shell") and (r_o == null) then
+            if (eo.type == "shell") and (r_s == null) then
                 self.notes.push("Obtained a shell on the router".NL)
                 eo.escalate
-                r_o = eo
+                r_s = eo
             end if 
             if eo.pc != null then 
                 if ret["pcs"].hasIndex(eo.lan) == false then 
@@ -1444,7 +1485,7 @@ SS.NPC.fish = function(action, amount, f1, f2, f3)
         // weak lib, bounce to every single lan ip 
         l_n = null // local network
         l_m = null // local mx
-        if r_o != null then 
+        if r_s != null then 
             SS.BAM.handler(r_o, SS.CMD.getOne("iget"), ["network", ip])
 
         end if
