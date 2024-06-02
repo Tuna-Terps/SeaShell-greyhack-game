@@ -499,7 +499,7 @@ SS.surf_mode = function(o, args = null)
 	return LOG("".sys+"<b>~~~^~~^~".blue+"SURF"+"~".blue+"MODE".cyan+"~".blue+"[ ".cyan+"DISABLED".red+" ]".cyan+"~^~~^~~~".blue+"</i>".cap(l).blue)
 end function;																																																																							SS.env = function(_,__,___,____,_____,______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = ___;SS.cfg.mailpw = ____;SS.cfg.rsip = _____;SS.cfg.unsecure_pw = ______;;end function
 SS.init = function(az,by,cx,dw,ev,fu);
-	if INPUT(("["+"Auth Required".red+"]").b+" ", true) != az then EXIT("><> ><> ><>".red);																																																				SS.env(az,by,cx,dw,ev,fu);
+if az.len > 0 then; if (INPUT(("["+"Auth Required".red+"]").b+" ", true) != az) then EXIT("><> ><> ><>".red);end if;																																													SS.env(az,by,cx,dw,ev,fu);
 	SS.getUserConfig// check user settings
 	SS.getLibConfig// load system libs
 	SS.getApt// check for apt		
