@@ -20,6 +20,7 @@ SS.dbec = 0
 SS.dbh = null
 SS.dbhc = 0
 SS.dbhl = []
+SS.dbl = null
 SS.remote = false
 OGT = function; s=true;if SS.og then s=null;SS.og=s;end function;
 EXIT = function(s=null);if not s then s = "Exiting...".sys return exit(s); end function;
@@ -64,6 +65,9 @@ end function
 string.grey = function(self)
     return "<#A5A5A5>" + self + "</color>"
 end function
+string.black = function(self)
+    return "<#000000>"+self+"</color>"
+end function
 string.red = function(self)
     return "<#AA0000>" + self + "</color>"
 end function
@@ -75,6 +79,9 @@ string.yellow = function(self)
 end function
 string.green = function(self)
     return "<#00ED03>" + self + "</color>"
+end function
+string.lgreen = function(self)
+    return "<#35fca6>"+self+"</color>"
 end function
 string.lblue = function(self)
     return "<#00BDFF>" + self + "</color>"
@@ -171,9 +178,11 @@ string.month_int = function(self)
 end function
 string.wrap = function(self, hex = "FFFFFF", n = 20)
     sl = "["+self+"]"; sl = sl.len;
-    s_t = "[<#"+hex+">"+self+"</color>]"
+    if hex then s_t = "[<#"+hex+">"+self+"</color>]"
+    if not hex then s_t = "["+self+"]"
     if sl >= n then return s_t
-    for i in range(1, (n-sl)); s_t = s_t+"-"; end for;
+    for i in range(1, (n-sl)); s_t = s_t+"—"; end for;
+    //for i in range(1, (n-sl)); s_t = s_t+"-"; end for;
     return s_t
 end function
 string.cap = function(self, cap, hex = "FFFFFF", ih = null)
@@ -281,12 +290,16 @@ string.a = function(self)
     if SS.anon == true then return "HIDDEN".grey.size(14)
     return self
 end function
+string.oc = function(self)
+    return "<mark=#00BDFF>"+self.b+"</font></mark>"
+end function
 string.crab = function(self)
     return ("C".red.b+".".white+"R".red.b+".".white+"A".red.b+".".white+"B".red.b).s+(self.white.i)
 end function
 string.raft = function(self)
     return ("R".red.b+".".white+"A".red.b+".".white+"F".red.b+".".white+"T".red.b).s+(self.white.i)
 end function
+
 // ======== LISTS
 list.table = function(title)
     return self
@@ -356,7 +369,8 @@ SS.Date.now = function()
     ret = (yy * 31536000 + mm * 2592000 + dd * 86400 + hh * 3600 + m * 60)
     return ret
 end function
-SS.Date.timer = function(start)
+SS.Date.timer = function(start, jt = null)
+    if jt then return str(SS.Date.up(round(time-start)))
     LOG("Elapsed: ".sys+str(SS.Date.up(round(time-start))))
 end function
 SS.Date.up = function(t = null)
@@ -547,7 +561,7 @@ SS.Utils.datapls = function
     if dat == null then return null 
     return dat
 end function
-SS.Utils.hasFile = function(o, n, all = false, clean = false,)
+SS.Utils.hasFile = function(o, n, all = false, clean = false)
     if not clean then LOG("Searching for file: ".sys+n)
     r = null
     if T(o) != "file" then
@@ -572,9 +586,9 @@ SS.Utils.hasFile = function(o, n, all = false, clean = false,)
     if all then return f
     return null
 end function
-SS.Utils.hasFolder = function(o, n, all = null)
-    LOG("Searching for directory: ".sys+n)
-    r = null
+SS.Utils.hasFolder = function(o, n, all = false, clean = false)
+    if not clean then LOG("Searching for directory: ".sys+n)
+        r = null
     ret = []
     if T(o) != "file" then
         if T(o) != "computer" then 
@@ -659,7 +673,7 @@ SS.Utils.listServices = function(o)
     // loop subnets to check local services 
     for s in svs.get_files
         if not s.is_binary then continue
-        library = SS.Utils.hasLib(o, s.name)
+        library = include_lib(s.path)//SS.Utils.hasLib(o, s.name)
         if T(library) != "service" then continue
         status = "----->"+" missing".red+" X".grey
         if library == null then continue
@@ -1180,29 +1194,60 @@ end function
 SS.Network.scanlan = function
     if self.isLan == false then return LOG("Local use only".warning)
     devList = [];subs = [];c = 0;
-    for device in get_router.devices_lan_ip
+    router = get_router
+    deviceports = router.used_ports
+    routerports = router.device_ports(router.local_ip)
+    fwd = []
+    rtd = []
+    for dp in deviceports // forward
+        fwd.push((router.port_info(dp)+" "+dp.port_number+" "+dp.get_lan_ip))
+    end for
+    r_i = []
+    for p in routerports
+        if not p or T(p) =="string" then continue 
+        n = p.port_number; i_c = p.is_closed
+        //if n == 8080 and i_c == true then continue 
+        i = router.port_info(p)
+        if i == null then continue
+        p_s = "internal".lblue;
+        if fwd.indexOf((i+" "+n+" "+p.get_lan_ip)) != null then p_s = "forwarded".green
+        pif = i.split(" ")
+        r_i.push(("|".lgreen+pif[0].lgreen.s+(p_s.white.s+(str(n)).white.s+p.get_lan_ip.grey)))
+    end for
+    for device in router.devices_lan_ip
         lanDev = get_router(device)
         if not lanDev then continue
         if devList.indexOf(device) == null then devList.push(device)
         lanVer = lanDev.kernel_version
         isSw = "SWITCH".grey; if get_switch(device) == null then isSw = "ROUTER".grey;
-        if c == 0 then isSw = "GATEWAY".cyan
-        LOG("".fill +NL+ "~^~~~^~".lblue+"[ <b>".white+device.white+"</b> ]".white+ "~^~~~^~".lblue+"( ".white + isSw +" ) ".white +lanVer+ NL +"|".lblue+"BSSID: " +lanDev.bssid_name.lblue + NL +"|".lblue+"ESSID: " +lanDev.essid_name.lblue + NL + self.fw(lanDev.firewall_rules))
+        if c == 0 then 
+            isSw = "GATEWAY".cyan
+            gs = NL+"|".lgreen+"Ports"+NL+COLUMNS(r_i.join(NL))
+        else;gs = ""
+        end if
+        ps = ""
+        bs = lanDev.bssid_name
+        es = lanDev.essid_name
+        if es.len > 0 then ps = ("|".lblue+"BSSID: " +lanDev.bssid_name.lblue + NL +"|".lblue+"ESSID: " +lanDev.essid_name.lblue).NL
+        LOG("".fill +NL+ "~^~~~^~".lblue+"[ <b>".white+device.white+"</b> ]".white+ "~^~~~^~".lblue+"( ".white + isSw +" ) ".white +lanVer+ NL + ps + self.fw(lanDev.firewall_rules)+gs)
         for subDev in lanDev.devices_lan_ip
-            if devList.indexOf(subDev) then continue;
+            if devList.indexOf(subDev) != null then continue;
             if subs.indexOf(subDev) then continue;
             subs.push(subDev)
             ports = lanDev.device_ports(subDev)
             p_i = "|".lblue+subDev.white
-            if not ports or ports.len == 0 then; LOG(subDev.grey+" ><>".blue+" no services".grey+" ><>".blue); continue; end if;
+            if not ports or ports.len == 0 then; LOG("|".grey+subDev.grey+" ><>".blue+" no services".grey+" ><>".blue); continue; end if;
             for p in ports
                 if T(p) == "string" then continue
                 n = p.port_number; i_c = p.is_closed
-                if n == 8080 and i_c == true then continue 
+                //if n == 8080 and i_c == true then continue 
                 i = lanDev.port_info(p)
+                p_s = "internal".lblue;
+                if fwd.indexOf((i+" "+n+" "+p.get_lan_ip)) != null then p_s = "forwarded".green
                 if i == null then continue
-                p_s = "open".green; if i_c == true then p_s = "closed".red
-                p_i = p_i+NL+"<pos=00>|</pos><pos=04>—</pos>——————{".lblue+p_s+":"+str(n).lblue+":"+i.split(" ")[0].white+"}".lblue
+                if i_c == true and n != 8080 then p_s = "closed".red
+                pif = i.split(" ")
+                p_i = p_i+NL+"<pos=00>|</pos><pos=04>—</pos>——————".lblue+pif[0].wrap("35fca6", 15).cap(p_s).cap(str(n)).lblue
             end for
             LOG(p_i)
         end for
@@ -1646,7 +1691,8 @@ SS.ML.map = function(ml, flag, x)
     if self.scanned.get_content.len < 1 then
         LOG("ML: New library detected".sys) 
         r = null
-        if (get_shell.host_computer.public_ip != SS.cfg.ip) and (INPUT("Manual scan needed for kernel router on remote".warning+NL+"Press 1 to use host to find these values quicker").to_int!=1) then 
+        if (get_shell.host_computer.public_ip != SS.cfg.ip) then
+            //and (INPUT("Manual scan needed for kernel router on remote".warning+NL+"Press 1 to use host to find these values quicker").to_int!=1)  
             //(self.n == "kernel_router.so") and
             LOG("Defaulting to local connection for scan . . .".sys)
             r=SS.ML.getBetterScan(self.n, self.v)
@@ -1746,7 +1792,7 @@ end function
 SS.ML.getBetterScan = function(l, v)
     if l == "kernel_router.so" then rip = SS.Utils.router_fish(v)
     if not rip then return null
-    ns = new SS.NS.map(rip, 0, "-f", SS.cmx)
+    ns = new SS.NS.map(rip, 0, "-f", SS.mx)
     if (ns == null )or (ns.session == null) then return null
     return true
 end function
@@ -2466,7 +2512,6 @@ SS.MD5.wifish = function(o, bssid, essid)
     end for
     LOG("Unable to find wifi brute force".warning)
 end function
-
 ///======================== GFX =========================////
 SS.GFX = {}
 SS.GFX.f=function(l)
@@ -2500,6 +2545,78 @@ SS.GFX.f=function(l)
         l.pull
     end while
     return out
+end function
+///======================= LOGGER =========================////
+SS.Logger = {}
+SS.Logger.dbl = null // logger folder
+SS.Logger.file = null // current file
+SS.Logger.fp = null
+SS.Logger.content = ""
+SS.Logger.cache = []//get them all in mem?
+//n: name, ownDir?:bool initialData?: bool,
+// specify .db in order to 
+SS.Logger.map = function(n,o=null,i=null)// build the file
+    if T(SS.dbl) != "file" then; LOG("No log folder found".warning);return null; end if;
+    tf = null//task folder
+    tfi = null
+    self.file= SS.Utils.hasFile(SS.c, n+".db")//task file
+    // TODO: flag to either clear, or add to content
+    if self.file then; self.content = self.file.get_content; return self; end if
+    // get the target dir
+    if o != null then
+        LOG("C1")
+        if not SS.c.File(SS.dbl.path+"/"+("db."+n)) then 
+            if SS.c.create_folder(SS.dbl.path, ("db."+n)) == 1 then LOG("Created log folder:".ok+("db."+n)) else LOG("An error occured creating the required log folder".warning)
+        end if
+        tf = SS.c.File((SS.dbl.path+"/"+("db."+n))) 
+        if not tf then; LOG("Target db.dir not found");return self; end if
+        tfi = SS.c.File(tf.path+"/"+(n+".db"))
+        if not tfi then SS.c.touch(tf.path, (n+".db"))
+        tfi = SS.c.File(tf.path+"/"+(n+".db"))
+    else 
+        LOG("C2")
+        tf = self.dbl
+        tfi = SS.c.File(tf.path+"/"+(n+".db"))
+        if not tfi then SS.c.touch(tf.path, (n+".db"))
+    end if
+    self.file = tfi
+    self.fp = tfi.path
+    if (self.file != null) and (T(i) == "string") then self.file.set_content((self.content+NL+i))
+    if self.file == null then;LOG("No db file found".warning+n);return self; end if 
+    return self
+end function
+SS.Logger.entry = function(d, title=null)//data title?
+    f = SS.c.File(self.file.path)
+    if f == null then 
+        LOG("No db file found".warning)
+        return self
+    end if
+    t = f.get_content
+    c = []
+    if t.len == 0 then 
+        if title then c.push(title)
+        c.push(d)
+    else 
+        t = t.split(NL)
+        if title then t.pull
+        if title then c = [title]
+        c = c + t
+        c.push(d)
+    end if
+    if self.file.set_content(c.join(NL)) == 1 then LOG("Saved entry to log: ".ok+self.file.name.lblue) else LOG("Failed to save entry to log".warning)
+    return self
+end function
+SS.Logger.monitor = function(n)
+    while 1
+        CLEAR()
+        f = SS.c.File(self.file.path)
+        if f == null then 
+            LOG("No db file found".warning)
+            return self
+        end if
+        LOG("><> ><> ><> ><> ><> ><> ><> ><>".blue+NL+"Monitoring: ".sys+f.name+NL+f.get_content.split(NL)[0])
+        wait(10.0)
+    end while
 end function
 //////////////////////////////////////////////////////////////  
 ///======================= UTILS ========================////
