@@ -2044,6 +2044,7 @@ Core["loadmx"] = function(o, act)
 end function
 Core["test"] = function
 	SS.BAM.handler(SS.s, SS.CMD.getOne("iget"), ["mail"])
+	if not SS.bamres then return LOG("Mail malformed".warning)
 	LOG("Mailbox: ".sys+SS.bamres.fetch.len)
 	//id = INPUT("Select an ID to delete: ".prompt)
 	//if id.len > 1 then 
@@ -2056,8 +2057,6 @@ Core["test"] = function
 	//l.entry("entry2", "title2 changed")
 	//l.entry("entry3", "title3 changed")
 	//l = new SS.Logger.map("TEST2", true)
-	if SS.NPC.run("notneeded bullshit", "system corruption", "ANY", "192.55.66.36", "172.16.0.4") != null then LOG("THIS MISSION HAD A RESULT")
-
 	//LOG("Test function in the ocean".ocean+"<sprite=0>".oc)
 end function
 ///======================= SS.CMD LIST =========================////
