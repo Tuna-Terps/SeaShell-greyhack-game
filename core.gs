@@ -1998,7 +1998,7 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 		
 	else if act == "wl" then 
 		if T(SS.cfg.wf)!= "file" then return null
-		transfer = SS.s.scp("/root/weak/init.so", "/lib", o)
+		transfer = SS.s.scp(SS.cfg.wf.path, "/lib", o)
 		if T(transfer) == "string" and transfer.len > 0 then LOG("There was an issue transferring the file: ".warning+transfer)
 		if transfer == 1 then LOG("weak library was delivered".ok)
 		SS.bamres = transfer
