@@ -30,12 +30,14 @@ SS.cfg = {} // cfg
 SS.cfg.label = null
 SS.cfg.i = null // item: cache/config folder
 SS.cfg.ip = SS.c.public_ip
+SS.cfg.lan = SS.c.local_ip
 SS.cfg.start_time = current_date
 SS.cfg.unsecure_pw = "f1shb0wl"
 SS.cfg.burnmailacct = "Oppelli@barner.com"
 SS.cfg.burnmailpw = "Bitch"
 SS.cfg.mailacct = "mail@bolds.net"
 SS.cfg.mailpw = "mail"
+// TODO: add to user config
 SS.cfg.hackip = "214.85.237.165"
 SS.cfg.dat = null // data file
 SS.cfg.macros = null // macro folder
@@ -61,7 +63,7 @@ SS.CMD.fcmd = function(s)
 end function
 SS.CMD.hasRequiredArgs = function(cmd, p)
 	passed = 0; if (p.len > 0) and (p[0] == cmd.name) then p.pull
-	if SS.debug then LOG("SS.CMD: ".red+cmd["name"] +" "+"REQUIRED: ".yellow+cmd["params"].len+" "+"PASSED ARGS: ".orange+p);
+	if SS.debug then LOG("CMD: ".red+cmd["name"] +" "+"REQUIRED: ".yellow+cmd["params"].len+" "+"PASSED ARGS: ".orange+p);
 	if p.len > cmd["params"].len then return false// even if a command is misconfigured, this should catch issues
 	for cmdIndex in cmd["params"]
 		if cmdIndex == "*" then
@@ -83,7 +85,8 @@ SS.CMD.hasRequiredArgs = function(cmd, p)
 			if SS.debug then LOG("args: c3")  
 			for argIndex in p
 				if argIndex == "" then continue
-				if T(p.indexOf(argIndex)) == "number" or (cmdIndex == "*") then 
+				if (argIndex == cmdIndex) or (cmdIndex == "*") then
+				//if T(p.indexOf(argIndex)) == "number" or (cmdIndex == "*") then 
 					passed = passed+1
 				end if
 			end for
@@ -176,19 +179,26 @@ SS.CMD.prompt = function(eo)
 		else
 			tsym = "FTP".yellow; o = obj.host_computer
 		end if
-		host = o.get_name.grey
-		if SS.anon != true then; ip = o.public_ip; lan = o.local_ip; end if
+		ip = o.public_ip
+		lan = o.local_ip
+		host = o.get_name.lblue
+		if SS.remote == true then host = o.get_name.purple
 	else 
 		ip = eo.ip
 		lan = eo.lan
 		host = " "+obj.name.b.grey
 		tsym = "F".orange
 	end if
+	ip = ip.lblue
+	lan = lan.grey 
+	if (SS.remote==false) and (eo.lan == SS.cfg.lan) then lan = lan.lblue
+	if (SS.remote==true) and (eo.lan != SS.cfg.lan) then lan = lan.purple
+	if SS.remote then ip = ip.purple
 	user = SS.Utils.user(obj);
 	if SS.debug then LOG("debugging user: ".debug+user+" "+T(user))
 	if user == "root" then sym = "#"
 	space = 3.9+(user.len+host.len)*0.6
-	s =  NL+"<pos=04>—{"+user.isRoot(user, "FFFFFF")+"@".cyan+host+"}—[<b>"+tsym+"</b>]—{"+ ip.white.size(14).a +":"+ lan.grey.size(14).a +"}—["+SS.Utils.dash(SS.cwd, user).white.size(14)+"]<voffset=-0.5em><space=-"+space+"em><pos=00>|<voffset=-1em><space=-0.6em>|<voffset=-1.5em><pos=04>——:~"+sym.white+" "	
+	s =  NL+"<pos=04>—{"+user.isRoot(user, "FFFFFF")+"@".white+host+"}—[<b>"+tsym+"</b>]—{"+ ip.size(14).a +":".white+ lan.size(14).a +"}—["+SS.Utils.dash(SS.cwd, user).white.size(14)+"]<voffset=-0.5em><space=-"+space+"em><pos=00>|<voffset=-1em><space=-0.6em>|<voffset=-1.5em><pos=04>——:~"+sym.white+" "	
 	return INPUT(s)
 end function
 SS.CMD.result = function(o)
@@ -244,10 +254,10 @@ SS.CMD["cmd_list"] = function(usage = null)
 			end if
 		end for
 		if not i or not i["usage"] then return LOG("*<i>Usage not found</i>*".grey+" cmd:<b> "+usage.white)//+"</b> \n-->"+color.grey+"* Chec")
-		LOG("SS.CMD: ".purple+"<b>"+usage+"</b>\n"+"ARGS: ".green+i["params"]+"\n"+"USAGE:".white+NL+i["usage"])
+		LOG("|".lblue+"CMD: ".cyan+"<b>"+usage.white+"</b>\n"+"|".lblue+"ARGS: ".cyan+i["params"]+"\n"+"|".lblue+"INFO:".cyan.s+i["usage"])
 	end if
 	LOG("<b>-->".white+ " *</b><i>"+" Represents a dynamic, or optional parameter.".lblue)
-	if p then LOG("*"+"<i>DETAILS</i>".grey+"*  Use cmd: "+"-h".lblue.b+" [".white+"cmd_name".lblue+"]".white+" for SS.CMD usage")
+	if p then LOG("*"+"<i>DETAILS</i>".grey+"*  Use cmd: "+"-h".lblue.b+" [".white+"cmd_name".lblue+"]".white+" for CMD usage")
 end function 
 ///==================== SeaShell() ========================////
 SS.getUserConfig = function
@@ -276,6 +286,37 @@ SS.getUserConfig = function
 		s = s+NL+"* Unable to load user macros".grey
 	end if
 	LOG(s)
+end function
+SS.buildEntireUserCache = function(flag = null)// TODO: handle flag
+	h = SS.Utils.goHome(SS.c)
+	if not h then return LOG("No home directory, malformed fs".warning)
+	LOG("building user cache. . .".grey.sys)
+	capa = h+"/"+SS.ccd
+	f1 = SS.Utils.fileFromPath(SS.c, capa)
+	if not f1 then 
+		if SS.c.create_folder(h, SS.ccd) == 1 then 
+			LOG("User cache directory built at: "+h.grey+"/".grey+SS.ccd.lblue)
+			SS.cfg.i = SS.c.File(capa)
+		else;LOG("Failed to create the cache folder".warning)
+		end if
+		if SS.c.create_folder(capa, "ss.logs") == 1 then 
+			LOG("Event Log directory built at: "+capa.grey+"/".grey+"ss.logs".lblue)
+		else;LOG("Failed to create the log folder".warning)
+		end if 
+	end if
+	if not f1 then f1 = SS.Utils.fileFromPath(SS.c, capa)
+	if not f1 then return LOG("Unable to build the cache directory".warning)
+	capb = capa+"/ss.dat"
+	if not SS.Utils.fileFromPath(SS.c, capb) then;LOG("Setting config: ".sys+"user"); SS.setUserConfig("-u", "-b"); end if
+	capc = capa+"/ss.macros"
+	if not SS.Utils.fileFromPath(SS.c, capc) then;LOG("Setting config: ".sys+"maacros");SS.setUserConfig("-m", "-b");end if
+	capd = capa+"/dict"
+	if not SS.Utils.fileFromPath(SS.c, capd) then 
+		LOG("Setting db: ".sys+"exploits".lblue); SS.setUserConfig("-e", "-b"); 
+		LOG("Setting db: ".sys+"hashes".lblue); SS.setUserConfig("-h", "-b"); 
+		LOG("Engaging paste protocol: ".sys+"hashes".lblue); SS.setUserConfig("-h", "-p"); 
+	end if
+	LOG("user cache build ran succesfully".sys)
 end function
 SS.getLibConfig = function(self)
 	SS.mx = SS.Utils.hasLib(SS.s, "metaxploit.so")
@@ -338,8 +379,10 @@ SS.getDb = function
 	if SS.cfg.user == "root" then p = "/root/"+SS.ccd+"/libs/weak/init.so"
 	if SS.cfg.user == "2NA" then p = "/home/"+SS.cfg.user+"/libs/STRONG/init.so"
 	if SS.cfg.user != "root" and SS.cfg.user != "2NA" then p = "/home/"+SS.cfg.user+"/"+SS.ccd+"/libs/weak/init.so"
+	SS.dbl = SS.Utils.hasFolder(SS.s, "ss.logs")
+	if T(SS.dbl) != "file" then;LOG("Logger not loaded".grey.sys);else; LOG("Loaded logger: ".ok+SS.dbl.path); end if;
 	SS.cfg.wf = SS.Utils.fileFromPath(SS.s, p)
-	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.name); end if;
+	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.path); end if;
 	if (SS.dbe == null and SS.dbh == null) then return LOG("Database was not configured".warning)
 	if SS.dbe != null then
 		for each in SS.dbe.get_folders 
@@ -377,10 +420,12 @@ SS.buildCo = function
 	//SS.CMD = @SS.CMD
 	//SS.CORE = @Core
 	//SS.UTILS = @Utils
-
+	SS.cfg.ip = SEO.ip
+	SS.cfg.lan = SEO.lan
 end function
 SS.welcome = function
 	LOG("".fill+NL+"       .               ".cyan+"               __..._".red+NL+"      ':'              ".cyan+"           ..-'      o.".red+NL+"    ___:____     |'\/'|".cyan+"         .-'           :".red+NL+"  ,'        `.    \  / ".cyan+"      _..'           .'__..--<".red+NL+"  |  O        \___/  | ".cyan+"...--""              '-.".red+NL+"~^~^~^~^~^~^~^~^~^~^~^~".cyan+"^~^~^~^~^~^~^~^~^~^~^~^~".red+NL+".                                            /\".red+NL+"   _____            ".cyan+"<color=#AA0000> _____ _          _ _   {.-}"+NL+"  / ____|           ".cyan+"<color=#AA0000>/ ____| |        | | | ;_.-'\"+ NL +" | (___   ___  __ _".cyan+"<color=#AA0000>| (___ | |__   ___| | |{    _.}_"+ NL +"  \___ \ / _ \/ _` |".cyan+"<color=#AA0000>\___ \| '_ \ / _ \ | | \.-' /  `,"+ NL +"  ____) |  __/ (_| |".cyan+"<color=#AA0000>____) | | | |  __/ | |  \  |    /"+ NL +" |_____/ \___|\__,_|".cyan+"<color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/"+NL+".                                             \|_/".red+NL+"<b>SeaShell</b>".cyan+" Version: ".lblue+SS.version.cyan.b+" made with ".lblue+SS.heart+NL+"".fill)
+	//LOG("".fill+NL+"       .               ".cyan+"               __..._".red+NL+"      ':'              ".cyan+"           ..-'      o.".red+NL+"    ___:____     |'\/'|".cyan+"         .-'           :".red+NL+"  ,'        `.    \  / ".cyan+"      _..'           .'__..--<".red+NL+"  |  O        \___/  | ".cyan+"...--""              '-.".red+NL+"~^~^~^~^~^~^~^~^~^~^~^~".cyan+"^~^~^~^~^~^~^~^~^~^~^~^~".red+NL+"<mark=#00BDFF>.                                            /\".red+NL+"   _____            ".cyan+"<color=#AA0000> _____ _          _ _   {.-}"+NL+"  / ____|           ".cyan+"<color=#AA0000>/ ____| |        | | | ;_.-'\"+ NL +" | (___   ___  __ _".cyan+"<color=#AA0000>| (___ | |__   ___| | |{    _.}_"+ NL +"  \___ \ / _ \/ _` |".cyan+"<color=#AA0000>\___ \| '_ \ / _ \ | | \.-' /  `,"+ NL +"  ____) |  __/ (_| |".cyan+"<color=#AA0000>____) | | | |  __/ | |  \  |    /"+ NL +" |_____/ \___|\__,_|".cyan+"<color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/"+NL+".                                             \|_/".red+NL+"<b>SeaShell</b>".cyan+" Version: ".lblue+SS.version.cyan.b+" made with ".lblue+SS.heart+NL+"".fill)
 end function
 SS.sail = function
 	if SEO == null then return LOG("error".error)
@@ -456,6 +501,8 @@ SS.init = function(az,by,cx,dw,ev,fu);
 end function;
 SS.quit = function(_)
 	if SS.debug then LOG("ss:quit ".debug+_)
+	SS.remote = false
+	if get_shell.host_computer.public_ip != SS.cfg.ip then SS.remote = true
 	c = null
 	if SS.co.len == 0 then return
 	if SS.co.len > 1 then SS.co.pop // remove the old index
@@ -556,7 +603,12 @@ SS.setHost = function(a, t, p = null)// act type path
 	return LOG("Invalid arguments [type] [action]")
 end function
 SS.setUserConfig = function(act, flag=null, p = null)
-	if SS.cfg.i == null then return LOG("User config not found".warning)
+	helpwords = ["-ccd", "install", "-install", "-build"]
+	if (SS.cfg.i == null) and (helpwords.indexOf(act) == null) then 
+		return LOG("User config not found, use force flag -ccd to build everything".warning)
+	else if helpwords.indexOf(act) != null then
+		return SS.buildEntireUserCache(flag)
+	end if
 	item = null 
 	s = null
 	run = null 
@@ -566,7 +618,7 @@ SS.setUserConfig = function(act, flag=null, p = null)
 		if flag == "-b" then
 			run = @SS["setDat"] 
 			p = "ss.dat"
-			d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"apiIp=null"+NL+"apiMemZone=null"+NL+"apiMemVal=null"
+			d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"apiIp=null"+NL+"apiMemZone=null"+NL+"apiMemVal=null"+NL+"hackShopIp=214.85.237.165"
 		else 
 			return SS.cfgDat(flag, p)
 		end if
@@ -622,11 +674,18 @@ SS.setDat = function(data)
 		else if p[0] == "oldArtMode" then 
 			if p[1].to_int == 1 then SS.og = true else SS.og = false
 		else if p[0] == "apiIp" then 
-			SS.Server.API.ip = p[0]
+			SS.Server.API.ip = p[1]
 		else if p[0] == "apiMemZone" then 
-			SS.Server.API.memzone = p[0]
+			SS.Server.API.memzone = p[1]
 		else if p[0] == "apiMemVal" then 
-			SS.Server.API.memval = p[0]
+			SS.Server.API.memval = p[1]
+		else if p[0] == "hackShopIp" then 
+			SS.cfg.hackip =  p[1]
+		//TODO: add to config file build
+		else if p[0] == "weakMemZone" then 
+			SS.cfg.wm =  p[1]
+		else if p[0] == "weakMemAddr" then 
+			SS.cfg.wa =  p[1]
 		end if
 	end for 
 end function
@@ -660,6 +719,15 @@ SS.cfgDat = function(item, change)
 			edit = i; break;
 		else if item == "api3" and p[0] == "apiMemVal" then
 			label = "api memval" 
+			edit = i; break;
+		else if item == "hackip" and p[0] == "hackShopIp" then
+			label = "hackshop ip"
+			edit = i; break;
+		else if item == "weak1" and p[0] == "weakMemZone" then
+			label = "weak library memory zone"
+			edit = i; break;
+		else if item == "weak2" and p[0] == "weakMemAddr" then
+			label = "weak library memory address"
 			edit = i; break;
 		end if
 		c = c+1
@@ -902,8 +970,9 @@ Core["build"] = function(o, pF, tF, fN)
 	//s = (fN.white+" compiled at path: "+pF.yellow).ok
 	LOG((fN.white+" compiled at path: "+pF.yellow).ok)
 end function
-Core["launch"] = function(o, p, data = null)
+Core["launch"] = function(o, p, d1=null,d2=null,d3=null,d4=null)
 	if T(o) != "shell" then return LOG("Only shells can launch binaries".warning)
+	out=[];if d1 then out.push(d1);if d2 then out.push(d2);if d3 then out.push(d3);if d4 then out.push(d4)
 	fn=null
 	if p == "-s" then fn = "ss"
 	if p == "-p" then fn = "cargo"
@@ -916,8 +985,9 @@ Core["launch"] = function(o, p, data = null)
 	end if
 	f = o.host_computer.File(fn)
 	if f == null then return LOG("Launch binary not found on target machine")
-	if data == null then return o.launch(fn)
-	return o.launch(fn, data)
+	if out.len == 0 then return o.launch(fn)
+	if out.len == 1 then return o.launch(fn, a1)
+	return o.launch(fn, data.join(" "))
 end function
 Core["service"] = function(o, a, s = null, f = null)
 	if T(o) != "shell" then return LOG("Must be of type: Shell".warning)
@@ -1166,8 +1236,10 @@ Core["secure"] = function(o, a)
 		if m != null and m.delete().len < 1 then LOG("Mail.txt has been deleted".ok)
 		if m != null and b.delete().len < 1 then LOG("Bank.txt has been deleted".ok)
 	end if
-	if pw then pw = pw.delete
-	if pw.len > 1 then LOG("Deleted /etc/passwd")
+	if pw then 
+		pw = pw.delete
+		if pw.len > 1 then LOG("Deleted /etc/passwd")
+	end if
 end function
 Core["webmanager"] = function(o, a, p)
 	if a == "-b" then return SS.Utils.site_build(o, p)
@@ -1209,7 +1281,7 @@ Core["chmod"] = function(o, r, u, pa)
 	if r == "-r" then rec = true
 	if pa[0] != "/" then pa = SS.Utils.path(pa)
 	f = SS.Utils.fileFromPath(o, pa)
-	if f == null then LOG("Unable to chmod file: not found".warning)
+	if f == null then return LOG("Unable to chmod file: not found".warning)
 	out = f.chmod(u, rec)
 	if out.len > 1 then return LOG(out.warning)
 	fp = "/".lblue; if f.path != "/" and (f.parent != null )then fp = f.parent_path.grey+"/"+f.name.lblue
@@ -1222,7 +1294,7 @@ Core["chgrp"] = function(o, r, u, pa)
 	if r == "-r" then rec = true
 	if pa[0] != "/" then pa = SS.Utils.path(pa)
 	f = SS.Utils.fileFromPath(o, pa)
-	if f == null then LOG("Unable to chgrp file: not found".warning)
+	if f == null then return LOG("Unable to chgrp file: not found".warning)
 	out = f.set_group(u, rec)
 	if out.len > 1 then return LOG(out.warning)
 	fp = "/".lblue; if f.path != "/" then fp = f.path.grey+"/"+f.name.lblue
@@ -1236,7 +1308,7 @@ Core["chown"] = function(o, r, u, pa)
 	if r == "-r" then rec = true
 	if pa[0] != "/" then pa = SS.Utils.path(pa)
 	f = SS.Utils.fileFromPath(o, pa)
-	if f == null then LOG("Unable to change file owner: file not found".warning)
+	if f == null then return LOG("Unable to change file owner: file not found".warning)
 	out = f.set_owner(u, rec)
 	if out.len > 1 then return LOG(out.warning)
 	fp = "/".lblue; if f.path != "/" then fp = f.path.grey+"/"+f.name.lblue
@@ -1313,6 +1385,40 @@ Core["rn"] = function(o, p, n)// obj path newName
 	if r.len > 0 then return LOG(r.warning)
 	LOG("File has been renamed: ".ok+n)
 end function
+Core["fs"] = function(o, a, f)
+	ob = SS.Utils.ds(o, "file")
+	if a == "-f" then 
+		if not f then return LOG("Invalid arguments [find] [filename*]")
+		fl = "No files found by this name".grey
+		fll = "No directories by this name"
+		files = SS.Utils.hasFile(o, f, true, true)
+		folders = SS.Utils.hasFolder(o, f, true, true)
+		if files and files.len > 0 then 
+			o=[]
+			for f in files 
+				fp = f.path.split("/")
+				fe = fp.pop.lblue
+				fp = fp.join("/").grey 
+				o.push((fp+"/"+fe))
+			end for
+			LOG("Files found: ".sys+NL+o.join(NL)) 
+		end if
+		if folders and folders.len > 0 then 
+			o=[]
+			for f in folders 
+				fp = f.path.split("/")
+				fe = fp.pop.lblue
+				fp = fp.join("/").grey 
+				o.push((fp+"/"+fe))
+			end for
+			LOG("Directories found: ".sys+NL+o.join(NL)) 
+		end if
+		if (not files) and (not folders) then return LOG("No file/directory found with the name: ".warning+f)
+	else if a == "tree" then 
+		return LOG("TODO:")
+	end if
+end function
+//TODO: fixme
 Core["edit"] = function(o, p, clean = null)
 	SS.Inputs.refresh()
 	o = SS.Utils.ds(o, "file")
@@ -1852,7 +1958,10 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 		m = new SS.MX
 		m.i(o)
 		if m.x == null then m.fi(o)
-		if m.x == null then return null
+		if m.x == null then 
+			SS.bamres = "failed"
+			return null
+		end if
 		SS.bamres = m.x
 	else if act == "network" then
 		if not d1 then d1 = o.host_computer.public_ip
@@ -1875,14 +1984,24 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 		SS.bamres = Core["shellfish"]// res, not a ret as that goes to surf mode
 	else if act == "scan" then
 		SS.bamres = "add me"
-	else if act == "mail" then 
-		SS.bamres = mail_login(SS.cfg.mailacct, SS.cfg.mailpw)
+	else if act == "mail" then
+		a1 = SS.cfg.mailacct
+		if a1.len == 0 then a1 = INPUT("Mail account login: ".prompt, true)
+		a2 = SS.cfg.mailpw
+		if a2.len == 0 then a2 = INPUT("Mail account pw: ".prompt, true)
+		SS.bamres = mail_login(a1, a2)
 	else if act == "rcon" then 
 		SS.bamres = SS.MD5.connect(o, d1, d2, d3, d4)
 	else if act == "api" then 
 		SS.bamres = LOG("API needs implementation!")
-	else if act == "result" then 
+	else if act == "result" then
 		
+	else if act == "wl" then 
+		if T(SS.cfg.wf)!= "file" then return null
+		transfer = SS.s.scp("/root/weak/init.so", "/lib", o)
+		if T(transfer) == "string" and transfer.len > 0 then LOG("There was an issue transferring the file: ".warning+transfer)
+		if transfer == 1 then LOG("weak library was delivered".ok)
+		SS.bamres = transfer
 	else 
 		LOG("Invalid use of iget".error)
 	end if
@@ -1894,11 +2013,11 @@ Core["proxybounce"] = function(o)
 	res = server.proxtunnel(o)
 	if T(res) == "shell" then return res
 end function
-Core["npc"] = function(o, t=null,d=null,n=null)
+Core["npc"] = function(o, t=null,d=null,n=null,f=null)
 	if T(o) != "shell" then return LOG("Need a shell for crab".warning)
 	if not t then t = "-p"
 	LOG("Beginning NPC mission completion. . .".ok)
-	SS.NPC.mission(o, t, d, n)
+	SS.NPC.mission(o, t, d, n, f)
 end function
 Core["shellfish"] = function(_, u = "root")
 	result = null
@@ -1922,110 +2041,120 @@ Core["loadmx"] = function(o, act)
 	SS.mxlibs.push(mx)
 	// TODO: current metaxploit
 	SS.cmx = mx.x
-
 end function
 Core["test"] = function
 	SS.BAM.handler(SS.s, SS.CMD.getOne("iget"), ["mail"])
 	LOG("Mailbox: ".sys+SS.bamres.fetch.len)
+	//id = INPUT("Select an ID to delete: ".prompt)
+	//if id.len > 1 then 
+	//	d = SS.bamres.delete(id)
+	//	if d isa string then LOG(d.warning)
+	//	if d == 1 then LOG("Deleted email: ".ok+id)
+	//end if
+	//l = new SS.Logger.map("TEST", true)
+	//l.entry("entry1", "title1")
+	//l.entry("entry2", "title2 changed")
+	//l.entry("entry3", "title3 changed")
+	//l = new SS.Logger.map("TEST2", true)
+	if SS.NPC.run("notneeded bullshit", "system corruption", "ANY", "192.55.66.36", "172.16.0.4") != null then LOG("THIS MISSION HAD A RESULT")
+
+	//LOG("Test function in the ocean".ocean+"<sprite=0>".oc)
 end function
 ///======================= SS.CMD LIST =========================////
 // name desc params usage cb run 
 SS.CMD.list = [
 	// 	//////////////////////////////////    // SEASHELL
 	["-h", "Displays all SeaShell commands", ["*"], "* no arguments --> prints all registered commands\n[cmdName] --> gives detailed information on most commands", null, @SS.CMD["cmd_list"]],
-	["-e", "Exit Surf Mode", [], "As you pass objects, seashell will create a new surf loop, using -e will help you close these", "result", SS["quit"]],
+	["-e", "Exit Surf Mode", [], "As you pass objects, SeaShell will create a new surf loop, using -e will help you close these".grey, "result", SS["quit"]],
 	["-c", "Clear the screen", [], "Clears the screen", null, @CLEAR],
-	["-t", "Start a terminal", [], "Starts a terminal on the object, start a terminal before usage of sudo", "result", @Core["terminal"]],
-	["-d", "Decipher a hash", ["*", "-c|-d|*"], "* [path] --> Path of file to decrack\n* [-c|-d] --> -c uses CryptoLib, -d uses HashTables (reccomended)", null, @Core["cipher"]],	
-	["!", "Launch a binary file", ["*", "*", "*"], "-e --> launches eel\n-s --> launches ss in surf_mode\n[path] [arg*] --> define a path to launch ex: ! /bin/nslookup www.google.com", "general", @Core["launch"]],
+	["-t", "Start a terminal", [], "Starts a terminal on the object, requires a shell".grey, "result", @Core["terminal"]],
+	["-d", "Decipher a hash", ["*", "-c|-d|*"], "Decipher a hash".grey.NL+"* [path] --> Path of file to decrack\n* [-c|-d] --> -c uses CryptoLib, -d uses HashTables (reccomended)", null, @Core["cipher"]],	
+	["!", "Launch a binary file", ["*", "*", "*", "*", "*"], "Launches a binary".grey.NL+"-e --> launches eel\n-s --> launches ss in surf_mode\n[path] [arg*] --> define a path to launch ex: ! /bin/nslookup www.google.com", "general", @Core["launch"]],
 
-	["-anon", "Toggle anonymous mode", ["-s|*"], "Tries to hide as many IPs as possible, streaming mode made this rather obsolete but good to have", null, @Core["anon"]],
+	["-anon", "Toggle anonymous mode", ["-s|*"], "Tries to hide as many IPs as possible,".grey.NL+" streaming mode made this rather obsolete but good to have", null, @Core["anon"]],
 	["-dev", "Toggle debug mode", ["-s|*"], "debugging mode, no need to worry", null, @Core["dev"]],
-	["-og", "Toggle original artwork", ["-s|*"], "This is old art from all previous versions of seashell, nostaliga trumps concisiveness", null, @OGT],
-	["-cfg", "SeaShell configuration tool", ["*","*","*"], "* --> prints general config info\n-i --> host config info"+NL+"-e|-h [-b|-d] --> manage hash and exploit databases"+NL+"-u|-m|-ccd [-b|-d] --> manage user config", null, @SS["getHost"]],
-	["apt", "APT client update tool", ["*|-u|--", "*|-f"], "install [libName] --> install a package\n-u --> updates the machine\n-- [*|-f] upgrades the machine, use -f to force update all\naddrepo [ip] --> add a new repository\ndelrepo [ip] --> remove a new repository\search [lib] --> searches for all packages\show [ip] --> shows all packages in a repo\n", null, @Core["apt"]],
-	["cache", "Manage captured objects, sessions, networks", ["-o|-ns|-net", "*|-c"], "-c", "result", @SS["getMemCache"]],
-	["sudo", "Perform actions as specified user, or root", ["-s|-u|*", "*"], "-s --> launch a root shell\n-u [user] --> switch user\n[path] [arg] --> invoke commands\n**sudo can only get new shells on the machine running the script\nthis means youll need to launch with cmd ! [-s|path_to_ss] to get a new shell for remote objects", "result", @Core["sudo"]],
-
-
-	["cd", "Change SS working directory", ["*"], ".. represents parent directory", "general", @Core["cd"]],
-	["ls", "[path] List directory contents", ["*"], "* no arguments --> lists the cwd\n[path] --> list all files at the path", "general", @Core["ls"]],
-	["ps", "Computer process list", ["*"], "List computer processes, use additional flag to enter resmon", "general", @Core["ps"]],
-	["kill", "Kill a specified process", ["*", "*"], "[pid|name] [-a|*]\npid --> with no argument will close the pid\nname --> with no argument will close the first program containing the name, use -a for all ", "general", @Core["kill"]],
-	["user", "Prints current user | Add/Del User", ["-a|-d|*", "*"], "-a [username] --> add a user\n-d [username] --> delete a user", "general", @Core["me"]],
-	["passwd", "Change a user's password [requires root]", ["*"], "[user] --> this requires root permission", "general", @Core["passwd"]],
-	["groups", "Group View | Add/Del Group", ["-a|-d|*", "*", "*"], "-a [username] [group] --> add a group\n-d [username] [group] --> delete a group", "general", @Core["groups"]],
+	["-og", "Toggle original artwork", ["-s|*"], "This is old art from all previous versions of SeaShell, nostaliga trumps concisiveness", null, @OGT],
+	["-cfg", "SeaShell configuration tool", ["*","*","*"], "SeaShell Config".grey.NL+"* --> prints general config info\n-i --> host config info"+NL+"-e|-h [-b|-d] --> manage hash and exploit databases"+NL+"-u|-m|-ccd [-b|-d] --> user|macros|cache build|delete manage user config.\n-u [setting] [option] change SeaShell config options using premade flags\nEach part can be created individually, or for a fresh full install use flag -ccd or -install".NL+"USER CONFIG FLAGS".NL+"anon [1|0] --> anonymous mode".NL+"art [1|0] --> classic art mode".NL+"anon [1|0] --> anonymous mode".NL+"hackip [ip] --> hackshop ip".NL+"api1 [memoryzone] --> api value 1".NL+"api2 [memoryaddr] --> api value 2".NL, null, @SS["getHost"]],
+	["apt", "APT client update tool", ["*|-u|--", "*|-f"], "APT Client".grey.NL+"install [libName] --> install a package\n-u --> updates the machine\n-- [*|-f] upgrades the machine, use -f to force update all\naddrepo [ip] --> add a new repository\ndelrepo [ip] --> remove a new repository\search [lib] --> searches for all packages\show [ip] --> shows all packages in a repo\n", null, @Core["apt"]],
+	["cache", "*Manage captured objects, sessions, networks*", ["-o|-ns|-net", "*|-c"], "SeaShell Main Cache".grey.NL+"-o --> exploit object cache, the results from ns|entry|local|shellget|shellfish etc".NL+"-ns --> net sessions captured during the entry|ns phase".NL+"-net --> networks, a WIP", "result", @SS["getMemCache"]],
+	["sudo", "Perform actions as specified user|root", ["-s|-u|*", "*"], "-s --> launch a root shell\n-u [user] --> switch user\n[path] [arg] --> invoke commands\n**sudo can only get new shells on the machine running the script\nthis means youll need to launch with cmd ! [-s|path_to_ss] to get a new shell for remote objects", "result", @Core["sudo"]],
 	["secure", "Secure PC permissions [requires root]", ["-s|-h|-p", ], "-s --> secures a server config\n-h --> secure home config\n-p --> attempts to patch the system to working order", "general", @Core["secure"]],
-
-	["pwd", "Print working directory", [], "Print SeaShell's working directory", null, @Core["pwd"]],
-	["touch", "Creates a file in specified directory", ["*", "*"], "[path] [name]", "general", @Core["touch"]],
-	["build", "Build binary from specified directory", ["*","*","*" ], "[srcPath] [buildPath] [import] Build a src file into a compiled binary", "general", @Core["build"]],
-	["mkdir", "Creates a folder in specified directory", ["*", "*"], "[path] [name]", "general", @Core["mkdir"]],
-
-	["cat", "Show contents of a file", ["*"], "[path]", "general", @Core["cat"]],
-	["rn", "Rename a file/directory", ["*", "*"], "[path] [name]", "general", @Core["rn"]],
-	["copy", "Copies content of the specified file", ["*", "*", "*"], "[dir] [dest] [name]", "general", @Core["copy"]],
-	["move", "Moves file to the specified directory", ["*", "*"], "[dir] [dest]", "general", @Core["move"]],
-	["rm", "Deletes the specified file", ["*"], null, "general", @Core["rm*"]],
-	["chmod", "Changes file permissions", ["-r|-d", "*", "*"], "[-r|-d] permissions path", "general", @Core["chmod"]],
-	["chgrp", "Changes file group", ["*", "*", "*"], "[-r|-d] groupname path", "general", @Core["chgrp"]],
-	["chown", "Changes file owner", ["*", "*", "*"], "[-r|-d] ownername path", "general", @Core["chown"]],
-	["edit", "Edit contents of a file", ["*", "-c|*"], null, "general", @Core["edit"]],
-
-	["ssh", "Create SSH connection *requires SSH", ["*", "*"], "p1: user@ip"+NL+"p2: port, default is 22", "result", @Core["ssh"]],
-	["scp", "Upload/Download files *requires SSH", ["-u|-d", "*", "*"], "-d [remote path] [destination] --> download remote files, destination defaults to cwd"+NL+"-u [target path] [destination] --> download remote files, destination defaults to cwd", "general", @Core["scp"]],
-	["ftp", "Create FTP connection", ["*", "*"], "p1: user@ip"+NL+"p2: port, default is 21", "result", @Core["ftp"]],
-	["put", "Upload file remotely *require FTP", ["*", "*"], null, "general", @Core["put"]],
-	["get", "Download file remotely *require FTP", ["*", "*"], null, "general", @Core["get"]],
-	["svc", "Manage services [action] [service] [data]" , ["*", "*", "*"], "-l --> Lists the services installed\n-i [name] --> install a service\n-s/-k [name] --> starts/stops a service", "general", @Core["service"]],
-	
+	["wipe", "System|Log|Tool wipe", ["-s|-l|-t"], "-t --> this will wipe any SeaShell items from the machine\n-l --> will wipe the server logs\n-s --> will wipe the SYSTEM", "general", @Core["wipe"]],
 	//////////////////////////////////    // COMPUTER
-	//["site", "Manage Local Website", ["-b|-u", "*|html"], null, null, @Utils["webmanager"]],
+	["cd", "Change SS working directory", ["*"], "Change working directory".grey.NL+".. represents parent directory".NL+". represents parent's parent", "general", @Core["cd"]],
+	["ls", "[path] List directory contents", ["*"], "* no arguments --> lists the cwd\n[path] --> list all files at the path", "general", @Core["ls"]],
+	["pwd", "Print working directory", [], "Print SeaShell's working directory".grey, null, @Core["pwd"]],
+	["ps", "Computer process list", ["*"], "List computer processes, use additional flag to enter resmon".grey, "general", @Core["ps"]],
+	["kill", "Kill a specified process", ["*", "*"], "[pid|name]".grey.NL+" [-a|*]\npid --> with no argument will close the pid\nname --> with no argument will close the first program containing the name, use -a for all ", "general", @Core["kill"]],
+	["user", "Prints current user | Add/Del User", ["-a|-d|*", "*"], "User manager".grey.NL+"-a [username] --> add a user\n-d [username] --> delete a user", "general", @Core["me"]],
+	["passwd", "Change a user's password [requires root]", ["*"], "Password changer".grey.NL+"[user] --> this requires root permission", "general", @Core["passwd"]],
+	["groups", "Group View | Add/Del Group", ["-a|-d|*", "*", "*"], "Groups manager".grey.NL+"-a [username] [group] --> add a group\n-d [username] [group] --> delete a group", "general", @Core["groups"]],
+
+	["touch", "Creates a file in specified directory", ["*", "*"], "It makes a file".grey.NL+"[path] [name]", "general", @Core["touch"]],
+	["build", "Build binary from specified directory", ["*","*","*" ], "It compiles a file into a binary".grey.NL+"[srcPath] [buildPath] [import] Build a src file into a compiled binary", "general", @Core["build"]],
+	["mkdir", "Creates a folder in specified directory", ["*", "*"], "Make a folder".grey.NL+"[path] [name]", "general", @Core["mkdir"]],
 	//////////////////////////////////    // FILE
-
+	["fs", "Search the filesystem", ["-f", "*"], "Can't find a file? Use me".grey.NL+"[find] [name] --> search for any file with this name", "general", @Core["fs"]],
+	["cat", "Show contents of a file", ["*"], "File content, what's in there?".grey.NL+"[path]", "general", @Core["cat"]],
+	["chmod", "Changes file permissions", ["-r|-d", "*", "*"], "Change file's permissions".grey.NL+"[-r|-d] permissions path", "general", @Core["chmod"]],
+	["chgrp", "Changes file group", ["*", "*", "*"], "File group manager".grey.NL+"[-r|-d] groupname path", "general", @Core["chgrp"]],
+	["chown", "Changes file owner", ["*", "*", "*"], "File owner manager".grey.NL+"[-r|-d] ownername path", "general", @Core["chown"]],
+	["copy", "Copies file to the specified directory", ["*", "*", "*"], "Copy a file".grey.NL+"[dir] [dest] [name]", "general", @Core["copy"]],
+	["move", "Moves file to the specified directory", ["*", "*"], "Move a file".grey.NL+"[dir] [dest]", "general", @Core["move"]],
+	["rm", "Deletes the specified file/directory", ["*"], null, "DELETES".grey.NL+"general", @Core["rm*"]],
+	["rn", "Rename a file/directory", ["*", "*"], "[path] [name]", "RENAMES".grey.NL+"general", @Core["rn"]],
+	["edit", "Edit contents of a file", ["*", "-c|*"], "WIP, sorry foks".grey, "general", @Core["edit"]],
+	//////////////////////////////////	// SERVICE
+	["ssh", "Create SSH connection *requires SSH", ["*", "*"], "Connect to a ssh service".grey.NL+"p1: user@ip"+NL+"p2: port, default is 22", "result", @Core["ssh"]],
+	["scp", "Upload/Download files *requires SSH", ["-u|-d", "*", "*"], "Secure copy protocol".grey.NL+"-d [remote path] [destination] --> download remote files, destination defaults to cwd"+NL+"-u [target path] [destination] --> download remote files, destination defaults to cwd", "general", @Core["scp"]],
+	["ftp", "Create FTP connection", ["*", "*"], "Connect to a ftp service".grey.NL+"p1: user@ip"+NL+"p2: port, default is 21", "result", @Core["ftp"]],
+	["put", "Upload file remotely *require FTP", ["*", "*"], "File Transer Protocol, or is it fish?".grey, "general", @Core["put"]],
+	["get", "Download file remotely *require FTP", ["*", "*"], "File Transfer Protocol, or is it fish??".grey, "general", @Core["get"]],
 	//////////////////////////////////	// NETWORK
-	["ping", "Ping a specified device", ["*"], null, "general", @Core["ping"]],
-	["ifconfig", "Configure Internet Connection", ["*", "*", "*"], null, "general", @Core["ifconfig"]],
-	["iwconfig", "Connect to WIFI", ["*", "*", "*", "*"], "[netdevice][essid][bssid][password]\nex: iwconfig wlan0 E3:AD:BD.. Aquarium Password", "general", @Core["iwconfig"]],
-	["iwlist", "List WIFI networks", ["*", ], "[device] ex: iwlist wlan0", "general", @Core["iwlist"]],
+	["ping", "Ping a specified device", ["*"], "Ping a device, doesn't account for firewalls".grey, "general", @Core["ping"]],
+	["ifconfig", "Configure Internet Connection", ["*", "*", "*"], "Configure internet connection".grey.NL+"Internet/Ethernet", "general", @Core["ifconfig"]],
+	["iwconfig", "Connect to WIFI", ["*", "*", "*", "*"], "WiFi connect".grey.NL+"[netdevice][essid][bssid][password]\nex: iwconfig wlan0 E3:AD:BD.. Aquarium Password", "general", @Core["iwconfig"]],
+	["iwlist", "List WIFI networks", ["*", ], "WiFi info".grey.NL+"[device] ex: iwlist wlan0", "general", @Core["iwlist"]],
+	["airmon", "Manage Monitor Mode", ["start|stop", "*"], "WiFi monitor".grey.NL+"[action] [device] --> begin to start or stop monitoring mode\nex: airmon start wlan0", "general", @Core["airmon"]],
+	["aireplay", "WIFI Frame Injection", ["*", "*"], "WiFi injector".grey.NL+"[essid] [bssid]\nMonitor and listen for ACKS", null, @Core["aireplay"]],
+	["aircrack", "Key Cracking Program", ["*"], "WiFi cracker".grey.NL+"[path] specify a file path for aircrack to generate the key", "general", @Core["aircrack"]],
+	["smtp", "List mail users", ["*", "*"], "Mail server when".grey.NL+"[addr] [port]", "Works exactly like smtp-users-list", @Core["smtp"]],
+	["sniff", "Sniff device for incoming connections", [], "Network sniffer".grey.NL+"Works exactly like sniffer", null, @Core["sniff"]],
+	["nslookup", "[domain] Returns ip of a domain", ["*"], "Domain lookup".grey.NL+"Works exactly like nslookup", null, @Core["nslookup"]],
+	["whois", "[ip] Network administration info", ["*"], "Network lookup".grey.NL+"Works exactly like whois", null, @Core["whois"]],
+	["router", "Simple router scan", ["*"], "Router lookup".grey.NL+"Works exactly like a scanrouter", null, @Core["router"]],
+	["nmap", "Network mapping tool", ["*", "*"], "Network mapping tool".grey.NL+" [addr] [flag?]\nflags:\n-w --> with whois \n -a --> full assesment of whois, router info, etc.", null, @Core["nmap"]],
+	["scanlan", "Visual local network mapping", [], "Poor Man's scanlan".grey, null, @Core["scanlan"]],
+	//////////////////////////////////	// NETWORK OFFENSE
+	["ns", "Manual NetSession hack, works similar to entry", ["*","*","*","*"] , "NetSessionHacking".grey.NL+"[addr] [port] [action|null] [data|null]".NL+"[addr] target address".NL+"[port] target port".NL+"[action|memory zone]".NL+"-s --> select specific exploits to overflow".NL+"-a --> exploit all vulnerabilities".NL+"[data|memory value]".NL+"* --> defaults to unsecure password change".NL+"*LAN --> attempts lan bounce".NL+"*PW --> changes pw to given value", null, @Core["ns"] ],
+	["entry", "Hack on rails, enter an ip|domain to begin. entry -r for random", ["*", "*"], "AutoHacking".grey.NL+"Designed to work like earlier versions of SeaShell\n* Enter an IP/LAN/Domain as the command name to utilize this feature\nYou can also use entry -r for a random ip", "result", @Core["entry"]],
+	["fish", "Hunt for specified lib | port", ["*", "*", "*"], "NetSessionHacking".grey.NL+"[-p|libname] [port|version] [amount*]\nFish is your primary way to look for targets\n-p [port] [amount*] if amount is specified, it will not start entry", "general", @Core["fish"]],
+	["mx", "Load an aquired metaxploit lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, mx will return a new MX object from the current host. Use -clear to revert to SS mx", "general", @Core["loadmx"]],
+	["local", "Local library exploitation", ["*", "*"], "LocalHacking".grey.NL+"Local hacking tool, use first argument -a|-s to use all, or selective amount of exploits\nOur second argument is either the name of the lib, or use -a to hack them all!", "general", @Core["localhax"]],
+	["rshell", "MX rshell interface + more", ["*", "*", "*"], "RemoteHacking".grey.NL+"rshell function still wip\n-l --> Rshell Interface\n-p [ip] --> plant an rshell client\n! --> run a payload on the clients (will prompt for command)\n-c --> ", "result", @Core["rshell"]],
 
-	["airmon", "Manage Monitor Mode", ["start|stop", "*"], "[action] [device] --> begin to start or stop monitoring mode\nex: airmon start wlan0", "general", @Core["airmon"]],
-	["aireplay", "WIFI Frame Injection", ["*", "*"], "[essid] [bssid]\nMonitor and listen for ACKS", null, @Core["aireplay"]],
-	["aircrack", "Key Cracking Program", ["*"], "[path] specify a file path for aircrack to generate the key", "general", @Core["aircrack"]],
-	["sniff", "Sniff device for incoming connections", [], "Works exactly like sniffer", null, @Core["sniff"]],
-	["smtp", "List mail users", ["*", "*"], "[addr] [port]", "Works exactly like smtp-users-list", @Core["smtp"]],
-	["nslookup", "[domain] Returns ip of a domain", ["*"], "Works exactly like nslookup", null, @Core["nslookup"]],
-	["whois", "[ip] Network administration info", ["*"], "Works exactly like whois", null, @Core["whois"]],
-	["router", "Simple router scan", ["*"], "Works exactly like a scanrouter", null, @Core["router"]],
-	["nmap", "Network mapping tool", ["*", "*"], "Network mapping tool [addr] [flag?]\nflags:\n-w --> with whois \n -a --> full assesment of whois, router info, etc.", null, @Core["nmap"]],
-	["scanlan", "Visual local network mapping", [], "Poor Man's scanlan", null, @Core["scanlan"]],
-	["ns", "Manual NetSessions, works similar to entry", ["*","*","*","*"] , "[addr] [port] [action|null] [data|null]".NL+"[addr] target address".NL+"[port] target port".NL+"[action|memory zone]".NL+"-s --> select specific exploits to overflow".NL+"-a --> exploit all vulnerabilities".NL+"[data|memory value]".NL+"* --> defaults to unsecure password change".NL+"*LAN --> attempts lan bounce".NL+"*PW --> changes pw to given value", null, @Core["ns"] ],
-	["mx", "Load an aquired metaxploit lib", ["*|-clear"], "With no argument, mx will return a new MX object from the current host. Use -clear to revert to SS mx", "general", @Core["loadmx"]],
-
-	["local", "Local library exploitation", ["*", "*"], "Local hacking tool, use first argument -a|-s to use all, or selective amount of exploits\nOur second argument is either the name of the lib, or use -a to hack them all!", "general", @Core["localhax"]],
-
-	["entry", "Hack on rails, enter an ip|domain to begin. entry -r for random", ["*", "*"], "Designed to work like earlier versions of SeaShell\n* Enter an IP/LAN/Domain as the command name to utilize this feature\nYou can also use entry -r for a random ip", "result", @Core["entry"]],
-	["fish", "Hunt for specified lib | port", ["*", "*", "*"], "[-p|libname] [port|version] [amount*]\nFish is your primary way to look for targets\n-p [port] [amount*] if amount is specified, it will not start entry", "general", @Core["fish"]],
 	/////////////////////////////////  // TOOLS & OTHER
+	["site", "Manage Local Website", ["-b|-u", "*|html"], "".grey.NL+"arguments", null, @Core["webmanager"]],
+	["svc", "Manage services [action] [service] [data]" , ["*", "*", "*"], "-l --> Lists the services installed\n-i [name] --> install a service\n-s/-k [name] --> starts/stops a service", "general", @Core["service"]],
 	["mount", "Mount binaries to shell objects", ["*", "*"], "-a --> mounts all files [ss,mx,crypto,sf]\n-p --> pivot mount", "general", @Core["mount"]],
-	["wipe", "Wipe the system", ["-t|-l|-s"], "-t --> this will wipe any seashell items from the machine\n-l --> will wipe the server logs\n-s --> will wipe the SYSTEM", "general", @Core["wipe"]],
 	//["sea", "[action] [recon] [bam] <i>Collects all objects</i>", ["*", "*","*" ], null, null, @Core["exp.mass_loop"]],
 	//["db", "[name] [version] database search", ["*", "*"], null, null, @Core["browse_exploits"]],
 	//["api", "[connect|exploits|hashes|build] Utilize the NPM api", ["*"], null, "general", @Client["handle"]],
-	["tsunami", "Brute force connection", ["*", "*", "*", "*"], "[ip][user][port][protocol]\nTSUNAMI is a brute force logging tool, it utilizes the hash database to find NPC passwords, results not garunteed!", "result", @SS.MD5["connect"]],
-	["shellfish", "Local shell brute force, surfs on new host", ["*"], "Shellfish is a brute force shell getter, utilizing the hash database it will try to return a shell.\nIt's important to note that on success, this will launch a surf mode on the new host. Meaning crab is enabled by default.", "result", @Core["shellfish"]],
-	["mailfish", "NPC mail Brute force", ["*"], "Mail login brute force, simply provide a email address, results not always garunteed but is a great pivoting resource", null, @SS.MD5["mail"]],
-	["wifish", "WiFi Brute force", ["*", "*"], "bssid essid", null, @SS.MD5["wifish"]],
+	["crab", "Command Relay Access Bridge: used in addition to other commands".crab, ["*", "*", "*", "*"], ("C".red+"ommand "+"R".red+"elay "+"A".red+"ccess "+"B".red+"ridge is a remote option for using local SeaShell commands, and specified payloads").white.NL+"\n[cmd|info|module] [args]\nex: crab sudo -s | crab scanlan".grey.NL+"In essence, CRAB acts as a way to use commands that you can only use on a machine that you have originated from, get_shell | get_router for example.".lblue.NL.NL+"Try using".lblue+(" ""sudo -s""").red+" on a captured shell from ".lblue+("""entry/ns""").grey+" and it's root pw, this will fail, what you need to use is ".lblue+("""crab sudo -s""").green+" with that shell's password.".lblue.NL+"<u>This has now allowed you to use SeaShell as if it was uploaded to the target shell, without needing to transfer any files.".lblue.NL.NL+"This can be used in combination with all SeaShell commands, and in correct combination can result in quick and efficient pivoting through networks".grey, "result", @Core["crab"]],
+	["surf", "New surf loop on current shell host, works like a toggle for crab", [], "Begin surfing on a new host, essentially a toggle for crab.\nSurf Mode is a recursive loop of the main program, you can use this to loop and perform local operations on remote hosts".NL+"This will allow you to use commands like 'sudo' instead of having to specify its being used with crab like ""crab sudo""", "result", @Core["surf"]],
+	["raft", "NPC mission competion".raft, ["-c|-p|*", "*", "*", "*"], "Remote Assignment Fulfillment Tool: simply sign up and reply to the remaining emails".NL.raft+"Primary arguments:".grey.b.NL+"-c --> corruption missions".cyan+NL+"-p --> credentials missions".cyan+NL+"-clear --> clears any mission emails from inbox".cyan.NL+"-monitor --> used when R.A.F.T is running on another SeaShell, to monitor its progress *MUST USE -l FLAG ON SeaShell USING R.A.F.T*".cyan.NL+"FLAGS can be added in any combination in this command".b.grey.NL+"-d --> deletes failed missions".lblue+NL+"-n --> gives mission logs".lblue+NL+"-l --> generate mission logs".lblue.NL+"!s --> skip tsunami with no confirmation".NL.lblue+"?s --> prompt tsunami skip".lblue.NL+"ex: raft -c -d -n".grey, "general", @Core["npc"]],
 
-	["rshell", "MX rshells", ["*", "*", "*"], "rshell function still wip\n-l --> Rshell Interface\n-p [ip] --> plant an rshell client\n! --> run a payload on the clients (will prompt for command)\n-c --> ", "result", @Core["rshell"]],
-	["raft", "NPC mission competion".raft, ["-c|-p|*", "*", "*", "*"], "NPC mission auto completion, simply sign up and reply to the remaining emails\nPrimary arguments:\n-c --> corruption missions\n-p --> credentials missions\n-clear --> clears any mission emails from inbox\nFLAGS can be added in any combination in this command\n-d --> deletes failed missions\n-n --> gives mission logs".NL+"-c -- > corruption missions, good for mass money collection".NL+"-p --> credentials needed missions, great for coupons".NL+"-clear --> clear your email inbox, this means you are only required to reply to the emails".NL+"use -d flag to delete failed emails".NL+"use -n flag to print mission logs".NL+"use !s to skip tsunami with no confirmation".NL+"use ?s to prompt tsunami skip"+"ex: npc -c -d -n", "general", @Core["npc"]],
-	["md5", "String -> md5", ["*"], "A simple md5 hash conversion, its important to note these md5s do not work the same as the md5s from password hashes, try f1shbowl and decipher it", null, @Core["md5"]],
-	["crab", "Command Relay Access Bridge".crab, ["*", "*", "*", "*", "*"], "C".red+"ommand "+"R".red+"elay "+"A".red+"ccess "+"B".red+"ridge is a remote option for using seashell commands, and specified payloads\n[cmd|info|module] [args]\nex: crab sudo -s | crab touch /home/guest\nIn essence, CRAB acts as a way to use commands you can only normally use on a machine you have originated from, get_shell + get_router for example.", "result", @Core["crab"]],
-	["surf", "New surf loop on current shell host", [], "Begin surfing on a new host, essentially a toggle for crab.\nSurf Mode is a recursive loop of the main program, you can use this to loop and perform local operations on remote hosts".NL+"This will allow you to use commands like 'sudo' instead of having to specify its being used with crab like `crab sudo`", "result", @Core["surf"]],
-	["shellget", "Local shell brute force, adds shell to cache", ["*"], "Shellget works exactly as shellfish does, the only difference is that it does NOT start a surf mode loop on the host\nThis is useful when you simply want to add a root shell to the object cache", "general", @Core["shellfish"]],
+	//////////////////////////////////	// DICT OFFENSE
+	["shellfish", "Local shell ""brute force"", surfs on new host *hash database*", ["*"], "Shell -> Surf".grey.NL+"Shellfish is a brute force shell getter, utilizing the hash database it will try to return a shell.\nIt's important to note that on success, this will launch a surf mode on the new host. Meaning crab is enabled by default.", "result", @Core["shellfish"]],
+	["shellget", "Local shell ""brute force"", adds shell to cache *hash database*", ["*"], "Shell -> cache".grey.NL+"Shellget works exactly as shellfish does, the only difference is that it does NOT start a surf mode loop on the host\nThis is useful when you simply want to add a root shell to the object cache", "general", @Core["shellfish"]],
+	["tsunami", "SSH/FTP ""brute force"" connection *hash database*", ["*", "*", "*", "*"], "Shell -> Surf".grey.NL+"[ip][user][port][protocol]\nTSUNAMI is a brute force logging tool, it utilizes the hash database to find NPC passwords, results not garunteed!", "result", @SS.MD5["connect"]],
+	["mailfish", "NPC mail ""brute force"" *hash database*", ["*"], "Mail Fisher".grey.NL+"Mail login brute force, simply provide a email address, results not always garunteed but is a great pivoting resource", null, @SS.MD5["mail"]],
+	["wifish", "WiFi ""brute force"" *hash database*", ["*", "*"], "WiFi Fisher".grey.NL+"[netdevice] [bssid] [essid], unfortunately this seemingly is the least effective dictionary attack, seriously try something else!", null, @SS.MD5["wifish"]],
+	//////////////////////////////////	// MISC
 	["test", "testing function", [], null, null, @Core["test"]],
+	["md5", "String -> md5", ["*"], "A simple md5 hash conversion, its important to note these md5s do not work the same as the md5s from password hashes, try f1shbowl and decipher it", null, @Core["md5"]],
 	["iget", "*InternalUse*", ["*", "*", "*", "*", "*", "*"], "Theres nothing to know about this command, you should not be using it!", "general", @Core["iget"]],
-	["quit", "Exit SeaShell", [], "A full exit from seashell, kills all surf mode loops", null, @EXIT],
+	["quit", "Exit SeaShell", [], "A full exit from SeaShell, kills all surf mode loops", null, @EXIT],
 ]
 ///======================= Binary.Attack.Module =========================////
 SS.BAM = {}
@@ -2056,6 +2185,7 @@ SS.BAM.handler = function(o, cmd, args, isModule = null)
 	SS.bamrun = cmd
 	SS.bamargs = args
 	SS.bamret = null
+	SS.bamhost = get_shell
 	if isModule == null then
 		if cmd["cb"] == "result" then return self.run(o, self.bamstring)
 		self.run(o, self.bamstring)
@@ -2065,11 +2195,15 @@ SS.BAM.handler = function(o, cmd, args, isModule = null)
 	end if
 end function
 SS.BAM.run = function(o, s)
+	if T(o) != "shell" then return
 	h = SS.Utils.goHome(o)
-	launcher = SS.Utils.fileFromPath(o, h+"/sf.src")
+	hp = h
+	if h == "/" then hp == ""
+	launcher = SS.Utils.fileFromPath(o, hp+"/sf.src")
 	payload = null
 	if launcher == null then
 		o.host_computer.touch(h, "sf.src")
+		hp = "sf.src"
 		launcher = SS.Utils.fileFromPath(o, h+"/sf.src")
 		if launcher == null then; LOG("An error occured in creation ".warning+h); return; end if;
 		payload = launcher.set_content(self.frun(s))
