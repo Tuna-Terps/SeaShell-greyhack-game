@@ -303,6 +303,17 @@ SS.buildEntireUserCache = function(flag = null)// TODO: handle flag
 			LOG("Event Log directory built at: "+capa.grey+"/".grey+"ss.logs".lblue)
 		else;LOG("Failed to create the log folder".warning)
 		end if 
+		if SS.c.create_folder(capa, "libs") == 1 then 
+			if SS.c.create_folder(capa+"/libs", "weak") == 1 then 
+				LOG("Weak folder repo: "+capa.grey+"/".grey+"libs".lblue)
+			else;LOG("Failed to create the log folder".warning)
+			end if 
+			if SS.c.create_folder(capa+"/libs", "strong") == 1 then 
+				LOG("Strong folder repo: "+capa.grey+"/".grey+"libs".lblue)
+			else;LOG("Failed to create the log folder".warning)
+			end if 
+		else;LOG("Failed to create the log folder".warning)
+		end if
 	end if
 	if not f1 then f1 = SS.Utils.fileFromPath(SS.c, capa)
 	if not f1 then return LOG("Unable to build the cache directory".warning)
@@ -2044,7 +2055,6 @@ Core["loadmx"] = function(o, act)
 end function
 Core["test"] = function
 	SS.BAM.handler(SS.s, SS.CMD.getOne("iget"), ["mail"])
-	if not SS.bamres then return LOG("Mail malformed".warning)
 	LOG("Mailbox: ".sys+SS.bamres.fetch.len)
 	//id = INPUT("Select an ID to delete: ".prompt)
 	//if id.len > 1 then 
@@ -2057,6 +2067,8 @@ Core["test"] = function
 	//l.entry("entry2", "title2 changed")
 	//l.entry("entry3", "title3 changed")
 	//l = new SS.Logger.map("TEST2", true)
+	if SS.NPC.run("notneeded bullshit", "system corruption", "ANY", "192.55.66.36", "172.16.0.4") != null then LOG("THIS MISSION HAD A RESULT")
+
 	//LOG("Test function in the ocean".ocean+"<sprite=0>".oc)
 end function
 ///======================= SS.CMD LIST =========================////
@@ -2069,11 +2081,11 @@ SS.CMD.list = [
 	["-t", "Start a terminal", [], "Starts a terminal on the object, requires a shell".grey, "result", @Core["terminal"]],
 	["-d", "Decipher a hash", ["*", "-c|-d|*"], "Decipher a hash".grey.NL+"* [path] --> Path of file to decrack\n* [-c|-d] --> -c uses CryptoLib, -d uses HashTables (reccomended)", null, @Core["cipher"]],	
 	["!", "Launch a binary file", ["*", "*", "*", "*", "*"], "Launches a binary".grey.NL+"-e --> launches eel\n-s --> launches ss in surf_mode\n[path] [arg*] --> define a path to launch ex: ! /bin/nslookup www.google.com", "general", @Core["launch"]],
-
+	
 	["-anon", "Toggle anonymous mode", ["-s|*"], "Tries to hide as many IPs as possible,".grey.NL+" streaming mode made this rather obsolete but good to have", null, @Core["anon"]],
 	["-dev", "Toggle debug mode", ["-s|*"], "debugging mode, no need to worry", null, @Core["dev"]],
 	["-og", "Toggle original artwork", ["-s|*"], "This is old art from all previous versions of SeaShell, nostaliga trumps concisiveness", null, @OGT],
-	["-cfg", "SeaShell configuration tool", ["*","*","*"], "SeaShell Config".grey.NL+"* --> prints general config info\n-i --> host config info"+NL+"-e|-h [-b|-d] --> manage hash and exploit databases"+NL+"-u|-m|-ccd [-b|-d] --> user|macros|cache build|delete manage user config.\n-u [setting] [option] change SeaShell config options using premade flags\nEach part can be created individually, or for a fresh full install use flag -ccd or -install".NL+"USER CONFIG FLAGS".NL+"anon [1|0] --> anonymous mode".NL+"art [1|0] --> classic art mode".NL+"anon [1|0] --> anonymous mode".NL+"hackip [ip] --> hackshop ip".NL+"api1 [memoryzone] --> api value 1".NL+"api2 [memoryaddr] --> api value 2".NL, null, @SS["getHost"]],
+	["-cfg", "SeaShell configuration tool", ["build|*","*","*"], ("SeaShell Config, use flag ""build"" for full installation").grey.NL+"* --> prints general config info\n-i --> host config info"+NL+"-e|-h [-b|-d] --> manage hash and exploit databases"+NL+"-u|-m|-ccd [-b|-d] --> user|macros|cache build|delete manage user config.\n-u [setting] [option] change SeaShell config options using premade flags\nEach part can be created individually, or for a fresh full install use flag -ccd or -install".NL+"USER CONFIG FLAGS".NL+"anon [1|0] --> anonymous mode".NL+"art [1|0] --> classic art mode".NL+"anon [1|0] --> anonymous mode".NL+"hackip [ip] --> hackshop ip".NL+"api1 [memoryzone] --> api value 1".NL+"api2 [memoryaddr] --> api value 2".NL, null, @SS["getHost"]],
 	["apt", "APT client update tool", ["*|-u|--", "*|-f"], "APT Client".grey.NL+"install [libName] --> install a package\n-u --> updates the machine\n-- [*|-f] upgrades the machine, use -f to force update all\naddrepo [ip] --> add a new repository\ndelrepo [ip] --> remove a new repository\search [lib] --> searches for all packages\show [ip] --> shows all packages in a repo\n", null, @Core["apt"]],
 	["cache", "*Manage captured objects, sessions, networks*", ["-o|-ns|-net", "*|-c"], "SeaShell Main Cache".grey.NL+"-o --> exploit object cache, the results from ns|entry|local|shellget|shellfish etc".NL+"-ns --> net sessions captured during the entry|ns phase".NL+"-net --> networks, a WIP", "result", @SS["getMemCache"]],
 	["sudo", "Perform actions as specified user|root", ["-s|-u|*", "*"], "-s --> launch a root shell\n-u [user] --> switch user\n[path] [arg] --> invoke commands\n**sudo can only get new shells on the machine running the script\nthis means youll need to launch with cmd ! [-s|path_to_ss] to get a new shell for remote objects", "result", @Core["sudo"]],
