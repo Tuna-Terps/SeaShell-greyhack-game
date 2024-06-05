@@ -1036,7 +1036,7 @@ Core["ps"] = function(o, a = null)
 		_p = function; return print(format_columns(show_procs(o))); end function;
 	else 
 		_p = function
-			s = "USER".cyan+" "+"PID".cyan+" "+"CPU".cyan+" "+"MEM".cyan+" "+"SS.CMD".cyan
+			s = "USER".cyan+" "+"PID".cyan+" "+"CPU".cyan+" "+"MEM".cyan+" "+"CMD".cyan
 			ps = o.show_procs.split(NL); if ps.len != 0 then ps.pull;
 			for p in ps
 				p = p.split(" ")
@@ -2006,7 +2006,7 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 	else if act == "api" then 
 		SS.bamres = LOG("API needs implementation!")
 	else if act == "result" then
-		
+		object.delete
 	else if act == "wl" then 
 		if T(SS.cfg.wf)!= "file" then return null
 		transfer = SS.s.scp(SS.cfg.wf.path, "/lib", o)
@@ -2027,7 +2027,6 @@ end function
 Core["npc"] = function(o, t=null,d=null,n=null,f=null)
 	if T(o) != "shell" then return LOG("Need a shell for crab".warning)
 	if not t then t = "-p"
-	LOG("Beginning NPC mission completion. . .".ok)
 	SS.NPC.mission(o, t, d, n, f)
 end function
 Core["shellfish"] = function(_, u = "root")
@@ -2053,21 +2052,22 @@ Core["loadmx"] = function(o, act)
 	// TODO: current metaxploit
 	SS.cmx = mx.x
 end function
-Core["test"] = function
+Core["test"] = function(a=null)
 	SS.BAM.handler(SS.s, SS.CMD.getOne("iget"), ["mail"])
 	LOG("Mailbox: ".sys+SS.bamres.fetch.len)
-	//id = INPUT("Select an ID to delete: ".prompt)
-	//if id.len > 1 then 
-	//	d = SS.bamres.delete(id)
-	//	if d isa string then LOG(d.warning)
-	//	if d == 1 then LOG("Deleted email: ".ok+id)
-	//end if
+	if a != null then
+		id = INPUT("Select an ID to delete: ".prompt) 
+		d = SS.bamres.delete(id)
+
+		if d isa string then LOG(d.warning)
+		if d == 1 then LOG("Deleted email: ".ok+id)
+	end if
 	//l = new SS.Logger.map("TEST", true)
 	//l.entry("entry1", "title1")
 	//l.entry("entry2", "title2 changed")
 	//l.entry("entry3", "title3 changed")
 	//l = new SS.Logger.map("TEST2", true)
-	if SS.NPC.run("notneeded bullshit", "system corruption", "ANY", "192.55.66.36", "172.16.0.4") != null then LOG("THIS MISSION HAD A RESULT")
+	//if SS.NPC.run("notneeded bullshit", "system corruption", "ANY", "192.55.66.36", "172.16.0.4") != null then LOG("THIS MISSION HAD A RESULT")
 
 	//LOG("Test function in the ocean".ocean+"<sprite=0>".oc)
 end function
@@ -2112,8 +2112,8 @@ SS.CMD.list = [
 	["chown", "Changes file owner", ["*", "*", "*"], "File owner manager".grey.NL+"[-r|-d] ownername path", "general", @Core["chown"]],
 	["copy", "Copies file to the specified directory", ["*", "*", "*"], "Copy a file".grey.NL+"[dir] [dest] [name]", "general", @Core["copy"]],
 	["move", "Moves file to the specified directory", ["*", "*"], "Move a file".grey.NL+"[dir] [dest]", "general", @Core["move"]],
-	["rm", "Deletes the specified file/directory", ["*"], null, "DELETES".grey.NL+"general", @Core["rm*"]],
-	["rn", "Rename a file/directory", ["*", "*"], "[path] [name]", "RENAMES".grey.NL+"general", @Core["rn"]],
+	["rm", "Deletes the specified file/directory", ["*"], "DELETES".grey.NL+"general", "general", @Core["rm*"]],
+	["rn", "Rename a file/directory", ["*", "*"], "RENAMES".grey.NL+"[path] [name]", "general", @Core["rn"]],
 	["edit", "Edit contents of a file", ["*", "-c|*"], "WIP, sorry foks".grey, "general", @Core["edit"]],
 	//////////////////////////////////	// SERVICE
 	["ssh", "Create SSH connection *requires SSH", ["*", "*"], "Connect to a ssh service".grey.NL+"p1: user@ip"+NL+"p2: port, default is 22", "result", @Core["ssh"]],
@@ -2162,7 +2162,7 @@ SS.CMD.list = [
 	["mailfish", "NPC mail ""brute force"" *hash database*", ["*"], "Mail Fisher".grey.NL+"Mail login brute force, simply provide a email address, results not always garunteed but is a great pivoting resource", null, @SS.MD5["mail"]],
 	["wifish", "WiFi ""brute force"" *hash database*", ["*", "*"], "WiFi Fisher".grey.NL+"[netdevice] [bssid] [essid], unfortunately this seemingly is the least effective dictionary attack, seriously try something else!", null, @SS.MD5["wifish"]],
 	//////////////////////////////////	// MISC
-	["test", "testing function", [], null, null, @Core["test"]],
+	["test", "testing function", ["*"], null, null, @Core["test"]],
 	["md5", "String -> md5", ["*"], "A simple md5 hash conversion, its important to note these md5s do not work the same as the md5s from password hashes, try f1shbowl and decipher it", null, @Core["md5"]],
 	["iget", "*InternalUse*", ["*", "*", "*", "*", "*", "*"], "Theres nothing to know about this command, you should not be using it!", "general", @Core["iget"]],
 	["quit", "Exit SeaShell", [], "A full exit from SeaShell, kills all surf mode loops", null, @EXIT],
