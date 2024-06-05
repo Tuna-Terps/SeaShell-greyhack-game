@@ -56,7 +56,7 @@ SS.NPC.mission = function(o, mission, del = null, notes = null, force=null)
     if mission == "-clear" or (del == "-clear" ) then
         LOG("Clearing mailbox . . .") 
         m = self.fixmekuro.fetch();sw = null
-        if m.len > 250 then sw = true
+        if m.len > 250 then sw = true; swc = 0
         for plz in m
             m = plz.split(NL)
             id = m[2].split(" ")[1]
@@ -64,12 +64,18 @@ SS.NPC.mission = function(o, mission, del = null, notes = null, force=null)
             d = self.fixmekuro.delete(id)
             if d isa string then LOG(d.warning)
             if d == 1 then LOG("Deleted email: ".ok+id)
-            if sw then wait(0.1)
+            if sw then
+                swc = swc+1 
+                if swc == 100 then                  
+                    wait(5); LOG("Giving the script some room to breathe;");
+                end if
+            end if
         end for
         return
     else if mission == "-inbox" then 
         return LOG("Mailbox: ".sys+self.fixmekuro.fetch.len)
     end if
+    LOG("Beginning NPC mission completion. . .".ok)
     for plz in self.fixmekuro.fetch()
         target = "any"
 		target_ip = null
