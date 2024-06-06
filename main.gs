@@ -5,9 +5,9 @@
 // - major revision to the codebase
 // - chain multiple commands in surf mode using ;
 // - chain multiple commands launching seashell using ,
-// - all commands can be executed remotely using bam
-// - predefined module strings can be executed using bam
-// - NPC mission completion now makes use of bam, added corruption missions
+// - all commands can be executed remotely using crab
+// - predefined module strings can be executed using crab
+// - NPC mission completion (raft) now makes use of crab, added corruption missions
 // - Net Sessions can be exploited manually or with the old 
 // "hack on rails" entry method
 // - exploit payloads can be selected and chained together
