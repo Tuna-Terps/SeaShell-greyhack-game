@@ -26,7 +26,7 @@ import_code("/home/2NA/src/utils")
 import_code("/home/2NA/src/core")
 import_code("/home/2NA/src/modules")
 // auth_pass auth_user mail_acct mail_pw rshell_ip unsecure_pw
-// * LEAVING MAIL AND MAILPW EMPTY, WILL PROMPT FOR LOGIN EACH TIME
+// * LEAVING MAIL AND OR MAILPW EMPTY, WILL PROMPT FOR LOGIN EACH TIME
 // * CHOOSING PASSWORD AS "" WILL SKIP AUTHORIZATION ON LAUNCH
 SS.init("++++++++", "2NA", "", "", "1.1.1.1", "f1shb0wl")
 //////////////////////////////////////////////////////////////  
