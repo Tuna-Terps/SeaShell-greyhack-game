@@ -34,308 +34,308 @@ COLUMNS = @format_columns
 CLEAR = function; return clear_screen; end function;
 ///==================== Maps ========================////
 SS.mutate = function
-string.size = function(self, s)
-    if T(s) == "number" then s = str(s)
-    return "<size="+s+">"+self+"</size>"
-end function
-string.b = function(self)
-    return "<b>"+self+"</b>"
-end function
-string.i = function(self)
-    return "<i>"+self+"</i>"
-end function
-string.angle = function(n)
-    if T(n)!= "number" then n = n.to_int 
-    return "<rotate="+str(n)+">"+self+"</rotate>"
-end function
-string.voffset = function(n)
-    if T(n)!= "number" then n = n.to_int 
-    return "<voffset="+str(n)+">"+self+"</voffset>"
-end function
-string.pos = function(n)
-    if T(n)!= "number" then n = n.to_int 
-    return "<pos="+str(n)+">"+self+"</pos>"
-end function
-string.s = function(self)
-    return self+" "
-end function
-string.white = function(self)
-    return "<#FFFFFF>" + self + "</color>"
-end function
-string.grey = function(self)
-    return "<#A5A5A5>" + self + "</color>"
-end function
-string.black = function(self)
-    return "<#000000>"+self+"</color>"
-end function
-string.red = function(self)
-    return "<#AA0000>" + self + "</color>"
-end function
-string.orange = function(self)
-    return "<#FF6E00>" + self + "</color>"
-end function
-string.yellow = function(self)
-    return "<#FBFF00>" + self + "</color>"
-end function
-string.green = function(self)
-    return "<#00ED03>" + self + "</color>"
-end function
-string.lgreen = function(self)
-    return "<#35fca6>"+self+"</color>"
-end function
-string.lblue = function(self)
-    return "<#00BDFF>" + self + "</color>"
-end function
-string.blue = function(self)
-    return "<#003AFF>" + self + "</color>"
-end function
-string.purple = function(self)
-    return "<#D700FF>" + self + "</color>"
-end function
-string.cyan = function(self)
-    return "<#00FFE7>" + self + "</color>"
-end function
-string.sys = function(self)
-    return "[<#00FFE7>SeaShell</color>] <i>" + self.white
-end function
-string.debug = function(self)
-    return "[<#00FFE7>debug</color>] <i>" +self.white
-end function
-string.ok = function(self)
-    return "[<#00ED03><b>success</b></color>] " + self.white
-end function
-string.warning = function(self)
-    return "[<#FBFF00><b>warning</b></color>] <i>" + self.grey
-end function
-string.error = function(self)
-    return "[<#AA0000><b>error</b></color>] " + self.yellow
-end function
-string.prompt = function(self)
-    return "["+"input".white.b+"]"+"-- ".white+self.grey+" --> ".white
-end function
-string.fill = function(self)
-    return "><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>".blue + self //+ NL
-end function
-string.NL = function(self)
-    return self+globals.NL
-end function
-string.strip = function(self)// forgot what this was going to be used for
-    if self.len < 15 then return null
-    self = self[:15]
-    return self[:self.len-8]
-end function
-string.bitToByte = function(self)
-    b = to_int(self);s=["B","KB","MB","GB"];i=0;
-    while b>1024
-        b=b/1024
-        i=i+1
-    end while
-    return round(b,2)+s[i]
-end function
-string.isRoot = function(self, u, hex = "FFFFFF")
-    if self == u then return self.green
-    //if (self == u) or (u == "root") then return self.green
-    if self == "root" or self == "unknown" then return self.red
-    if self == "guest" then return self.orange
-    return "<#"+hex+">"+self+"</color>"
-end function
-string.isSlash = function
-    if self == "/" then return "root".green
-    return self.grey
-end function
-string.isPc = function(self)
-    if get_router(self).local_ip != self then return true
-    return false
-end function
-string.isProc = function(self)
-    if ["Xorg","kernel_task", "dsession"].indexOf(self) != null then return self.red
-    if ["Terminal", "CodeEditor", "Browser", "Mail", "Settings","FileExplorer", "Notepad", "Chat", "ConfigLan", "AdminMonitor"].indexOf(self) != null then return self.green
-    return self.yellow
-end function
-string.isIp = function(self)
-    if not is_valid_ip(self) and not is_lan_ip(self) then return nslookup(self)
-    return self
-end function
-string.isLan = function 
-    if is_lan_ip(self) then return self
-end function
-string.getGw = function(self)
-    if is_lan_ip(self) then return get_router.public_ip
-    if is_valid_ip(self) then return self
-    return "!Invalid!".error
-end function
-string.isUnknown = function(self, hex = "FFFFFF")
-    if self.lower == "unknown" then return self.grey
-    return "<#"+hex+">"+self+"</color>"
-end function
-string.rule = function(self, s = null)
-    if self == "DENY" or s == "DENY" then return self.red
-    if self == "ALLOW" or s == "ALLOW" then return self.green
-    return self.grey;
-end function
-string.month_int = function(self)
-     return to_int((["Jan", "Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec",].indexOf(self))+1)
-end function
-string.wrap = function(self, hex = "FFFFFF", n = 20)
-    sl = "["+self+"]"; sl = sl.len;
-    if hex then s_t = "[<#"+hex+">"+self+"</color>]"
-    if not hex then s_t = "["+self+"]"
-    if sl >= n then return s_t
-    for i in range(1, (n-sl)); s_t = s_t+"—"; end for;
-    //for i in range(1, (n-sl)); s_t = s_t+"-"; end for;
-    return s_t
-end function
-string.cap = function(self, cap, hex = "FFFFFF", ih = null)
-    if hex and ih then return self+"[<#"+hex+">"+cap+"</color>]"
-    if ih then return self+"["+cap+"]"
-    return self+"[<#"+hex+">"+cap+"</color>]"
-end function
-string.title = function(self, hex = "FFFFFF", si = 40)
-    sl = "["+self+"]"; sl = sl.len;
-    s_t = "[<#"+hex+">"+self+"</color>]"
-    if sl >= si then return s_t
-    for i in range(1, (si-sl)/2); s_t = "-"+s_t+"-"; end for;
-    return s_t
-end function
-// TODO: update bam string
-string.fromMd5 = function(self);
-    if SS.debug then LOG("from md5 --> ".debug.s+self);
-    if T(SS.dbh) != "file" then return self;
-    find = SS.MD5.find(self);
-    if find != null then return find;
-    return self;
-end function;
-string.isOp = function(self, v)
-    if self == v then return self.red
-    return self.white
-end function
-// ======== Art from earlier versions of seashell
-string.ogconnect = function(self)
-    if SS.og == null then return self
-    out = ""
-    out = out+"   _______________                        |".white+"*".red+"\_/".white+"*".red+"|________".white+NL
-	out = out+"  |  ___________  |     ".white+".-.     .-.".red+"      ||_/-\_|______  |".white+NL
-	out = out+"  | |           | |    ".white+".****. .****.".red+"     | |           | |".white+NL
-	out = out+"  | |   ".white+"0   0".green+"   | |    ".white+".*****.*****.".red+"     | |   ".white+"0   0".red+"   | |".white+NL
-	out = out+"  | |     -     | |     ".white+".*********.".red+"      | |     -     | |".white+NL
-	out = out+"  | |   \___/   | |      ".white+".*******.".red+"       | |   \___/   | |".white+NL
-	out = out+"  | |___     ___| |       ".white+".*****.".red+"        | |___________| |".white+NL
-	out = out+"  |_____|\_/|_____|        ".white+".***.".red+"         |_______________|".white+NL
-	out = out+"    _|__|/ \|_|_".white+"............".red+".*..............".red+"_|________|_".white+NL
-	out = out+"   / ********** \                          / ********** \".white+NL
-	out = out+" /  ************  \                      /  ************  \".white+NL
-	out = out+"--------------------                    --------------------".white+NL
-    out = out+self
-    self = out
-    return self
-end function
-string.ogsniff = function(self)
-    o=""
-    o = o+"                                   __".blue+NL
-    o = o+"                                  |::|".blue+NL
-    o = o+"                                  |::|".blue+NL
-    o = o+"                 _..---.._        |::|".blue+NL
-    o = o+"               .' /     \ `.      |::|".blue+NL
-    o = o+"              /  /       \  \     |::|".blue+NL
-    o = o+"             /  /         \  \    |  |".blue+NL
-    o = o+"            /   |         |   \   |  |".blue+NL
-    o = o+"           |    |   ___   |    |  |  |".blue+NL
-    o = o+"  _`'..._-.|____|__|\\/|__|____|..|  | ___".blue+NL
-    o = o+"  ____...  | .- - - - - - - -. | .|  |_   `'".blue+NL
-    o = o+"    ____.  /.-----------------.\ .|  | ```..".blue+NL
-    o = o+"``..      //'  `-._     _.-`  '\\ |  | ..".blue+NL
-    o = o+"    ...-' ||'  /.-.\   /.-.\  '|| `..\...`'`".blue+NL
-    o = o+"   ---._` \\:_ \(".blue+"o".red+")/...\(".blue+"o".red+")/._:// .----..---".blue+NL
-    o = o+"    ___.._  __....   ._....._.....___".blue+NL
-    o = o+"'' ___.._  __....   ._....._.....___".blue+NL
-    o = o+self 
-    return o
-end function
-string.oggotroot = function(self)
-    o="" 
-    o=o+"                                   ____".green+NL
-    o=o+"                               /\|    ~~\".green+NL
-    o=o+"                             /'  |   ,-. `\".green+NL
-    o=o+"                            |       | X |  |".green+NL
-    o=o+"                           _|________`-'   |X".green+NL
-    o=o+"                         /'          ~~~~~~~~~,".green+NL
-    o=o+"                       /'             ,_____,/_".green+NL
-    o=o+"                    ,/'        ___,'~~         ;".green+NL
-    o=o+"~~~~~~~~|~~~~~~~|---          /  X,~~~~~~~~~~~~,".green+NL
-    o=o+"        |       |            |  XX'____________'".green+NL
-    o=o+"        |       |           /' XXX|            ;".green+NL
-    o=o+"        |       |        --x|  XXX,~~~~~~~~~~~~,".green+NL
-    o=o+"        |       |          X|     '____________'".green+NL
-    o=o+"        |   o   |---~~~~\__XX\             |XX".green+NL
-    o=o+"        |       |          XXX`\          /XXXX".green+NL
-    o=o+"~~~~~~~~'~~~~~~~'               `\xXXXXx/' \XXX".green+NL
-    o=o+"                                 /XXXXXX\".green+NL
-    o=o+"                               /XXXXXXXXXX\".green+NL
-    o=o+"                             /XXXXXX/^\X2NAXX\".green+NL
-    o=o+"                            ~~~~~~~~   ~~~~~~~".green+NL
-    o = o+self
-    return o
-end function
-string.ogfishtank = function(self)
-    o=o+"|  \|/  *    .  .    . .. .      |".blue+NL
-	o=o+"|   \|*/*     ..     _ . .       |".blue+NL
-	o=o+"|   *|| |     ..   ><_> . _      |".blue+NL
-	o=o+"|   |`|/     _ .         <_><    |".blue+NL
-	o=o+"|    \|    ><_>              _   |".blue+NL
-	o=o+"`-----!---------!!!---!!!---/ \--'".blue+NL
-    o = o+self
-    return o
-end function
-string.a = function(self)
-    if SS.anon == true then return "HIDDEN".grey.size(14)
-    return self
-end function
-string.oc = function(self)
-    return "<mark=#00BDFF>"+self.b+"</font></mark>"
-end function
-string.crab = function(self)
-    return ("C".red.b+".".white+"R".red.b+".".white+"A".red.b+".".white+"B".red.b).s+(self.white.i)
-end function
-string.raft = function(self)
-    return ("R".red.b+".".white+"A".red.b+".".white+"F".red.b+".".white+"T".red.b).s+(self.white.i)
-end function
+    string.size = function(self, s)
+        if T(s) == "number" then s = str(s)
+        return "<size="+s+">"+self+"</size>"
+    end function
+    string.b = function(self)
+        return "<b>"+self+"</b>"
+    end function
+    string.i = function(self)
+        return "<i>"+self+"</i>"
+    end function
+    string.angle = function(n)
+        if T(n)!= "number" then n = n.to_int 
+        return "<rotate="+str(n)+">"+self+"</rotate>"
+    end function
+    string.voffset = function(n)
+        if T(n)!= "number" then n = n.to_int 
+        return "<voffset="+str(n)+">"+self+"</voffset>"
+    end function
+    string.pos = function(n)
+        if T(n)!= "number" then n = n.to_int 
+        return "<pos="+str(n)+">"+self+"</pos>"
+    end function
+    string.s = function(self)
+        return self+" "
+    end function
+    string.white = function(self)
+        return "<#FFFFFF>" + self + "</color>"
+    end function
+    string.grey = function(self)
+        return "<#A5A5A5>" + self + "</color>"
+    end function
+    string.black = function(self)
+        return "<#000000>"+self+"</color>"
+    end function
+    string.red = function(self)
+        return "<#AA0000>" + self + "</color>"
+    end function
+    string.orange = function(self)
+        return "<#FF6E00>" + self + "</color>"
+    end function
+    string.yellow = function(self)
+        return "<#FBFF00>" + self + "</color>"
+    end function
+    string.green = function(self)
+        return "<#00ED03>" + self + "</color>"
+    end function
+    string.lgreen = function(self)
+        return "<#35fca6>"+self+"</color>"
+    end function
+    string.lblue = function(self)
+        return "<#00BDFF>" + self + "</color>"
+    end function
+    string.blue = function(self)
+        return "<#003AFF>" + self + "</color>"
+    end function
+    string.purple = function(self)
+        return "<#D700FF>" + self + "</color>"
+    end function
+    string.cyan = function(self)
+        return "<#00FFE7>" + self + "</color>"
+    end function
+    string.sys = function(self)
+        return "[<#00FFE7>SeaShell</color>] <i>" + self.white
+    end function
+    string.debug = function(self)
+        return "[<#00FFE7>debug</color>] <i>" +self.white
+    end function
+    string.ok = function(self)
+        return "[<#00ED03><b>success</b></color>] " + self.white
+    end function
+    string.warning = function(self)
+        return "[<#FBFF00><b>warning</b></color>] <i>" + self.grey
+    end function
+    string.error = function(self)
+        return "[<#AA0000><b>error</b></color>] " + self.yellow
+    end function
+    string.prompt = function(self)
+        return "["+"input".white.b+"]"+"-- ".white+self.grey+" --> ".white
+    end function
+    string.fill = function(self)
+        return "><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><> ><>".blue + self //+ NL
+    end function
+    string.NL = function(self)
+        return self+globals.NL
+    end function
+    string.strip = function(self)// forgot what this was going to be used for
+        if self.len < 15 then return null
+        self = self[:15]
+        return self[:self.len-8]
+    end function
+    string.bitToByte = function(self)
+        b = to_int(self);s=["B","KB","MB","GB"];i=0;
+        while b>1024
+            b=b/1024
+            i=i+1
+        end while
+        return round(b,2)+s[i]
+    end function
+    string.isRoot = function(self, u, hex = "FFFFFF")
+        if self == u then return self.green
+        //if (self == u) or (u == "root") then return self.green
+        if self == "root" or self == "unknown" then return self.red
+        if self == "guest" then return self.orange
+        return "<#"+hex+">"+self+"</color>"
+    end function
+    string.isSlash = function
+        if self == "/" then return "root".green
+        return self.grey
+    end function
+    string.isPc = function(self)
+        if get_router(self).local_ip != self then return true
+        return false
+    end function
+    string.isProc = function(self)
+        if ["Xorg","kernel_task", "dsession"].indexOf(self) != null then return self.red
+        if ["Terminal", "CodeEditor", "Browser", "Mail", "Settings","FileExplorer", "Notepad", "Chat", "ConfigLan", "AdminMonitor"].indexOf(self) != null then return self.green
+        return self.yellow
+    end function
+    string.isIp = function(self)
+        if not is_valid_ip(self) and not is_lan_ip(self) then return nslookup(self)
+        return self
+    end function
+    string.isLan = function 
+        if is_lan_ip(self) then return self
+    end function
+    string.getGw = function(self)
+        if is_lan_ip(self) then return get_router.public_ip
+        if is_valid_ip(self) then return self
+        return "!Invalid!".error
+    end function
+    string.isUnknown = function(self, hex = "FFFFFF")
+        if self.lower == "unknown" then return self.grey
+        return "<#"+hex+">"+self+"</color>"
+    end function
+    string.rule = function(self, s = null)
+        if self == "DENY" or s == "DENY" then return self.red
+        if self == "ALLOW" or s == "ALLOW" then return self.green
+        return self.grey;
+    end function
+    string.month_int = function(self)
+        return to_int((["Jan", "Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec",].indexOf(self))+1)
+    end function
+    string.wrap = function(self, hex = "FFFFFF", n = 20)
+        sl = "["+self+"]"; sl = sl.len;
+        if hex then s_t = "[<#"+hex+">"+self+"</color>]"
+        if not hex then s_t = "["+self+"]"
+        if sl >= n then return s_t
+        for i in range(1, (n-sl)); s_t = s_t+"—"; end for;
+        //for i in range(1, (n-sl)); s_t = s_t+"-"; end for;
+        return s_t
+    end function
+    string.cap = function(self, cap, hex = "FFFFFF", ih = null)
+        if hex and ih then return self+"[<#"+hex+">"+cap+"</color>]"
+        if ih then return self+"["+cap+"]"
+        return self+"[<#"+hex+">"+cap+"</color>]"
+    end function
+    string.title = function(self, hex = "FFFFFF", si = 40)
+        sl = "["+self+"]"; sl = sl.len;
+        s_t = "[<#"+hex+">"+self+"</color>]"
+        if sl >= si then return s_t
+        for i in range(1, (si-sl)/2); s_t = "-"+s_t+"-"; end for;
+        return s_t
+    end function
+    // TODO: update bam string
+    string.fromMd5 = function(self);
+        if SS.debug then LOG("from md5 --> ".debug.s+self);
+        if T(SS.dbh) != "file" then return self;
+        find = SS.MD5.find(self);
+        if find != null then return find;
+        return self;
+    end function;
+    string.isOp = function(self, v)
+        if self == v then return self.red
+        return self.white
+    end function
+    // ======== Art from earlier versions of seashell
+    string.ogconnect = function(self)
+        if SS.og == null then return self
+        out = ""
+        out = out+"   _______________                        |".white+"*".red+"\_/".white+"*".red+"|________".white+NL
+        out = out+"  |  ___________  |     ".white+".-.     .-.".red+"      ||_/-\_|______  |".white+NL
+        out = out+"  | |           | |    ".white+".****. .****.".red+"     | |           | |".white+NL
+        out = out+"  | |   ".white+"0   0".green+"   | |    ".white+".*****.*****.".red+"     | |   ".white+"0   0".red+"   | |".white+NL
+        out = out+"  | |     -     | |     ".white+".*********.".red+"      | |     -     | |".white+NL
+        out = out+"  | |   \___/   | |      ".white+".*******.".red+"       | |   \___/   | |".white+NL
+        out = out+"  | |___     ___| |       ".white+".*****.".red+"        | |___________| |".white+NL
+        out = out+"  |_____|\_/|_____|        ".white+".***.".red+"         |_______________|".white+NL
+        out = out+"    _|__|/ \|_|_".white+"............".red+".*..............".red+"_|________|_".white+NL
+        out = out+"   / ********** \                          / ********** \".white+NL
+        out = out+" /  ************  \                      /  ************  \".white+NL
+        out = out+"--------------------                    --------------------".white+NL
+        out = out+self
+        self = out
+        return self
+    end function
+    string.ogsniff = function(self)
+        o=""
+        o = o+"                                   __".blue+NL
+        o = o+"                                  |::|".blue+NL
+        o = o+"                                  |::|".blue+NL
+        o = o+"                 _..---.._        |::|".blue+NL
+        o = o+"               .' /     \ `.      |::|".blue+NL
+        o = o+"              /  /       \  \     |::|".blue+NL
+        o = o+"             /  /         \  \    |  |".blue+NL
+        o = o+"            /   |         |   \   |  |".blue+NL
+        o = o+"           |    |   ___   |    |  |  |".blue+NL
+        o = o+"  _`'..._-.|____|__|\\/|__|____|..|  | ___".blue+NL
+        o = o+"  ____...  | .- - - - - - - -. | .|  |_   `'".blue+NL
+        o = o+"    ____.  /.-----------------.\ .|  | ```..".blue+NL
+        o = o+"``..      //'  `-._     _.-`  '\\ |  | ..".blue+NL
+        o = o+"    ...-' ||'  /.-.\   /.-.\  '|| `..\...`'`".blue+NL
+        o = o+"   ---._` \\:_ \(".blue+"o".red+")/...\(".blue+"o".red+")/._:// .----..---".blue+NL
+        o = o+"    ___.._  __....   ._....._.....___".blue+NL
+        o = o+"'' ___.._  __....   ._....._.....___".blue+NL
+        o = o+self 
+        return o
+    end function
+    string.oggotroot = function(self)
+        o="" 
+        o=o+"                                   ____".green+NL
+        o=o+"                               /\|    ~~\".green+NL
+        o=o+"                             /'  |   ,-. `\".green+NL
+        o=o+"                            |       | X |  |".green+NL
+        o=o+"                           _|________`-'   |X".green+NL
+        o=o+"                         /'          ~~~~~~~~~,".green+NL
+        o=o+"                       /'             ,_____,/_".green+NL
+        o=o+"                    ,/'        ___,'~~         ;".green+NL
+        o=o+"~~~~~~~~|~~~~~~~|---          /  X,~~~~~~~~~~~~,".green+NL
+        o=o+"        |       |            |  XX'____________'".green+NL
+        o=o+"        |       |           /' XXX|            ;".green+NL
+        o=o+"        |       |        --x|  XXX,~~~~~~~~~~~~,".green+NL
+        o=o+"        |       |          X|     '____________'".green+NL
+        o=o+"        |   o   |---~~~~\__XX\             |XX".green+NL
+        o=o+"        |       |          XXX`\          /XXXX".green+NL
+        o=o+"~~~~~~~~'~~~~~~~'               `\xXXXXx/' \XXX".green+NL
+        o=o+"                                 /XXXXXX\".green+NL
+        o=o+"                               /XXXXXXXXXX\".green+NL
+        o=o+"                             /XXXXXX/^\X2NAXX\".green+NL
+        o=o+"                            ~~~~~~~~   ~~~~~~~".green+NL
+        o = o+self
+        return o
+    end function
+    string.ogfishtank = function(self)
+        o=o+"|  \|/  *    .  .    . .. .      |".blue+NL
+        o=o+"|   \|*/*     ..     _ . .       |".blue+NL
+        o=o+"|   *|| |     ..   ><_> . _      |".blue+NL
+        o=o+"|   |`|/     _ .         <_><    |".blue+NL
+        o=o+"|    \|    ><_>              _   |".blue+NL
+        o=o+"`-----!---------!!!---!!!---/ \--'".blue+NL
+        o = o+self
+        return o
+    end function
+    string.a = function(self)
+        if SS.anon == true then return "HIDDEN".grey.size(14)
+        return self
+    end function
+    string.oc = function(self)
+        return "<mark=#00BDFF>"+self.b+"</font></mark>"
+    end function
+    string.crab = function(self)
+        return ("C".red.b+".".white+"R".red.b+".".white+"A".red.b+".".white+"B".red.b).s+(self.white.i)
+    end function
+    string.raft = function(self)
+        return ("R".red.b+".".white+"A".red.b+".".white+"F".red.b+".".white+"T".red.b).s+(self.white.i)
+    end function
 
-// ======== LISTS
-list.table = function(title)
-    return self
-end function
-list.select = function(l=null)
-    if l then ret = l
-    if l == null then ret = "[ "+"SELECT".grey+" ] "+NL
-    c = 1
-   for s in self
-        if c == self.len then 
-            ret = ret + str(c).white + "."+") ".white+s
-        else
-            ret = ret + str(c).white + "."+") ".white+s+NL
-        end if
-        c = c+1
-   end for
-    ret = ret//+"-- Press 0 to return --> ".grey
-    return ret
-end function
-list.select_w_count = function(self, l)
-    ret = "[ "+"SELECT".grey+" ] "+NL
-    c = 1
-    for i in range(0, l.len-1)
-        ret = ret + str(c).white + "."+") ".white+self[i]+" "+l[i] +NL
-    end for
-end function
-list.select2 = function()
-    ret = "";c=1
+    // ======== LISTS
+    list.table = function(title)
+        return self
+    end function
+    list.select = function(l=null)
+        if l then ret = l
+        if l == null then ret = "[ "+"SELECT".grey+" ] "+NL
+        c = 1
     for s in self
-       ret = ret + str(c).white + "."+") ".white+s+NL
-       c = c+1
+            if c == self.len then 
+                ret = ret + str(c).white + "."+") ".white+s
+            else
+                ret = ret + str(c).white + "."+") ".white+s+NL
+            end if
+            c = c+1
     end for
-    ret = ret + "0".white+"."+") ".white+"Exploit the router".orange.b+NL
-    ret = ret+NL+"Select".prompt
-    return ret
-end function
+        ret = ret//+"-- Press 0 to return --> ".grey
+        return ret
+    end function
+    list.select_w_count = function(self, l)
+        ret = "[ "+"SELECT".grey+" ] "+NL
+        c = 1
+        for i in range(0, l.len-1)
+            ret = ret + str(c).white + "."+") ".white+self[i]+" "+l[i] +NL
+        end for
+    end function
+    list.select2 = function()
+        ret = "";c=1
+        for s in self
+        ret = ret + str(c).white + "."+") ".white+s+NL
+        c = c+1
+        end for
+        ret = ret + "0".white+"."+") ".white+"Exploit the router".orange.b+NL
+        ret = ret+NL+"Select".prompt
+        return ret
+    end function
 // end of mutation
 end function
 SS.mutate// to be reused in sf
@@ -1285,7 +1285,7 @@ SS.Server.proxtunnel = function(o)
         if typeof(base) != "shell" then return print("warning, must be of type shell")
         ip = INPUT("Specify IP | LAN".prompt)
         if not is_valid_ip(ip) and not is_lan_ip(ip) then
-            print("warning, not a valid ip") 
+            LOG("not a valid ip".warning) 
             return base
         end if
         u = INPUT("Specify User | Enter for root ".prompt)
@@ -1293,6 +1293,7 @@ SS.Server.proxtunnel = function(o)
         password = INPUT("ENTER PW".prompt,true)
         connection = base.connect_service(ip, 22, u, password, "ssh")
         if T(connection) == "shell" then
+            LOG("Clearing log path: ".sys+base.host_computer.public_ip+" --> ".grey+connection.host_computer.public_ip)
             SS.Utils.wipe_logs(base)
             SS.Utils.wipe_logs(connection)
             return connection
@@ -1312,7 +1313,7 @@ SS.Server.proxtunnel = function(o)
         if attempt == 0 then LOG("Failed to launch - double check LAN & path, and try again")
     end function
     while 1
-        i = INPUT("CURRENTLY @ ".sys+base.host_computer.public_ip.white+":"+base.host_computer.local_ip.grey.NL+"0".lblue+".".white+")".lblue+" Exit".NL+"1".lblue+".".white+")".lblue+"Connect to the next machine".NL+"2".lblue+".".white+")".lblue+"Pass object to surf mode".NL+"3".lblue+".".white+")".lblue+" Start a terminal\n--> ").to_int
+        i = INPUT("PROXYBOUNCE".title.cap("IP: "+base.host_computer.public_ip.cyan.b+":"+base.host_computer.local_ip.lblue.b).NL+"1".lblue+".".white+") ".lblue+"Connect to the next machine".grey.NL+"2".lblue+".".white+") ".lblue+"Pass object to surf mode".green.NL+"3".lblue+".".white+")".lblue+" Start a terminal".lblue.NL+"0".lblue+".".white+")".lblue+" Exit".grey.NL+"SELECT".prompt).to_int
         if i == 0 then break
         if i == 1 then base = try_connection
         if i == 2 then return base
@@ -1537,19 +1538,19 @@ SS.ML.get=function(m)
 	if l then return l
     l=c.File(p+"/"+x+"2"+"/"+n)
 	if l then return l
-    for i in range(3, 4)
+    for i in range(3, 10)
         ni = i+1 
         i=str(i)
         ni = str(ni)
-        l=c.File(p+"/"+x+i+"/"+n)
+        l=c.File(p+"/"+(x+i)+"/"+n)
         if l then return l
         if c.File(p+"/"+x+i) then
             r=c.touch(p+"/"+(x+i),n)
             if r isa string then
                 LOG("ML: Exceeded file cap, creating sub directory".warning)
-                c.create_folder(p,(x+i))
-                c.touch(p+"/"+(x+i),n)
-                return c.File(p+"/"+(x+i)+"/"+n)
+                c.create_folder(p,(x+ni))
+                c.touch(p+"/"+(x+ni),n)
+                return c.File(p+"/"+(x+ni)+"/"+n)
             else
                 return c.File(p+"/"+(x+i)+"/"+n)
             end if
