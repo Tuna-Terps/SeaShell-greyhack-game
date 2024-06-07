@@ -436,7 +436,7 @@ SS.buildCo = function
 end function
 SS.welcome = function
 	LOG("".fill+NL+"       .               ".cyan+"               __..._".red+NL+"      ':'              ".cyan+"           ..-'      o.".red+NL+"    ___:____     |'\/'|".cyan+"         .-'           :".red+NL+"  ,'        `.    \  / ".cyan+"      _..'           .'__..--<".red+NL+"  |  O        \___/  | ".cyan+"...--""              '-.".red+NL+"~^~^~^~^~^~^~^~^~^~^~^~".cyan+"^~^~^~^~^~^~^~^~^~^~^~^~".red+NL+".                                            /\".red+NL+"   _____            ".cyan+"<color=#AA0000> _____ _          _ _   {.-}"+NL+"  / ____|           ".cyan+"<color=#AA0000>/ ____| |        | | | ;_.-'\"+ NL +" | (___   ___  __ _".cyan+"<color=#AA0000>| (___ | |__   ___| | |{    _.}_"+ NL +"  \___ \ / _ \/ _` |".cyan+"<color=#AA0000>\___ \| '_ \ / _ \ | | \.-' /  `,"+ NL +"  ____) |  __/ (_| |".cyan+"<color=#AA0000>____) | | | |  __/ | |  \  |    /"+ NL +" |_____/ \___|\__,_|".cyan+"<color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/"+NL+".                                             \|_/".red+NL+"<b>SeaShell</b>".cyan+" Version: ".lblue+SS.version.cyan.b+" made with ".lblue+SS.heart+NL+"".fill)
-	//LOG("".fill+NL+"       .               ".cyan+"               __..._".red+NL+"      ':'              ".cyan+"           ..-'      o.".red+NL+"    ___:____     |'\/'|".cyan+"         .-'           :".red+NL+"  ,'        `.    \  / ".cyan+"      _..'           .'__..--<".red+NL+"  |  O        \___/  | ".cyan+"...--""              '-.".red+NL+"~^~^~^~^~^~^~^~^~^~^~^~".cyan+"^~^~^~^~^~^~^~^~^~^~^~^~".red+NL+"<mark=#00BDFF>.                                            /\".red+NL+"   _____            ".cyan+"<color=#AA0000> _____ _          _ _   {.-}"+NL+"  / ____|           ".cyan+"<color=#AA0000>/ ____| |        | | | ;_.-'\"+ NL +" | (___   ___  __ _".cyan+"<color=#AA0000>| (___ | |__   ___| | |{    _.}_"+ NL +"  \___ \ / _ \/ _` |".cyan+"<color=#AA0000>\___ \| '_ \ / _ \ | | \.-' /  `,"+ NL +"  ____) |  __/ (_| |".cyan+"<color=#AA0000>____) | | | |  __/ | |  \  |    /"+ NL +" |_____/ \___|\__,_|".cyan+"<color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/"+NL+".                                             \|_/".red+NL+"<b>SeaShell</b>".cyan+" Version: ".lblue+SS.version.cyan.b+" made with ".lblue+SS.heart+NL+"".fill)
+	//LOG("".fill+NL+"       .               ".cyan+"               __..._".red+NL+"      ':'              ".cyan+"           ..-'      o.".red+NL+"    ___:____     |'\/'|".cyan+"         .-'           :".red+NL+"  ,'        `.    \  / ".cyan+"      _..'           .'__..--<".red+NL+"  |  O        \___/  | ".cyan+"...--""              '-.".red+NL+"~^~^~^~^~^~^~^~^~^~^~^~".cyan+"^~^~^~^~^~^~^~^~^~^~^~^~".red+NL+".<mark=#00BDFF>44444444444444444444444444444444444444444444<font=""LiberationSans SDF"">/\</font>".red+NL+"   _____            ".cyan+"<color=#AA0000> _____ _          _ _   {.-}"+NL+"  / ____|           ".cyan+"<color=#AA0000>/ ____| |        | | | ;_.-'\"+ NL +" | (___   ___  __ _".cyan+"<color=#AA0000>| (___ | |__   ___| | |{    _.}_"+ NL +"  \___ \ / _ \/ _` |".cyan+"<color=#AA0000>\___ \| '_ \ / _ \ | | \.-' /  `,"+ NL +"  ____) |  __/ (_| |".cyan+"<color=#AA0000>____) | | | |  __/ | |  \  |    /"+ NL +" |_____/ \___|\__,_|".cyan+"<color=#AA0000>_____/|_| |_|\___|_|_|   \ |  ,/"+NL+".                                             \|_/".red+NL+"<b>SeaShell</b>".cyan+" Version: ".lblue+SS.version.cyan.b+" made with ".lblue+SS.heart+NL+"".fill)
 end function
 SS.sail = function
 	if SEO == null then return LOG("error".error)
@@ -1295,7 +1295,7 @@ Core["chmod"] = function(o, r, u, pa)
 	if f == null then return LOG("Unable to chmod file: not found".warning)
 	out = f.chmod(u, rec)
 	if out.len > 1 then return LOG(out.warning)
-	fp = "/".lblue; if f.path != "/" and (f.parent != null )then fp = f.parent_path.grey+"/"+f.name.lblue
+	fp = "/".lblue; if f.path != "/" then fp = f.path.grey+"/"+f.name.lblue
 	LOG((fp+" has been given permissions: "+u).ok)
 end function
 Core["chgrp"] = function(o, r, u, pa)
@@ -1431,7 +1431,6 @@ Core["fs"] = function(o, a, f)
 end function
 //TODO: fixme
 Core["edit"] = function(o, p, clean = null)
-	SS.Inputs.refresh()
 	o = SS.Utils.ds(o, "file")
 	if o == null then return
 	if p[0] != "/" then p = SS.Utils.path(p)
@@ -1439,69 +1438,8 @@ Core["edit"] = function(o, p, clean = null)
 	if f == null then return LOG("Unable to edit - File not found".warning)
 	if f.has_permission("w") == false then return LOG("Unable to edit - Permission denied: ".warning+"W")
 	if f.has_permission("r") == false then return LOG("Unable to edit - Permission denied: ".warning+"R")
-	raw = f.get_content
-	edit = null
-	lastSel = null
-	while 1
-		CLEAR; input = null
-		if edit == null then edit = raw
-		parse = edit.split(NL)
-		view = null
-		c = 0
-		currLine = parse[SS.Inputs.pos.y]
-		mut_line = ""
-		SS.Inputs.pos.xLen = currLine.len
-		SS.Inputs.pos.yLen = parse.len
-		for i in parse
-			if c == 0 then 
-				view = c+".) ".white+i
-			else
-				view = view+NL+c+".) ".white+i
-			end if
-			c = c+1
-		end for
-		LOG("Editing:".blue+f.path.yellow+NL+view)
-		input = INPUT("-----INPUT: "+lastSel+NL+"X: ".white+SS.Inputs.pos.x+" | Y: ".white+SS.Inputs.pos.y, false, true)
-		lastSel = input
-		if input == "Escape" then break
-		if input == "F1" then return SS.Utils.saveFileFromList(o, parse) 
-		
-		if SS.Inputs.invalid.indexOf(input) != null then continue			
-		if SS.Inputs.valid.indexOf(input) then 
-			if input == "LeftArrow" then 
-				SS.Inputs.pos.setX(-1, parse)
-			else if input == "RightArrow" then 
-				SS.Inputs.pos.setX(1, parse)
-			else if input == "UpArrow" and lineIndex != 0 and lineIndex > 0 then 
-				SS.Inputs.pos.setY(-1, parse)
-			else if input == "DownArrow" and lineIndex > -1 then 
-				SS.Inputs.pos.setY(1, parse)
-			end if
-			continue
-		else if input == "" then 
-			parse.push(""); continue
-		else 
-			charIndex = 0
-			for chars in currLine.values
-				if charIndex != SS.Inputs.pos.x then 
-					mut_line = mut_line+chars
-				else 
-					if (input == "Backspace") and SS.Inputs.pos.x < SS.Inputs.pos.xLen then 
-						mut_line = mut_line+""
-						SS.Inputs.pos.x = SS.Inputs.pos.x-1
-					else if input == "Spacebar" then 
-						mut_line = mut_line+" "
-						SS.Inputs.pos.x = SS.Inputs.pos.x+1
-					else 
-						mut_line = mut_line+chars+input
-					end if
-				end if
-				charIndex = charIndex + 1 
-			end for
-			if input != "Backspace" and input != "" then SS.Inputs.pos.x = SS.Inputs.pos.x+1
-			parse[SS.Inputs.pos.y] = mut_line
-		end if
-	end while
+	fishedit = new SS.Phim.map(f)
+	fishedit.edit
 end function
 Core["ping"] = function(s, i)
 	if T(s) != "shell" then return LOG("Must be of type shell".error)
@@ -1849,7 +1787,7 @@ Core["localhax"] = function(o, a, l)
 			exploits = l.browse
 		end if
 		res = null
-		if not exploits then LOG("An error occurs")
+		if not exploits then return LOG("No exploits selected".warning)
 		if T(exploits) == "list" then 
 			res = l.of(exploits, SS.Utils.datapls)
 		else if T(exploits) == "string" then
@@ -1870,9 +1808,9 @@ Core["fish"] = function(obj, lib, libVersion, a = null)
 		if (a != null) and (T(a.to_int) == "number") then 
 			_c=[]
 			for i in range(0, a.to_int)
-				_c.push("target found: ".sys+SS.Utils.port_fish(libVersion).NL)
+				_c.push("target found: ".sys+SS.Utils.port_fish(libVersion, true))
 			end for
-			return LOG(_c.join)
+			return LOG(_c.join(NL).trim)
 		end if
 		ip = SS.Utils.port_fish(libVersion)
 	else
@@ -2018,10 +1956,16 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 	end if
 	return SS.bamres
 end function
-Core["proxybounce"] = function(o)
-	if T(o) != "shell" or T(o) != "ftpshell" then return LOG("A shell is required".warning)
+Core["proxybounce"] = function(o, a1 = null, a2 = 10)
+	if T(o) != "shell" then return LOG("A shell is required".warning)
+	if not a1 then a1 = "-b"
 	server = new SS.Server
-	res = server.proxtunnel(o)
+	if a1 == "-b" then 
+		res = server.proxtunnel(o)
+	else if a1 == "-d" then
+		if T(a2.to_int) != "number" then a2 = 10
+		res = server.dirtytunnel(o, a2)
+	end if
 	if T(res) == "shell" then return res
 end function
 Core["npc"] = function(o, t=null,d=null,n=null,f=null)
@@ -2070,6 +2014,12 @@ Core["test"] = function(a=null)
 	//if SS.NPC.run("notneeded bullshit", "system corruption", "ANY", "192.55.66.36", "172.16.0.4") != null then LOG("THIS MISSION HAD A RESULT")
 
 	//LOG("Test function in the ocean".ocean+"<sprite=0>".oc)
+	//SS.Man = {}//MANUAL
+	//SS.Man["-h"] = {
+	//	hl:  "Test help",//HEADLINE,
+	//	pa: [ {"a:":"*" "label": "command name","o":true,"d":true} ],
+	//	f1: []
+	//}
 end function
 ///======================= SS.CMD LIST =========================////
 // name desc params usage cb run 
@@ -2121,6 +2071,7 @@ SS.CMD.list = [
 	["ftp", "Create FTP connection", ["*", "*"], "Connect to a ftp service".grey.NL+"p1: user@ip"+NL+"p2: port, default is 21", "result", @Core["ftp"]],
 	["put", "Upload file remotely *require FTP", ["*", "*"], "File Transer Protocol, or is it fish?".grey, "general", @Core["put"]],
 	["get", "Download file remotely *require FTP", ["*", "*"], "File Transfer Protocol, or is it fish??".grey, "general", @Core["get"]],
+	["proxy", "Server proxy tunnel", ["-b|-d", "*"], "Proxy server connection tool".grey.NL+"PRIMARY ARGUNEMTS".grey.NL+"-b --> bounce from 1 machine to another, wipes logs along the way".NL+"-d [?amount] --> dirty bounce, hacks routers of random networks wiping logs along the way", "result", @Core["proxybounce"]],
 	//////////////////////////////////	// NETWORK
 	["ping", "Ping a specified device", ["*"], "Ping a device, doesn't account for firewalls".grey, "general", @Core["ping"]],
 	["ifconfig", "Configure Internet Connection", ["*", "*", "*"], "Configure internet connection".grey.NL+"Internet/Ethernet", "general", @Core["ifconfig"]],
@@ -2234,6 +2185,7 @@ end function
 SS.BAM.modules = [
 	{"name":"module", "desc":"", "params":[], "usage":"something helpful", "cb":"general", "string":"print('hello there world')"},
 ]
+
 //////////////////////////////////////////////////////////////  
 ///======================= CORE =========================////
 ////////////////////////////////////////////////////////////
