@@ -669,7 +669,7 @@ build_hashes = function(CACHEFILE)
 end function
 
 
-if (params.len == 0) or (["help", "-h", "-help"].indexOf(params[0]) != null) then LOG("SeaShell Installer: ".sys.NL+"PRIMARY ARGUMENTS".grey.b.NL+" -a ".wrap.cap("Installs SeaShell, and all required files and directories").NL+" -src ".wrap.cap("Build SeaShell's source code").NL+" -cache ".wrap.cap("Build SeaShell cache").NL+" -db ".wrap.cap("Build exploit database").NL+" -hash ".wrap.cap("Build hash database"))
+if (params.len == 0) or (["help", "-h", "-help"].indexOf(params[0]) != null) then EXIT("SeaShell Installer: ".sys.NL+"PRIMARY ARGUMENTS".grey.b.NL+" -a ".wrap.cap("Installs SeaShell, and all required files and directories").NL+" -src ".wrap.cap("Build SeaShell's source code").NL+" -cache ".wrap.cap("Build SeaShell cache").NL+" -db ".wrap.cap("Build exploit database").NL+" -hash ".wrap.cap("Build hash database"))
 CLEAR;LOG("SeaShell Installer".title("FFFFFF", 30))
 if params[0] == "-a" then
     NEXT("build SeaShell src, cache, hash + exploit db")
