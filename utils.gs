@@ -1891,7 +1891,8 @@ SS.ML.browse = function(self)
     return ret
 end function
 SS.ML.getBetterScan = function(l, v)
-    if l == "kernel_router.so" then rip = SS.Utils.router_fish(v)
+    rip = null
+    if l == "kernel_router.so" then rip = SS.Utils.router_fish(v) else rip = SS.Utils.lib_fish(l, v)
     if not rip then return null
     ns = new SS.NS.map(rip, 0, "-f", SS.mx)
     if (ns == null )or (ns.session == null) then return null
