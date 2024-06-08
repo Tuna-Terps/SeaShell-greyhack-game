@@ -37,7 +37,6 @@ SS.cfg.burnmailacct = "Oppelli@barner.com"
 SS.cfg.burnmailpw = "Bitch"
 SS.cfg.mailacct = "mail@bolds.net"
 SS.cfg.mailpw = "mail"
-// TODO: add to user config
 SS.cfg.hackip = "214.85.237.165"
 SS.cfg.dat = null // data file
 SS.cfg.macros = null // macro folder
@@ -45,7 +44,6 @@ SS.cfg.wf = null // weak lib file
 SS.cfg.wm = "0x73CBD7B0" // weak lib memory zone
 SS.cfg.wa = "havedoutlinenumbe" // weak lib memory address
 SS.heart = SS.GFX.f([{"<".red.b.size(18): [36, 0.2,-90,0]}, {"3".red.b.size(18): [36,-0.1,-90,0]}, {" by ".lblue+"Tuna Terps".b.cyan:[36.75, 0,0,0]}])
-// TODO: weak lib implementation, transferral
 ///==================== SS.CMD() ========================////
 SS.CMD = {}
 SS.CMD.isValid = function(param)
@@ -228,7 +226,6 @@ SS.CMD.getOne = function(n)
 	end for
 	return null
 end function
-//TODO: revise help menu
 SS.CMD["cmd_list"] = function(usage = null)
 	p = null
 	if not usage then
@@ -385,8 +382,6 @@ SS.getDb = function
 	else 
 		LOG("Unable to locate password db".warning)
 	end if
-	// for now, lets load our weak_lib here
-	// TODO: 
 	if SS.cfg.user == "root" then p = "/root/"+SS.ccd+"/libs/weak/init.so"
 	if SS.cfg.user == "2NA" then p = "/home/"+SS.cfg.user+"/libs/STRONG/init.so"
 	if SS.cfg.user != "root" and SS.cfg.user != "2NA" then p = "/home/"+SS.cfg.user+"/"+SS.ccd+"/libs/weak/init.so"
@@ -405,7 +400,6 @@ SS.getDb = function
 	end if
 	if SS.dbh != null then LOG("Hash database configured successfully".ok)
 end function
-//TODO: fixme
 SS.loadHashes = function(fo)
 	if not fo then return []
 	LOG("Pushing MD5 hashes into memory. . .".grey.sys)
@@ -532,10 +526,10 @@ SS.cache = function(l, addr = null, lan = null)
 			SS.files.push(eo)
 		else if T(i) == "computer" then 
 			eo.map(i)
-			SS.computers.push(eo)
+			if not eo.isCached then SS.computers.push(eo)
 		else
 			eo.map(i)
-			SS.shells.push(eo)
+			if not eo.isCached then SS.shells.push(eo)
 		end if
 	end for 
 end function
@@ -850,28 +844,24 @@ Core["cd"] = function(o, p = null)
 	else if p == "." then
 		if cdur.parent then dir = cdur.parent.parent  
 	else if p == "/" then
-		if SS.debug then LOG("cd 1".debug)
 		if isF then 
 			dir = SS.Utils.rootFromFile(o)
 		else
 			dir = o.File("/")
 		end if
 	else if p[0] != "/" and cdur.name == "/" then 
-		if SS.debug then LOG("cd 2".debug)
 		if isF then 
 			dir = SS.Utils.fileFromPath(o, "/"+p)
 		else 
 			dir = o.File("/"+p)
 		end if
 	else if p[0] != "/" and cdur.name != "/" then
-		if SS.debug then LOG("cd 3".debug)
 		if isF then 
 			dir = SS.Utils.fileFromPath(o, cdur.path+"/"+p)
 		else 
 			dir = o.File(cdur.path+"/"+p)
 		end if
 	else 
-		if SS.debug then LOG("cd 4".debug)
 		if isF then 
 			dir = SS.Utils.fileFromPath(o, p)
 		else 
@@ -978,7 +968,6 @@ Core["build"] = function(o, pF, tF, fN)
 	if not Utils.fileFromPath(o, pf) then return LOG("File not found".warning)
 	c = o.build(pF, tF, fN)
 	if c.len > 1 then return LOG(c.warning)
-	//s = (fN.white+" compiled at path: "+pF.yellow).ok
 	LOG((fN.white+" compiled at path: "+pF.yellow).ok)
 end function
 Core["launch"] = function(o, p, d1=null,d2=null,d3=null,d4=null)
@@ -1043,7 +1032,6 @@ Core["ps"] = function(o, a = null)
 				s = s + NL + p[0].isRoot(u, "00BDFF") + " " + p[1].white + " " + p[2].grey + " " + p[3].grey + " " + p[4].isProc
 			end for
 			return LOG("".fill+NL+COLUMNS(s)+NL+"".fill) 
-			//return print(format_columns(s))
 		end function
 	end if
 	if not a then return _p
@@ -1051,7 +1039,6 @@ Core["ps"] = function(o, a = null)
 		if split(o.show_procs, "Notepad").len > 1 then return 1
 		return null
 	end function
-	// add a process switch, kill process to return to ss
 	if not _n then return LOG("Open Notepad for resmon".warning)
 	while 1
 		CLEAR;
@@ -1166,7 +1153,6 @@ Core["get"] = function(r, op, dp = null)
 	if T(out) == "string" then return LOG(out.warning)
 	LOG("File downloaded to path: ".ok+dp)
 end function
-//TODO: invalid arg handle
 Core["ssh"] = function(o, cs, p = 22)
 	if T(o) != "shell" then return LOG("Object must be of type shell".warning)
 	if cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
@@ -1182,7 +1168,6 @@ Core["ssh"] = function(o, cs, p = 22)
 	LOG(rs)
 	return svc
 end function
-//TODO: invalid arg handle
 Core["ftp"] = function(o, cs, p = 21)
 	if T(o) != "shell" then return LOG("Object must be of type shell".warning)
 	if cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
@@ -1429,7 +1414,6 @@ Core["fs"] = function(o, a, f)
 		return LOG("TODO:")
 	end if
 end function
-//TODO: fixme
 Core["edit"] = function(o, p, clean = null)
 	o = SS.Utils.ds(o, "file")
 	if o == null then return
@@ -1764,7 +1748,6 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	end if
 	SS.cache(res, i, l)
 end function
-// TODO: local hax revised
 Core["localhax"] = function(o, a, l)
 	if not SS.mx then return LOG("Program operating under CFG: "+SS.cfg.label)
 	if ["init.so", "kernel_module.so", "net.so", "aptclient.so", "-a"].indexOf(l) == null then return LOG("Invalid arguments".warning)
@@ -1788,10 +1771,11 @@ Core["localhax"] = function(o, a, l)
 		end if
 		res = null
 		if not exploits then return LOG("No exploits selected".warning)
+		d = SS.Utils.datapls
 		if T(exploits) == "list" then 
-			res = l.of(exploits, SS.Utils.datapls)
+			res = l.of(exploits, d)
 		else if T(exploits) == "string" then
-			res = l.of(null, SS.Utils.datapls)
+			res = l.of(null, d)
 		end if
 		if res == null or res.len == 0 then; LOG("No objects returned".warning); continue; end if;
 		SS.cache(res, ip, lan)
@@ -1993,7 +1977,6 @@ Core["loadmx"] = function(o, act)
 	mx = new SS.MX
 	mx.map(o,  SS.bamres)
 	SS.mxlibs.push(mx)
-	// TODO: current metaxploit
 	SS.cmx = mx.x
 end function
 Core["test"] = function(a=null)
