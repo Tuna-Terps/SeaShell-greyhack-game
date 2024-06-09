@@ -54,7 +54,7 @@ SS.NPC.mission = function(o, mission, del = null, notes = null, force=null)
     if (args.indexOf("?f") != null) and (args.indexOf("!f") == null) then self.p4t = true 
     if (args.indexOf("!f") != null) and (args.indexOf("?f") == null) then self.skip = true 
     if mission == "-clear" or (del == "-clear" ) then
-        LOG("Clearing mailbox . . .") 
+        LOG("Clearing mailbox . . .".sys) 
         m = self.fixmekuro.fetch();sw = null
         if m.len > 250 then sw = true; swc = 0
         for plz in m
@@ -101,20 +101,26 @@ SS.NPC.mission = function(o, mission, del = null, notes = null, force=null)
 			label = "system corruption"
 			LOG("NPC: ".grey+"Corrupt")
 			LOG(content.split(NL)[3])
-		else if mission == "-f" then 
-            if word[5] != "delete"  then continue // delete remote file
-			label = "file deletion"
-			LOG("NPC: ".grey+"Remote File [delete]")
-			LOG(content.split(NL)[3])
-		else if mission == "-f" then
-            if word[10] != "get" then continue
-			label = "file retrieval"
-			LOG("NPC:".grey+"Remote File [delete]")
-			LOG(content.split(NL)[3])
+            target_ip = detail[7].replace("<b>", "").replace("</b>","")[:-1]
+            target_lan = detail[25].replace("<b>", "").replace("</b>","")
+		//else if mission == "-fd" then 
+        //    if word[5] != "delete"  then continue // delete remote file
+		//	label = "file deletion"
+		//	LOG("NPC: ".grey+"Remote File [delete]")
+		//	detail = content.split(NL)[5].split(" ")
+        //    target = detail[22].replace("<b>", "").replace("</b>","")[:-1]
+        //    target_ip = detail[7].replace("<b>", "").replace("</b>","")[:-1]
+        //    target_lan =detail[18].replace("<b>", "").replace("</b>","")
+		//else if mission == "-fg" then
+        //    if word[10] != "get" then continue
+		//	label = "file retrieval"
+		//	LOG("NPC:".grey+"Remote File [delete]")
+        //    detail = content.split(NL)[5].split(" ")
+        //    target = detail[22].replace("<b>", "").replace("</b>","")[:-1]
+        //    target_ip = detail[7].replace("<b>", "").replace("</b>","").trim
+        //    target_lan =detail[18].replace("<b>", "").replace("</b>","")
 		end if
         if SS.debug then LOG(word)
-        target_ip = detail[7].replace("<b>", "").replace("</b>","")[:-1]
-        target_lan = detail[25].replace("<b>", "").replace("</b>","")
         result = null
         result = self.run(id, label, target, target_ip, target_lan)
         reslabel = "FAILED".red.b;c = c+1;
@@ -280,7 +286,6 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
             _mx = new SS.MX
             _mx.map(eo.o, SS.bamres)
             _mx.l("init.so")
-            test = _mx.x.load("/lib/init.so")
             if _mx.libs.len<1 then return null 
             root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], tl)
             wait(1)
@@ -431,10 +436,12 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
     else 
         LOG("".fill+("Mission task: Router Loop").title)
         sumstring = sumstring+NL+"Router objects found".grey
+        has_bounced = null
         for o in r_obj
             if o.type == "shell"  then
                 if r0shell == null then r0shell = o else self.cache.push(o)
-                ez = _ezb(o, sumstring, target_lan)
+                if not has_bounced then ez = _ezb(o, sumstring, target_lan)
+                has_bounced = true
                 if ez != null then
                     sumstring = sumstring+NL+"Router had a shell".grey
                     SS.Utils.wipe_logs(o.o)
@@ -766,13 +773,12 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                             else
                                 LOG("Root connection failed, moving to regular users. . .".grey.sys)
                                 for i in r0shell.users
-                                    svc = null 
                                     rooted = r0shell.o.connect_service(target_lan, p.port, i, SS.cfg.unsecure_pw, p.lib.replace("lib","").replace(".so",""))
                                     if T(rooted) == "shell" or T(rooted) == "ftpshell" then
                                         sumstring = sumstring+NL+("We detected a pw change, and defaulted a connection as "+i.white+" and escalated to root").grey     
                                         LOG("User connection established".ok)
                                         eo = new SS.EO
-                                        eo.map(svc)
+                                        eo.map(rooted)
                                         LOG("Task: shell2".grey.sys) 
                                         task = _t(eo, label, target_lan)
                                         if task != null then
@@ -1413,7 +1419,7 @@ SS.NPC.btn = function(eo, tl)//BOUNCE THROUGH NETWORK
     if T(eo.o) != "shell" then return null
     rs = [] // routers 
     ss = [] // switches
-    GET = SS.CMD.getOne("iget")
+    GET = @SS.CMD.getOne("iget")
     SS.BAM.handler(e.o, GET, ["network", "maplan"])// internal network getter
     int = SS.bamres
     if int == null then return null
@@ -1423,7 +1429,7 @@ SS.NPC.btn = function(eo, tl)//BOUNCE THROUGH NETWORK
     SS.BAM.handler(eo.o, GET, ["ns", ])
     // recursively bounce through the routers to get to the same 
     r0 = new SS.NS; r0.map(eo.ip, 0 , "-f"); // router net session
-    if r0.session == null then return null
+    if (not r0) or (r0.session == null) then return null
     // we need to not only acquire net sessions, we need to reaquire them after a  disable
     // tasks 1.) passing mx from shell to shell 
     // tasks 2.) fw disable task, reacquire network (get_router on dummy addr) 
