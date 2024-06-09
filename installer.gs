@@ -627,7 +627,7 @@ build_launch = function(CACHEFILE)
     LOG("Launching builder. . .".sys)
     if not CACHEFILE then C.create_folder(HOME, ".ss")   
     S.launch(CACHEFILE.path+"/dict/builder");
-    if SS.cb != true then return print("Warning: we did not get a reponse from builder.".warnong)
+    if SS.cb != true then return print("Warning: we did not get a reponse from builder.".warning)
     print(fill+"Builder return --> OK !"+char(10)+"Starting cleanup . . .");
     for file in C.File(CACHEFILE.path+"/dict").get_files
         if file.indexOf("brute") or file.indexOf("builder") then 
