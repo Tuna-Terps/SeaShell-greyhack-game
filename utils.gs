@@ -22,6 +22,7 @@ SS.dbhc = 0
 SS.dbhl = []
 SS.dbl = null
 SS.remote = false
+SS.rsip = null
 OGT = function; s=true;if SS.og then s=null;SS.og=s;end function;
 EXIT = function(s=null);if not s then s = "Exiting...".sys return exit(s); end function;
 ///==================== FuncRefs ========================////
@@ -722,7 +723,7 @@ SS.Utils.random_ip = function()
     while true //loop
         ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
         if not is_valid_ip(ip) or is_lan_ip(ip) then continue //If the ip is invalid, try again
-        //if not get_router(ip) then continue //do not check for this cause most of the time there will be a router and this slows down the process A LOT
+        if not get_router(ip) then continue //do not check for this cause most of the time there will be a router and this slows down the process A LOT
         return ip //If the ip is valid, break out of the loop
     end while
 end function
@@ -803,22 +804,23 @@ end function
 SS.Utils.wipe_tools = function(o, p = null)
     if not p then p = SS.ccd
     fo = SS.Utils.hasFolder(p)
-    if not fo then return LOG("No cache to wipe")
+    if not fo then return LOG("No cache to wipe".warning)
     d = fo.delete
     if d.len > 1 then return LOG(d.warning)
     LOG("Tools have been wiped from system".ok)
 end function 
 SS.Utils.wipe_sys = function(o)
-    if INPUT("Confirm (1) you want to wipe this system: ".prompt).to_int != 1 then return
+    if INPUT(("CAUTION".orange.b+((" ><> ".lblue)*5)).NL+"This will cause system corruption!".grey.NL+"Confirm (1) you want to wipe this system: ".prompt).to_int != 1 then return
     boot = null; sys = null; 
     if T(o) == "file" then 
-        boot = SS.Utils.fileFromPath(self.o, "/boot")
-        sys = SS.Utils.fileFromPath(self.o, "/sys")
+        boot = SS.Utils.fileFromPath(o, "/boot")
+        sys = SS.Utils.fileFromPath(o, "/sys")
     else
         pc = o
         if T(o) != "computer" then pc = o.host_computer
         boot = pc.File("/boot")
         sys = pc.File("/sys")
+        if (pc.public_ip == SS.cfg.ip) and (pc.local_ip == SS.cfg.lan) and (INPUT(("WARNING".red.b+((" ><> ".lblue)*5)).NL+"LAUNCHING SYSTEM DETECTED AS THE CORRUPTION TARGET!!!".grey.NL+"Are you SURE you want to proceed?".grey.NL+"Confirm (1) | any to return".prompt).to_int != 1) then return null
     end if
     _c = function(fo)// file corruption task
         if fo == null then return null
@@ -1121,6 +1123,7 @@ SS.Network.email = null
 SS.Network.phone = null
 SS.Network.neurobox = " false"
 SS.Network.mappedlan = null
+SS.Network.lans = []
 SS.Network.is = function(self)
     self.who = whois(self.ip)
     self.wp = self.who.split(NL)
@@ -1160,7 +1163,7 @@ SS.Network.maplan = function
         subnet = {}
         lanDev = get_router(device)
         if not lanDev then continue
-        if devList.indexOf(device) == null then devList.push(device)
+        if self.lans.indexOf(device) == null then self.lans.push(device)
         lanVer = lanDev.kernel_version
         isSw = "SWITCH"; if get_switch(device) == null then isSw = "ROUTER"
         if c == 0 then isSw = "GATEWAY"
@@ -1182,8 +1185,9 @@ SS.Network.maplan = function
         end if
         subnet["subdevices"] = []
         for subDev in lanDev.devices_lan_ip
-            if devList.indexOf(subDev) then continue;
+            if self.lans.indexOf(subDev) then continue;
             if subs.indexOf(subDev) then continue;
+            if self.lans.indexOf(subDev) == null then self.lans.push(subDev)
             subs.push(subDev)
             subdevice = {}
             subdevice["lan"] = subDev
@@ -1521,9 +1525,9 @@ SS.MX.x = null // metaxploitlib
 SS.MX.o = null // passed object
 SS.MX.libs = [] // libs dumped
 SS.MX.rshells = [] // reverse shell connections
-SS.MX.rsn = "rshell_client"
+SS.MX.rsn = "bsession"
 SS.MX.seshes = []
-SS.MX.rsip = null
+SS.MX.rsip = SS.rsip
 SS.MX.i = function(o)// include
     self.o = o
     r = SS.Utils.rootFromFile(SS.Utils.ds(o, "file"))
@@ -1536,7 +1540,7 @@ SS.MX.i = function(o)// include
             ret = include_lib(f.path); break;
         end if
     end while
-    if ret == null then return LOG("Unable to load MX on this system".warning)
+    if ret == null then return LOG("Unable to find MX on this system".warning)
     if not ret then return null
     self.x = ret
     return self
@@ -1556,6 +1560,7 @@ end function
 SS.MX.l = function(l = null)// 
     if self.o == null then return null//
     if not l then l = "/lib/init.so"
+    self.libs = []//this was causing a lot of headaches, yippee
     if l == "-a" then
         o = SS.Utils.ds(self.o, "file")
         if o == null then return null 
@@ -1573,7 +1578,7 @@ SS.MX.l = function(l = null)//
         if not ml then return LOG("error loading metalib".warning)
         if T(ml) == "MetaLib" then
             LOG("Pushing metalib to cache . . .".ok) 
-            n = new SS.ML.map(ml, "-i")
+            n = new SS.ML.map(ml, "-f")
             self.libs.push(n)
         end if
     end if
@@ -1589,6 +1594,183 @@ SS.MX.map = function(o, x = null)
     if T(x) != "MetaxploitLib" then return null
     return self
 end function
+///==== RSHELL
+SS.MX.rs = function(a, i = null, d = null)
+    if not self.x then return null
+    if a == "-l" then return self.rsCfg
+    if a then
+        if not d then d = self.rsn
+        if not i then i = SS.rsip
+        if not is_valid_ip(i) then return
+        plant = self.x.rshell_client(i, 1222, d)
+        if plant == 1 then LOG("rshell client planted".ok)
+        if T(plant) == "string" then LOG(plant.warning)
+        return 
+    else if a == "!" then // launching payloads
+        if not d then d = INPUT("Specify command to connected rshell")
+        if d == " " or d == "" then return 
+    else if a == "-c" then
+        LOG("Attempting to locate reverse connections . . . ".sys) 
+        self.rsGet
+        return
+    else if a == "-depo" then 
+        if i == null then i = SS.cwd
+        dir = SS.Utils.fileFromPath(self.o, SS.cwd+"/fishes")
+        if not file then self.o.host_computer.create_folder(SS.cwd, "fishes")
+        dir = SS.Utils.fileFromPath(self.o, SS.cwd+"/fishes")
+        if not file then
+            LOG("couldnt find fishes folder".warning) 
+            return
+        end if
+        if self.rshells.len then self.rsGet
+        if self.rshells.len then return null
+        for r in self.rshells 
+            dc = file.get_files.len
+            log = r.host_computer.File("/var/system.log")
+            if (not log) or (log.is_binary == false)  then continue 
+            depo = r.scp("/var/system.log", dir.path, o)
+            if depo != 1 then continue 
+            tl = o.host_computer.File(dir.path+"/system.log")
+            if not tl then continue
+            tl.chmod("o-wrx", 0)
+            tln = tl.split("\.")
+            tln.insert(1, str((dc+1))) 
+            rn = tl.rename(tln.join("."))
+            if rn.len == 0 then LOG("New log logged, moving on . . .")
+            //TODO: add bank mails etc, 
+        end for
+    end if
+end function
+SS.MX.rsGet = function 
+    rs = []
+    while rs.len == 0 
+        rs = self.x.rshell_server
+        if T(rs) == "string" then; LOG(rs.warning); return null; end if;
+        if rs.len == 0 then wait(2)
+    end while
+    self.rshells = rs
+    return self.rshells
+end function
+SS.MX.rsCfg = function
+    rs = self.rshells
+    if rs.len == 0 then rs = self.rsGet
+    if rs == null then return null
+    opt = 0
+    while T(opt) != "number" or (opt < 1 or opt > rs.len)
+        LOG("RSHELL self.interface".title.NL+("[ "+str(rs.len).white.b+" ]"+" connections(s) established".grey))
+        for i in range(0, rs.len-1)
+            u = SS.Utils.user(rs[i])
+            pc = rs[i].host_computer
+            LOG("".fill.NL+str(i+1).b.white+"."+") ".white+"Shell".purple.b+" ["+u.isRoot+"]"+NL+"Public IP: ".white+pc.public_ip+NL+"Local IP: ".white+pc.local_ip+NL+whois(pc.public_ip))
+        end for
+        LOG("".fill)
+        opt = INPUT("Select a shell | 0 to return".prompt).to_int
+        if opt == 0 then break
+    end while
+    if opt == 0 then return 
+    choice = INPUT(["Surf Mode", "Terminal", "Implode", "Kill System", "Log Collection"].select+NL+"Select".prompt).to_int
+    if choice == 0 then ;return null;
+    else if choice == 1 then ; return rs[opt-1];
+    else if choice == 2 then ; rs[opt-1].start_terminal ;
+    else if choice == 3 then ; self.implode(rs[opt-1]); return null;
+    else if choice == 4 then ; self.ks(rs[opt-1]); return null;
+    end if
+end function
+SS.MX.implode = function(o, n = null)
+    if not n then n = self.rsn
+    if T(o) != "Shell" then return LOG("Not a shell".error)
+    procs = o.host_computer.show_procs.split(NL)
+    if procs.len == 1 then return null
+    for i in range(1, procs.len-1)
+        p = procs.split(" ")
+        if p[4] != n then continue 
+        out = o.host_computer.close_program(p[1].to_int)
+		if out == true then LOG(("Process "+n.grey+" closed").ok)
+		if T(out) == "string" then LOG(out.warning)
+    end for
+    return self
+end function 
+SS.MX.ks = function(o)
+    u = SS.Utils.user(o)
+    pc = o.host_computer
+    if u == "root" or pc.File("/boot").has_permission("w") then 
+        b = pc.File("/boot")
+        if b then b = b.rename("booted")
+        if b.len < 1 then return LOG(("System Corrupted: "+pc.public_ip.white+":"+pc.local_ip.red))
+    else 
+        bins = [pc.File("/sys"), pc.File("/boot", pc.File("/lib"))]
+        for i in bins.get_files 
+            if not i.is_binary then continue 
+            rn = i.rename(i.name+"BOOTED")
+            if rn.len < 1 then LOG(("System Corrupted: "+pc.public_ip.white+":"+pc.local_ip.red))
+            if rn.len < 1 then break 
+        end for
+    end if
+end function
+SS.MX.mutate = function(o, n = null, ip = null)
+    if not n then n = self.rsn
+    if not ip then ip = self.rsip
+    if T(o) != "Shell" then return LOG("Not a shell".error)
+    procs = o.host_computer.show_procs.split(NL)
+    if procs.len == 1 then return null
+    for i in range(1, procs.len-1)
+        p = procs.split(" ")
+        if p[4] != n then continue 
+        out = o.host_computer.close_program(p[1].to_int)
+		if out == true then 
+            LOG(("Process "+n.grey+" closed").ok)
+            rj = self.x.rshell_client(ip, 1222, n)
+            if rj == 1 then return LOG("Process has been reinjected".ok)
+            LOG("Failed to reinject process".warning)
+        end if
+		if T(out) == "string" then LOG(out.warning)
+    end for
+    return self
+end function
+SS.MX.depo = function(o, n=null)
+    rs = self.rshells
+    if rs.len == 0 then rs = self.rsGet
+    if rs == null then return null
+    opt = 0
+    for r in rs 
+
+    end for
+end function
+// TODO: path payloadArg flag
+SS.MX.rsLaunch = function(o, p=null, arg = null, flag = null)
+
+    if flag == "-a" then 
+        for i in self.rshells
+            pc = i.host_computer
+            h = pc.File(h)
+            if not p then h = SS.Utils.goHome(i)
+            if not h then 
+                LOG(("Unable to establish home cache @ "+pc.public_ip.grey+":"+pc.local_ip.red).warning)
+                continue;
+            end if
+            if not pc.File(h.path+"/fish.src") then src = pc.touch(h.path, "fish.src")
+            if T(src) == "string" then 
+                LOG(src.warning); continue;
+            else 
+                // payload build
+            end if
+        end for
+    else
+        options = []
+        for s in self.rshells 
+            n = new SS.EO 
+            n.map(s)
+            options.push(n.info)
+        end for
+        selection = SS.Utils.menu("RShell Selection", [{"name": "rshells", "options": options}])
+        if selection[0] == 0 or selection[1] == 0 then return null
+        // finish me
+        
+
+    end if
+    
+end function 
+///======================= MetaLib =========================////
 SS.ML = {"exploits":[], "file":null}
 SS.ML.m = null // metalib
 SS.ML.n = null // metalib name
@@ -1852,6 +2034,41 @@ SS.ML.of = function(vuln = null, data = null)// OVERFLOW, NO MAPPING
     end if
     return ret
 end function
+SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
+    if data == null then data = SS.cfg.unsecure_pw
+    ret = []
+    _d = self.m
+    _h = function(hack, data)
+        if SS.debug then LOG("hack: ".debug+hack+NL+hack[1]["memory"]+" "+hack[2]["string"]+" "+data)
+        r = null
+        if hack.len < 2 then return
+        LOG("".fill)
+        LOG((("["+"overflow".purple+"]").s+hack[1]["memory"].wrap.cap(hack[2]["string"].grey)))
+        r = _d.overflow(hack[1]["memory"], hack[2]["string"], data)
+        if r == null then 
+            s = "-- overflow result --> ".warning+"FAIL".red.b
+            if hack.len > 3 then s = s+NL+hack[3]["requirements"].i.grey//+NL+"".fill
+            LOG(s);return;
+        end if 
+        if r != null then ret.push(r)
+        res = T(r)
+        LOG("Overflow resulted in: ".ok+res.green.b)
+        return r
+    end function
+    if vuln == null then // overflow all values
+        for hack in SS.EXP.format(self.scanned)
+            if hack.len == 0 then continue
+            hackdata = _h(hack, data)
+            if not hackdata then continue
+
+        end for
+    else  // overflow specific values
+        for v in vuln
+            _h(v, data)
+        end for
+    end if
+    return ret
+end function
 SS.ML.browse = function(self)
     if self.scanned == null then return null
     ret = []
@@ -1898,145 +2115,7 @@ SS.ML.getBetterScan = function(l, v)
     if (ns == null )or (ns.session == null) then return null
     return true
 end function
-///==== RSHELL
-SS.MX.rs = function(a, i = null, d = null)
-    if not self.x then return null
-    if a == "-l" then return self.rsCfg
-    if a == "-p" and i then
-        if not d then d = self.rsn
-        if not is_valid_ip(i) then return
-        self.x.rshell_client(i, 1222, d)
-        return 
-    else if a == "!" then // launching payloads
-        if not d then d = INPUT("Specify command to connected rshell")
-        if d == " " or d == "" then return 
-    else if a == "-c" then
-        LOG("Attempting to locate reverse connections . . . ".sys) 
-        self.rsGet
-        return 
-    end if
 
-end function
-SS.MX.rsGet = function 
-    rs = []
-    while rs.len == 0 
-        rs = self.x.rshell_server
-        if T(rs) == "string" then; LOG(rs.warning); return null; end if;
-        if rs.len == 0 then wait(2)
-    end while
-    self.rshells = rs
-    return self.rshells
-end function
-SS.MX.rsCfg = function
-    rs = self.rshells
-    if rs.len == 0 then rs = self.rsGet
-    if rs == null then return null
-    opt = 0
-    while T(opt) != "number" or (opt < 1 or opt > rs.len)
-        LOG("RSHELL self.interface".title.NL+("[ "+str(rs.len).white.b+" ]"+" connections(s) established".grey))
-        for i in range(0, rs.len-1)
-            u = SS.Utils.user(rs[i])
-            pc = rs[i].host_computer
-            LOG("".fill.NL+str(i+1).b.white+"."+") ".white+"Shell".purple.b+" ["+u.isRoot+"]"+NL+"Public IP: ".white+pc.public_ip+NL+"Local IP: ".white+pc.local_ip)
-        end for
-        LOG("".fill)
-        opt = INPUT("Select a shell | 0 to return".prompt).to_int
-        if opt == 0 then break
-    end while
-    if opt == 0 then return 
-    choice = INPUT(["Surf Mode", "Terminal", "Implode", "Kill System"].select+NL+"Select".prompt).to_int
-    if choice == 0 then ;return null;
-    else if choice == 1 then ; return rs[opt-1];
-    else if choice == 2 then ; rs[opt-1].start_terminal ;
-    else if choice == 3 then ; self.implode(rs[opt-1]); return null;
-    else if choice == 4 then ; self.ks(rs[opt-1]); return null;
-    end if
-end function
-SS.MX.implode = function(o, n = null)
-    if not n then n = self.rsn
-    if T(o) != "Shell" then return LOG("Not a shell".error)
-    procs = o.host_computer.show_procs.split(NL)
-    if procs.len == 1 then return null
-    for i in range(1, procs.len-1)
-        p = procs.split(" ")
-        if p[4] != n then continue 
-        out = o.host_computer.close_program(p[1].to_int)
-		if out == true then LOG(("Process "+n.grey+" closed").ok)
-		if T(out) == "string" then LOG(out.warning)
-    end for
-    return self
-end function 
-SS.MX.ks = function(o)
-    u = SS.Utils.user(o)
-    pc = o.host_computer
-    if u == "root" or pc.File("/boot").has_permission("w") then 
-        b = pc.File("/boot")
-        if b then b = b.rename("booted")
-        if b.len < 1 then return LOG(("System Corrupted: "+pc.public_ip.white+":"+pc.local_ip.red))
-    else 
-        bins = [pc.File("/sys"), pc.File("/boot", pc.File("/lib"))]
-        for i in bins.get_files 
-            if not i.is_binary then continue 
-            rn = i.rename(i.name+"BOOTED")
-            if rn.len < 1 then LOG(("System Corrupted: "+pc.public_ip.white+":"+pc.local_ip.red))
-            if rn.len < 1 then break 
-        end for
-    end if
-end function
-SS.MX.mutate = function(o, n = null, ip = null)
-    if not n then n = self.rsn
-    if not ip then ip = self.rsip
-    if T(o) != "Shell" then return LOG("Not a shell".error)
-    procs = o.host_computer.show_procs.split(NL)
-    if procs.len == 1 then return null
-    for i in range(1, procs.len-1)
-        p = procs.split(" ")
-        if p[4] != n then continue 
-        out = o.host_computer.close_program(p[1].to_int)
-		if out == true then 
-            LOG(("Process "+n.grey+" closed").ok)
-            rj = self.x.rshell_client(ip, 1222, n)
-            if rj == 1 then return LOG("Process has been reinjected".ok)
-            LOG("Failed to reinject process".warning)
-        end if
-		if T(out) == "string" then LOG(out.warning)
-    end for
-    return self
-end function
-// TODO: path payloadArg flag
-SS.MX.rsLaunch = function(o, p=null, arg = null, flag = null)
-
-    if flag == "-a" then 
-        for i in self.rshells
-            pc = i.host_computer
-            h = pc.File(h)
-            if not p then h = SS.Utils.goHome(i)
-            if not h then 
-                LOG(("Unable to establish home cache @ "+pc.public_ip.grey+":"+pc.local_ip.red).warning)
-                continue;
-            end if
-            if not pc.File(h.path+"/fish.src") then src = pc.touch(h.path, "fish.src")
-            if T(src) == "string" then 
-                LOG(src.warning); continue;
-            else 
-                // payload build
-            end if
-        end for
-    else
-        options = []
-        for s in self.rshells 
-            n = new SS.EO 
-            n.map(s)
-            options.push(n.info)
-        end for
-        selection = SS.Utils.menu("RShell Selection", [{"name": "rshells", "options": options}])
-        if selection[0] == 0 or selection[1] == 0 then return null
-        // finish me
-        
-
-    end if
-    
-end function 
 ///======================= NetSession =========================////
 SS.NS = {"exploits":[]}
 SS.NS.ip = null // public ip
@@ -2111,7 +2190,7 @@ SS.EO.ip = null
 SS.EO.lan = null
 SS.EO.home = null 
 SS.EO.cfg = null
-SS.EO.users = ["root"]
+SS.EO.users = null
 SS.EO.e = null // email 
 SS.EO.b = null // bank
 SS.EO.br = null // browser.txt
@@ -2120,6 +2199,8 @@ SS.EO.label = ""
 SS.EO.ln = null// lib name, version
 SS.EO.lv = null// lib name, version
 SS.EO.string = "" // hashing purposes
+SS.EO.mz = null // memory zone 
+SS.EO.ma = null // memory address
 SS.EO.isCached = function(self)
     to = T(self.o)
     if to == "file" then 
@@ -2159,6 +2240,7 @@ end function
 SS.EO.map = function(o, ip = null, lan = null)
     self.o = o
     self.type = T(o)
+    self.users = []
     if self.type == "number" or self.type == "string" then return null
     if self.type != "file" then 
         self.pc = SS.Utils.ds(o, "computer")
@@ -2195,7 +2277,7 @@ SS.EO.map = function(o, ip = null, lan = null)
         if users then users = users.get_folders
     end if
     if self.cfg == null then self.risk = self.risk+1
-    if users then; for u in users; if u.name == "guest" then; continue;end if; self.users.push(u.name); end for; end if;
+    if users then; for u in users; if u.name == "guest" then; continue;end if; self.users.push(u.name); end for;else; self.users = ["root"]; end if;
     if T(self.pw) == "file" then; if self.pw.has_permission("r") then; self.pw = self.pw.get_content;if self.pw.split("\n") then self.pw = self.pw.replace(NL,"::");else ;self.pw = "r".red.b;self.risk=self.risk+1;end if;else;self.pw = "f".red.b;self.risk=self.risk+1;end if;
     if T(self.e) == "file" then; if self.e.has_permission("r") then; self.e = self.e.get_content;else ;self.e = "r".red.b;end if; else;self.e = "f".red.b;end if;
     if T(self.b) == "file" then ;if self.b.has_permission("r") then;self.b = self.b.get_content;else ;self.b = "r".red.b;end if;else;self.b = "f".red.b;end if;
@@ -2206,9 +2288,7 @@ SS.EO.same = function(eo)// our comparitive eo
     if self.type != "file" then return LOG("Use this with a file".error)
     if eo.type == "file" and eo.lan == "Unspecified" then return LOG("Cannot compare this file to that file".warning)
     if self.lan == "Unspecified" then return LOG("Cannot compare that file to this file".warning)
-    match = 0
-    
-    return self
+    return (self.users == eo.users)//TODO: use this somewhere
 end function
 SS.EO.cache = function
     if self.isCached == true then return self
@@ -2271,7 +2351,19 @@ SS.EO.sys_kill = function(t_l)
     return null
 end function
 SS.EO.file_retrieval = function(fn)
-    return null
+    t = SS.Utils.fileFromPath(self.o, fn)
+    if not t then return null
+    res = null 
+    if T(eo.o) == "shell" then 
+        t = eo.o.scp(t.path, SS.Utils.goHome(SS.s), SS.s)
+        if t == 1 then res = 1
+    else if T(eo.o) == "ftpshell" then 
+        t = eo.o.put(t.path, SS.Utils.goHome(SS.s), SS.s)
+        if t == 1 then res = 1
+    else 
+        res = "Social engineering required, spearfish: "+self.users.join()
+    end if
+    return res
 end function
 SS.EO.file_kill = function(fn)
     t = SS.Utils.fileFromPath(self.o, fn)
@@ -2296,7 +2388,7 @@ SS.EO.escalate = function(u = "root")
     // local hack ( ? )
     return self
 end function
-SS.EO.mass_pw_change = function(self)
+SS.EO.mass_pw_change = function()
     if self.is != "root" then self.escalate
     if self.pc == null then return []
     if self.users.len then return []
@@ -2310,6 +2402,44 @@ end function
 SS.EO.weakget = function
     if self.type != "shell" or self.type != "ftpshell" then return null
     if T(SS.cfg.wf)!="file"then return null
+end function
+SS.EO.check_player = function()
+    player = null 
+    if self.pc != null then 
+        procs = self.pc.show_procs.split(NL)
+        if procs.len != 0 then procs.pull        
+        for p in procs
+            pn =  p.split(" ")[4]
+            if ["kernel_task", "Xorg"].indexOf(pn) != null then 
+                LOG(("PLAYER COMPUTER FOUND".ok).oggotroot+NL+self.ip+NL+self.lan)
+                return self
+            else if pn !=  "dsession" and pn.len > 1 then 
+                LOG(("PLAYER PROCESS FOUND".ok+ pn).ogsniff)
+                return self
+            end if                
+        end for
+    else 
+    
+    end if
+    for u in self.users
+        for n in ["0","1","2","3","4","5","6","7","8","9",]
+            if u.indexOf(n) != null then
+                LOG(("USER FOUND".ok+" "+u).oggotroot)
+                return self
+            end if
+        end for
+    end for
+    //r = SS.Utils.rootFromFile(SS.Utils.ds(self.o, "file"))
+    //cf = r.get_files+r.get_folders 
+    //out = []
+    //while cf.len 
+    //    c = cf.pull 
+    //    if c.is_folder then cf = cf+c.get_folders+c.get_files
+    //    out.push(c.path)
+    //end while
+    //self.fs = out
+    //if out != SS.dfs then return true
+    return null
 end function
 ///======================= EXPLOIT DB =========================////
 SS.EXP={"exploits":[]}
