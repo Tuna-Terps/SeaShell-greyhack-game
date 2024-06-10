@@ -258,7 +258,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         return r_obj
     end function
     //TODO: wrap the file transfer in a launch, to catch IO errors
-    _ezb = function(eo, ss, tl)
+    _ezb_old = function(eo, ss, tl)
         if eo.type != "shell" then return null
         if T(SS.cfg.wf) != "file" then return null
         LOG("".fill+("Task: Easy Bounce with "+eo.lan.white).title)
@@ -310,6 +310,58 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         end if
         return null
     end function
+    _ezb = function(eo, ss, tl)
+        if eo.type != "shell" then return null
+        if T(SS.cfg.wf) != "file" then return null
+        LOG("".fill+("Task: Easy Bounce with "+eo.lan.white).title)
+        if eo.is != "root" then eo.escalate
+        if r0shell == null then r0shell = eo
+        SS.BAM.handler(eo.o, SS.CMD.getOne("iget"), ["mx"])
+        if not SS.bamres then 
+            LOG("THERE WAS AN ISSUE ACQUIRING MX ON THE BOUNCE MACHINE".error)
+            return null
+        end if
+        _mx = new SS.MX
+        _mx.map(eo.o, SS.bamres)
+        _mx.l(SS.cfg.wf.name)
+        if _mx.libs.len<1 then return null
+        if SS.cfg.wv == null then SS.cfg.wv = SS.mx.load(SS.cfg.wf.path).version 
+        if _mx.libs[0].v != SS.cfg.wv then
+            LOG("Preparing to load weak library. . .".grey.sys)  
+            div = eo.o.host_computer.File("/lib/"+SS.cfg.wf.name)
+            if div then div.rename("init.so"+str(floor(rnd*10)))
+            wait(0.1)
+            SS.BAM.handler(eo.o, SS.CMD.getOne("iget"), ["wl"])
+            while SS.bamres != 1
+                if T(SS.bamres) == "string" then break
+                wait(1)
+            end while         
+            if T(div) == "string" then return null
+            _mx.libs = []
+            _mx.l(SS.cfg.wf.name)
+            if _mx.libs.len<1 then return null 
+        else;LOG("Weak lib already loaded! ".ok)
+        end if 
+        root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], tl)
+        wait(1)
+        if root.len < 1 then
+            sumstring = sumstring+NL+"Failed to get the root computer".grey
+            LOG("THERE WAS AN ISSUE ACQUIRING ROOT COMPUTER".error)
+        else
+            LOG("Root computer bounce obtained: ".red.ok+root[0].local_ip.s+" "+(root[0].local_ip == tl))
+            eo = new SS.EO
+            eo.map(root[0])
+            if (tu.len == 0) and (eo.lan == tl) then tu = eo.users
+            task = _t(eo, label, tl)
+            if task != null then 
+                sumstring = ss+NL+"Weak library completed the mission".grey
+                SS.NPC.results.push("Completed with root computer bounce")
+                SS.NPC.results2.push(sumstring)
+                return task
+            end if
+        end if
+        return null
+    end function
     _ezcs = function(eo, tl)
         // easy computer swap? doubted
     end function
@@ -327,7 +379,6 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         for t in m.mappedlan
                 rlc = t["lan"].split("\."); rlc.pop; rlc = rlc.join(".");
                 if (t["bssid"].len > 1) and (t["essid"].len > 1) then
-                    LOG(t["bssid"]+" "+t["essid"])
                     //connection = SS.MD5.wifish(eo.o, t["bssid"], t["essid"]) 
                 end if
                 hasDeny = null
@@ -364,7 +415,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                 end for
         end for
         fm = f 
-        LOG("RETRYING".size(30))
+        LOG("FIREWALL ATTEMPT 2".title)
         netsesh = new SS.NS.map("1.1.1.1", 0, "-f", x)
         wait(0.1)
         c = 0
