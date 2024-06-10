@@ -15,6 +15,7 @@ FEO = new SS.EO;
 FEO.map(SS.f, SS.c.public_ip, SS.c.local_ip)
 SS.apt = null
 SS.crypto = null
+SS.ccrypt=null
 SS.mx = null
 SS.cmx = null
 SS.apt_updates = []
@@ -43,6 +44,7 @@ SS.cfg.macros = null // macro folder
 SS.cfg.wf = null // weak lib file
 SS.cfg.wm = "0x73CBD7B0" // weak lib memory zone
 SS.cfg.wa = "havedoutlinenumbe" // weak lib memory address
+SS.cfg.wv = null//weak version
 SS.heart = SS.GFX.f([{"<".red.b.size(18): [36, 0.2,-90,0]}, {"3".red.b.size(18): [36,-0.1,-90,0]}, {" by ".lblue+"Tuna Terps".b.cyan:[36.75, 0,0,0]}])
 ///==================== SS.CMD() ========================////
 SS.CMD = {}
@@ -167,7 +169,7 @@ SS.CMD.invoke = function(obj, p)
 end function
 SS.CMD.prompt = function(eo)
 	if SS.debug then LOG("SS.CMD:prompt ".debug+T(eo))
-	o=null;ip = "x.x.x.x".grey;lan="x.x.x.x".grey;host=null; sym = "$";tsym = "S".green;
+	o=null;host=null; sym = "$";tsym = "S".green;
 	obj = eo.o
 	if eo.type != "file" then 
 		if eo.type == "computer" then
@@ -325,6 +327,8 @@ SS.buildEntireUserCache = function(flag = null)// TODO: handle flag
 		LOG("Engaging paste protocol: ".sys+"hashes".lblue); SS.setUserConfig("-h", "-p"); 
 	end if
 	LOG("user cache build ran succesfully".sys)
+	SS.getDb
+	SS.setCache//sets certain env variables	
 end function
 SS.getLibConfig = function(self)
 	SS.mx = SS.Utils.hasLib(SS.s, "metaxploit.so")
@@ -335,9 +339,11 @@ SS.getLibConfig = function(self)
 		if SS.crypto == null then
 			ret = "MX".yellow
 		else 
+			SS.ccrypt = SS.crypto
 			ret = "SS".cyan
 		end if
-	else if SS.crypto != null then 
+	else if SS.crypto != null then
+		SS.ccrypt = SS.crypto 
 		ret = "Crypto".orange
 	else
 		ret = "OS".red 
@@ -388,7 +394,7 @@ SS.getDb = function
 	SS.dbl = SS.Utils.hasFolder(SS.s, "ss.logs")
 	if T(SS.dbl) != "file" then;LOG("Logger not loaded".grey.sys);else; LOG("Loaded logger: ".ok+SS.dbl.path); end if;
 	SS.cfg.wf = SS.Utils.fileFromPath(SS.s, p)
-	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.path); end if;
+	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);if SS.mx then;SS.cfg.wv=SS.mx.load(SS.wf.path).version;end if;else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.path); end if;
 	if (SS.dbe == null and SS.dbh == null) then return LOG("Database was not configured".warning)
 	if SS.dbe != null then
 		for each in SS.dbe.get_folders 
@@ -491,7 +497,7 @@ SS.surf_mode = function(o, args = null)
 		if SS.debug and res then LOG("response found")
 	end while
 	return LOG("".sys+"<b>~~~^~~^~".blue+"SURF"+"~".blue+"MODE".cyan+"~".blue+"[ ".cyan+"DISABLED".red+" ]".cyan+"~^~~^~~~".blue+"</i>".cap(l).blue)
-end function;																																																																							SS.env = function(_,__,___,____,_____,______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = ___;SS.cfg.mailpw = ____;SS.cfg.rsip = _____;SS.cfg.unsecure_pw = ______;;end function
+end function;																																																																							SS.env = function(_,__,___,____,_____,______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = ___;SS.cfg.mailpw = ____;SS.rsip = _____;SS.cfg.unsecure_pw = ______;;end function
 SS.init = function(az,by,cx,dw,ev,fu);
 if az.len > 0 then; if (INPUT(("["+"Auth Required".red+"]").b+" ", true) != az) then EXIT("><> ><> ><>".red);end if;																																													SS.env(az,by,cx,dw,ev,fu);
 	SS.getUserConfig// check user settings
@@ -520,15 +526,24 @@ SS.cache = function(l, addr = null, lan = null)
 	if T(l) != "list" then return null
 	for i in l
 		if T(i) == "string" or T(i) == "number" then continue
-		eo = new SS.EO; 
-		if T(i) == "file" then 
-			eo.map(i, addr, lan)
+		if i isa SS.EO then 
+			eo = i
+		else
+			eo = new SS.EO
+			if T(i) != "file" then 
+				eo.map(i, addr,lan) 
+			else 
+				eo.map(i)
+			end if
+		end if
+		if T(eo.o) == "file" then 
+			//eo.map(i, addr, lan)
 			SS.files.push(eo)
-		else if T(i) == "computer" then 
-			eo.map(i)
+		else if T(eo.o) == "computer" then 
+			//eo.map(i)
 			if not eo.isCached then SS.computers.push(eo)
 		else
-			eo.map(i)
+			//eo.map(i)
 			if not eo.isCached then SS.shells.push(eo)
 		end if
 	end for 
@@ -542,7 +557,7 @@ end function
 SS.getHost = function(a = null, t = null, p = null)
 	if a == "-i" then // DEPENDENCIES
 		h = "* "+"Script can perform all operations under cfg: ".grey+SS.cfg.label;
-		if not SS.mx or not SS.crypto then h = "* "+"Script is lacking essential libs: ".red 
+		if not SS.mx or not SS.ccrypt then h = "* "+"Script is lacking essential libs: ".red 
 		if SS.mx == null then h = h.s+"metaxploit.so"
 		if SS.crypto == null then h = h.s+"crypto.so"
 		if SS.dbe == null then; h = h+NL+"* "+"Script is missing exploit database".yellow; else ; h = h+NL+"* "+"Exploit database loaded".green;end if;
@@ -623,7 +638,7 @@ SS.setUserConfig = function(act, flag=null, p = null)
 		if flag == "-b" then
 			run = @SS["setDat"] 
 			p = "ss.dat"
-			d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"apiIp=null"+NL+"apiMemZone=null"+NL+"apiMemVal=null"+NL+"hackShopIp=214.85.237.165"
+			d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"apiIp=null"+NL+"apiMemZone=null"+NL+"apiMemVal=null"+NL+"hackShopIp=214.85.237.165"+NL+"weakMemZone=null"+NL+"weakMemAddr=null"
 		else 
 			return SS.cfgDat(flag, p)
 		end if
@@ -632,7 +647,7 @@ SS.setUserConfig = function(act, flag=null, p = null)
 		f = SS.cfg.macros
 		run = @SS["setMacros"] 
 		p = "ss.macros"
-		d = "[MACRO NAME] [SS.CMD NAME] [ARGUMENTS] ; [SS.CMD NAME] [ARGUMENTS]"+NL+"EXAMPLE ls ; cd /"
+		d = "[MACRO NAME] [SS.CMD NAME] [ARGUMENTS/PLACEHOLDER] ; [SS.CMD NAME] [ARGUMENTS/PLACEHOLDER] *to use placeholders use format {1}*"+NL+"EXAMPLE ls ; cd {1} --> @EXAMPLE home"
 	else if act == "-ccd" then // user ccd
 		s = "User Cache"
 		f = SS.cfg.i
@@ -762,8 +777,15 @@ SS.cfgDat = function(item, change)
 end function
 // TODO: set macro function
 SS.setMacros = function(data)
+	LOG(data)
 	return LOG("wip".warning)
 
+end function
+SS.isMacro = function
+
+	for m in SS.macros
+
+	end for
 end function
 ///==================== CORE() ========================////
 Core = {}
@@ -909,7 +931,8 @@ Core["groups"] = function(o, a = null, u = null, n = null)
 end function
 Core["whois"] = function(a)
 	if a == null then return LOG("Invalid arguments".warning)
-	net = SS.Network.map(a)
+	net = SS.Network
+	net.map(a)
 	if net == null then return LOG("Invalid Address".warning)
 	LOG("".fill+NL+net.is)
 end function
@@ -986,7 +1009,7 @@ Core["launch"] = function(o, p, d1=null,d2=null,d3=null,d4=null)
 	f = o.host_computer.File(fn)
 	if f == null then return LOG("Launch binary not found on target machine")
 	if out.len == 0 then return o.launch(fn)
-	if out.len == 1 then return o.launch(fn, a1)
+	if out.len == 1 then return o.launch(fn, d1)
 	return o.launch(fn, data.join(" "))
 end function
 Core["service"] = function(o, a, s = null, f = null)
@@ -996,6 +1019,7 @@ Core["service"] = function(o, a, s = null, f = null)
 	if s == null then return LOG("No service specified".warning)
 	act = null
 	srv = SS.Utils.hasLib(o, s, null, true)
+	if not srv then return 
 	if a == "-i" then 
 		al = "Installing:<i> ".grey+s
 		act = srv.install_service
@@ -1005,6 +1029,8 @@ Core["service"] = function(o, a, s = null, f = null)
 	else if a == "-k" then 
 		al = "Stopping:<i> ".grey+s 
 		act = srv.stop_service
+	else 
+		return LOG("Invalid arguments".warning)
 	end if
 	if T(act) == "string" then 
 		return LOG(act.warning)
@@ -1012,8 +1038,7 @@ Core["service"] = function(o, a, s = null, f = null)
 		st = al+" "+s.white+" ---> "+"OK".green 
 		LOG(st.ok)
 	else
-		st = "failed to "+al+" "+s
-		LOG(st.warning)
+		LOG("Did not succeed, but no error string".warning)
 	end if
 end function
 Core["ps"] = function(o, a = null)
@@ -1280,7 +1305,7 @@ Core["chmod"] = function(o, r, u, pa)
 	if f == null then return LOG("Unable to chmod file: not found".warning)
 	out = f.chmod(u, rec)
 	if out.len > 1 then return LOG(out.warning)
-	fp = "/".lblue; if f.path != "/" then fp = f.path.grey+"/"+f.name.lblue
+	fp = "/".lblue; if f.path != "/" then fp = parent_path(f.path).grey+"/"+f.name.lblue
 	LOG((fp+" has been given permissions: "+u).ok)
 end function
 Core["chgrp"] = function(o, r, u, pa)
@@ -1293,7 +1318,7 @@ Core["chgrp"] = function(o, r, u, pa)
 	if f == null then return LOG("Unable to chgrp file: not found".warning)
 	out = f.set_group(u, rec)
 	if out.len > 1 then return LOG(out.warning)
-	fp = "/".lblue; if f.path != "/" then fp = f.path.grey+"/"+f.name.lblue
+	fp = "/".lblue; if f.path != "/" then fp = parent_path(f.path).grey+"/"+f.name.lblue
 	LOG((fp+" has been assigned group: "+u).ok)
 end function
 Core["chown"] = function(o, r, u, pa)
@@ -1307,7 +1332,7 @@ Core["chown"] = function(o, r, u, pa)
 	if f == null then return LOG("Unable to change file owner: file not found".warning)
 	out = f.set_owner(u, rec)
 	if out.len > 1 then return LOG(out.warning)
-	fp = "/".lblue; if f.path != "/" then fp = f.path.grey+"/"+f.name.lblue
+	fp = "/".lblue; if f.path != "/" then fp = parent_path(f.path).grey+"/"+f.name.lblue
 	LOG((fp+" is now owned by: "+u).ok)
 end function
 Core["cat"] = function(o,p)
@@ -1326,10 +1351,11 @@ Core["move"] = function(o, cfp, tfp, fn)
 	if T(o) != "computer" then o = o.host_computer
 	f = o.File(cfp)
 	if f == null then return LOG("File not found at: ".warning+tfp)
+	if fn == null then fn = f.name
 	t = f.move(tfp, fn)
-	if T(t) == "string" then return LOG(f.warning)
-	fp = "/".lblue; if f.name != "/" then fp = f.parent_path.grey+"/"+f.name.lblue
-	LOG(("Moved file: "+fp+" to path: "+tfp.grey).ok)
+	if T(t) == "string" then return LOG(t.warning)
+	fp = "/".lblue; if f.name != "/" then fp = parent_path(f.path).grey+"/"+f.name.lblue
+	LOG(("Moved file: "+parent_path(cfp).grey+"/"+fn+" to path: "+tfp.grey).ok)
 end function
 Core["copy"] = function(o, cfp, tfp, fn)
 	if cfp == null then return LOG("path dest name")
@@ -1339,10 +1365,11 @@ Core["copy"] = function(o, cfp, tfp, fn)
 	if T(o) != "computer" then o = o.host_computer
 	f = o.File(cfp)
 	if f == null then return LOG("File not found at: ".warning+cfp)
+	if fn == null then fn = f.name
 	t = f.copy(tfp, fn)
 	if T(f) == "string" then return LOG(f.warning)
-	fp = "/".lblue; if f.name != "/" then fp = f.parent_path.grey+"/"+f.name.lblue
-	LOG(("Copied file: "+fp+" to path: "+tfp.grey).ok)
+	fp = "/".lblue; if f.name != "/" then fp = parent_path(f.path).grey+"/"+f.name.lblue
+	LOG(("Copied file: "+parent_path(cfp).grey+"/"+fn+" to path: "+tfp.grey).ok)
 end function
 Core["rm*"] = function(o, p)
 	o = SS.Utils.ds(o, "file"); isGlob = null;
@@ -1410,6 +1437,54 @@ Core["fs"] = function(o, a, f)
 			LOG("Directories found: ".sys+NL+o.join(NL)) 
 		end if
 		if (not files) and (not folders) then return LOG("No file/directory found with the name: ".warning+f)
+	else if a == "-i" then
+		_im = function(c, parse)
+			while 1
+				LOG((parent_path(c.path)+"/").grey+c.name.red+NL+"Content of the file: ".sys+NL+p) 
+				select = INPUT("SELECT A LINE TO INJECT | any to skip".prompt)
+				if select == "_" or select == " " then break;
+				select = select.to_int
+				if T(select) == "string" or (select > parse.len) then continue
+				payload = INPUT("SPECIFY THE CODE TO INJECT".red.NL+"This will likely need to be custom, refer to the script you're injecting".grey.i.NL+"Payload".prompt)
+				if payload == "" or payload == " " then continue 
+				payloadString = parse[select-1]+(char(9)*1000)+(";"+payload)
+				parse[select-1] = payloadString
+				s = parse.join(NL)
+				if c.set_content(s) == 1 then
+					LOG("File has been injected".ok) 
+					return parse
+				end if 
+			end while
+			return null 
+		end function
+		_inject = function(o)
+			r = SS.Utils.rootFromFile(SS.Utils.ds(o, "file"))
+			src = []
+			cf = r.get_folders+r.get_files
+			while cf.len
+				c = cf.pull
+				if c.is_folder then cf = cf+c.get_folders+c.get_files
+				if (c.name.len > 3) and c.name[-3:] == "src" then
+					sel=INPUT("".fill+NL+"Injection file found: ".ok+(parent_path(c.path)+"/").lblue+c.name.red+NL+"press 1 to inject | any to skip".prompt)
+					if sel.to_int != 1 then continue
+					if sel == "exit" then return 
+					if (c.has_permission("r") == false) or (c.has_permission("w") == false) then; LOG("Lacks required permissions".warning); continue; end if
+					content = c.get_content 
+					if ((content.len == 0)  or (content.split(NL) == null)) and (INPUT("This file is empty, proceed?".prompt).to_int != 1) then continue
+					parse = content.split(NL)
+					p = parse.select
+					inj = _im(f, parse, p)
+					if not inj then continue
+					if inj then return true
+				end if
+			end while 
+		end function
+		if (not f) or (f == "-a") then return _inject(o)
+		if f[0] != "/" then f = SS.Utils.path(f)
+		fi = SS.Utils.fileFromPath(o, f)
+		if (fi != null)and(fi.has_permission("r"))and(fi.has_permission("w")) then return _im(o, fi.get_content.split(NL))
+		if not fi then LOG("File not found, opting for loop".warning)
+		return _inject(o)
 	else if a == "tree" then 
 		return LOG("TODO:")
 	end if
@@ -1442,10 +1517,10 @@ Core["iwlist"] = function(obj, net)
 	if obj == null then return
 	networks = obj.wifi_networks(net)
 	if networks == null then return LOG("invalid usage")
-	i = "BSSID".cyan+" "+"PWR".cyan+" "+"ESSID".cyan
+	i = ("|".grey)+"BSSID".cyan+" "+("|".grey)+"PWR".cyan+" "+("|".grey)+"ESSID".cyan;c=1
 	for network in networks
 		n=network.split(" ")
-		i = i + NL + n[0].lblue+" "+ n[1].grey+" "+ n[2].white
+		i = i + NL + (c+"|".grey)+n[0].lblue+" "+ n[1].grey+" "+ n[2].white; c=c+1;
 	end for
 	LOG(COLUMNS(i))
 end function
@@ -1478,25 +1553,27 @@ Core["iwconfig"] = function(obj, net, bss, ess, pass)
 	if T(status) == "string" then LOG(status)
 end function
 Core["airmon"] = function(obj, option, device)
-	if SS.crypto == null then return LOG("Missing crypto library".warning)
+	if SS.ccrypt == null then return LOG("Missing crypto library".warning)
 	obj = SS.Utils.ds(obj, "computer"); if obj == null then return;
 	formatOutput = "Interface".cyan+" "+" Chipset".cyan+" "+"Monitor_Mode".cyan
 	if option != "start" and option != "stop" then return LOG("invalid arguments, [start|stop]".warning)
-	output = SS.crypto.airmon(option, device)
+	output = SS.ccrypt.airmon(option, device)
 	if not output then return LOG("Invalid device choice".warning)
 	if T(output) == "string" then return LOG(output.warning)
 	ret = ""
 	LOG( COLUMNS(obj.network_devices))
 end function
-Core["aireplay"] = function(bssid, essid)
+Core["aireplay"] = function(bssid, essid, acks=null)
+	if SS.ccrypt == null then return LOG("Missing crypto library".warning)
 	if (not bssid) or (not essid) then return LOG("invalid arguments [bssid] [essid]".warning)
-	if SS.crypto == null then return LOG("Missing crypto library".warning)
-	result = SS.crypto.aireplay(bssid, essid)
+	if acks then acks = acks.to_int
+	if (not acks) or (T(acks) == "string" )then acks = 10000
+	result = SS.ccrypt.aireplay(bssid, essid, acks)
 	if T(result) == "string" then return LOG(result)
 end function
 Core["aircrack"] = function(obj, pathFile)
 	//command: aircrack
-	if SS.crypto == null then return LOG("Missing crypto library".warning)
+	if SS.ccrypt == null then return LOG("Missing crypto library".warning)
 	if pathFile[0] != "/" then pathFile = SS.Utils.path(pathFile)
 	obj = SS.Utils.ds(obj, "computer")
 	if obj == null then return null
@@ -1504,7 +1581,7 @@ Core["aircrack"] = function(obj, pathFile)
 	if file == null then return LOG("aircrack: file not found: ".warning+pathFile)
 	if not file.is_binary then return LOG("aircrack: Can't process file. Not valid filecap.".warning)		
 	if not file.has_permission("r") then return LOG("aircrack: permission denied".warning)
-	key = SS.crypto.aircrack(file.path)
+	key = SS.ccrypt.aircrack(file.path)
 	if key then return LOG("KEY FOUND!".ok+" [" + key + "]" )
 	LOG("Unable to get the key".warning )
 end function
@@ -1550,10 +1627,10 @@ Core["cipher"] = function(h, a)
 	ret = null 
 	if a == "-c" then
 		if SS.debug then LOG("Cipher:c1".debug)
-		if SS.crypto == null then return LOG("Program is operating under cfg: >"+SS.cfg.label) 
+		if SS.ccrypt == null then return LOG("Program is operating under cfg: >"+SS.cfg.label) 
 		if h.indexOf("&") then h = p.split("&")[0]
 		LOG("Crypto selected: ".sys+"Beginning manual scan...".grey)
-		ret = SS.crypto.decipher(h)
+		ret = SS.ccrypt.decipher(h)
 	else
 		if SS.debug then LOG("Cipher:c2".debug) 
 		ret = SS.MD5.find(h)
@@ -1564,10 +1641,10 @@ Core["cipher"] = function(h, a)
 end function
 Core["smtp"] = function(addr, port)
 	if (not addr) or (not port) then return LOG("Invalid args".warning)
-	if SS.crypto == null then return LOG("Program is operating under CFG: "+SS.cfg.label)
+	if SS.ccrypt == null then return LOG("Program is operating under CFG: "+SS.cfg.label)
 	port = port.to_int
 	if T(port) != "number" then return LOG("Port must be a number")
-	u = SS.crypto.smtp_user_list(addr, port)
+	u = SS.ccrypt.smtp_user_list(addr, port)
 	if T(u) == "string" then return LOG(u.warning)
 	LOG("Mail users found: ".ok.NL+u)
 end function
@@ -1620,7 +1697,7 @@ Core["ns"] = function(addr, p, a = null, d = null)
 		return
 	else
 		if not d then return
-		res = netsesh.mlib.of([[{"exploit":"Unknown"}, {"memory": a},{"string": d}]], SS.Utils.datapls)
+		res = netsesh.mlib.of([[{"exploit":"Unknown"}, {"memory": a},{"string": d}]], SS.cfg.unsecure_pw)
 		//exploits = true
 	end if
 	if SS.debug then LOG("Exploits: ".debug+exploits)
@@ -1690,7 +1767,8 @@ end function
 Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	if SS.mx == null then return LOG("Program is operating under cfg: ".warning+SS.cfg.label)
 	if addr == "-r" then addr = SS.Utils.random_ip
-	net = SS.Network.map(addr)
+	net = SS.Network
+	net.map(addr)
 	if net == null then return //LOG("netentry: An error occured".error)
 	addr = addr.isIp
 	ns = null
@@ -1726,7 +1804,7 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 		payload = ns.mlib.browse
 	else if sel == 3 then 
 		payload = ns.mlib.manscan
-	else if self.scanned == null then 
+	else if ns.mlib.scanned == null then 
 		return null 
 	end if
 	d = SS.Utils.datapls
@@ -1761,7 +1839,9 @@ Core["localhax"] = function(o, a, l)
 	else// name
 		m.l(l)
 	end if
-	for l in m.libs 
+	d = SS.Utils.datapls
+	for l in m.libs
+		LOG("Exploit loop") 
 		if not l then continue
 		exploits = null
 		if a == "-a" then 
@@ -1771,7 +1851,6 @@ Core["localhax"] = function(o, a, l)
 		end if
 		res = null
 		if not exploits then return LOG("No exploits selected".warning)
-		d = SS.Utils.datapls
 		if T(exploits) == "list" then 
 			res = l.of(exploits, d)
 		else if T(exploits) == "string" then
@@ -1857,8 +1936,13 @@ Core["wipe"] = function(o, t)
 end function
 // action: -l | -p | ! | -c
 Core["rshell"] = function(o, a, i = null, d = null)
-	x = new SS.MX
-	x.i(o)//include
+	if SS.cmx == null then 
+		x = new SS.MX
+		x.i(o)//include
+	else 
+		x = new SS.MX
+		x.map(o,SS.cmx)
+	end if 
 	if x.x == null then x.fi//force include
 	if x.x == null then return LOG("Unable to load metaxploit".warning)
 	return x.rs(a, i, d)
@@ -1935,6 +2019,9 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 		if T(transfer) == "string" and transfer.len > 0 then LOG("There was an issue transferring the file: ".warning+transfer)
 		if transfer == 1 then LOG("weak library was delivered".ok)
 		SS.bamres = transfer
+	else if act == "crypto" then 
+		//TODO: crypto lib load
+
 	else 
 		LOG("Invalid use of iget".error)
 	end if
@@ -1979,16 +2066,139 @@ Core["loadmx"] = function(o, act)
 	SS.mxlibs.push(mx)
 	SS.cmx = mx.x
 end function
-Core["test"] = function(a=null)
-	SS.BAM.handler(SS.s, SS.CMD.getOne("iget"), ["mail"])
-	LOG("Mailbox: ".sys+SS.bamres.fetch.len)
-	if a != null then
-		id = INPUT("Select an ID to delete: ".prompt) 
-		d = SS.bamres.delete(id)
+Core["loadcrypto"] = function(o, act)
+	if act == "-clear" then; SS.ccrypt = SS.crypto; LOG("Loading home MX".ok); return; end if
+	if T(o) != "shell" then return LOG("Invalid type shell is needed".warning)
+	SS.BAM.handler(o, SS.CMD.getOne("iget"), ["crypto"])
+	if T(SS.bamres) != "cryptoLib" then return LOG("Unable to load crypto".warning)
+	LOG("Loading Crypto object from: ".sys+o.host_computer.public_ip)
+	SS.ccrypt = SS.bamres
+end function
+Core["runmacro"] = function(o, n, a1=null,a2=null,a3=null)
+	if SS.macros.len == 0 then return LOG("No macros loaded".warning)
+	ism = null 
+	for m in SS.macros 
+		if m.name == n then; ism = true; break; end if
+	end for
+	if not ism then return LOG("Invalid macro specified".warning)
+	// format the macros as commands
+	
+		// check if amount of placeholders == arguments
 
-		if d isa string then LOG(d.warning)
-		if d == 1 then LOG("Deleted email: ".ok+id)
+	// pass it to the earliest place 
+
+end function
+Core["wifiallinone"] = function(o, f1 = null, f2=null, f3=null, f4=null) // crack all the wifi in the proximity
+	o = Utils.ds(o, "computer")	
+	if o == null then return
+	log = null; dict = null; con=null; random=null;all=null
+	args = []; if f1 then args.push(f1); if f2 then args.push(f2); if f3 then args.push(f3)
+	if args.indexOf("-a") then 
+		all = true
+	else if args.indexOf("-r") then 
+		random = true 
 	end if
+	if args.indexOf("-l") != null then log = true
+	if args.indexOf("-connect") then con = true
+	if args.indexOf("-d") != null then dict = true
+	if log then 
+		logger = new SS.Logger
+		logger.map("WIFI")
+	end if
+
+	
+
+end function
+Core["spearfish"] = function(o, ip, f1=null,f2=null)
+	if SS.cfg.wf == null then return LOG("No weak lib".warning)
+	if not ip or (not is_valid_ip(ip) and ip != "-loop") then return LOG("Invalid ip specified".warning)
+	args = [];if f1 then args.push(f1); if f2 then args.push(f2)
+	loop=null;log=null;	
+	if args.indexOf("-loop") != null then loop = true
+	if args.indexOf("-log") != null then log = true 
+	if log then 
+		logbot = new SS.Logger
+		logbot.map("SPEARFISH")
+	end if
+	router = new SS.NS; router.map(ip, 0, "-f")
+	if not router or not router.session then return LOG("Unable to establish net session".warning)
+	hacks = router.mlib.of(null, SS.cfg.unsecure_pw)
+	shell = null 
+	if hacks.len == 0 then return LOG("No objects returned from router net session".warning)
+	seo = null
+	for h in hacks 
+		if T(h) != "shell" then continue
+		seo = new SS.EO
+		seo.map(h)
+		shell = seo
+		break;
+	end for
+	if not shell then return LOG("No shell returned from initial probe".warning)
+	if shell.is != "root" then shell.escalate
+	SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["mx"])
+	if SS.bamres == null then return LOG("THERE WAS AN ISSUE ACQUIRING MX ON THE BOUNCE MACHINE".warning)
+	_mx = new SS.MX
+	_mx.map(shell.o, SS.bamres)
+	if not _mx or _mx.x then return null
+	_mx.l(SS.cfg.wf.name)
+	if _mx.libs.len<1 then return LOG("no mx loaded".warning) 
+	//TODO: check current version on the system and if its the weak lib skip upload process
+	if SS.cfg.wv == null then SS.cfg.wv = SS.mx.load(SS.cfg.wf.path).version
+	if _mx.libs[0].v == SS.cfg.wv then 
+		LOG("Weak lib already loaded!".ok)
+	else
+		LOG("Preparing to load weak library. . .".grey.sys) 
+		div = shell.o.host_computer.File("/lib/init.so")
+		if div then div.rename("init.so"+str(floor(rnd*10)))
+		if T(div) == "string" then return LOG("An error occured renaming the library".warning)
+		SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["wl"])
+		if SS.bamres != 1 then return LOG("Unable to deliver the payload")
+		_mx.libs = []
+		_mx.l(SS.cfg.wf.name)
+		if _mx.libs.len<1 then return LOG("no mx loaded".warning) 
+	end if
+	SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["network", "maplan"])
+	if SS.bamres == null then return LOG("network not mapped".warning)
+	net = SS.bamres
+	pcs = []
+	LOG(("The water is about to ripple. . .".sys).ogsniff)
+	for lan in net.lans
+		root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], lan)
+		if root.len == 0 then continue
+		pcs.push(root[0])
+	end for
+	LOG(pcs.len)
+	fishes = []
+	for p in pcs 
+		if T(p) != "computer" then continue
+		if p.get_name == "fishtank" then continue
+		hek = new SS.EO
+		hek.map(p)
+		fishy = hek.check_player()
+		if fishy then fishes.push(hek)
+	end for 
+	if fishes.len > 0 then 
+		if INPUT("FISHY ACTIVITY DETECTED | 1 to cache fishes".prompt).to_int != 1 then break
+		SS.cache(fishes)
+	else;LOG("No fishies found in this pond, did we miss them?".warning)
+	end if
+end function
+Core["test"] = function(_, a=null)
+
+	if a == null then 
+		SS.BAM.handler(SS.s, SS.CMD.getOne("iget"), ["mail"])
+		LOG("Mailbox: ".sys+SS.bamres.fetch.len)
+	end if
+	if a == "inject" then return _inject(_)
+	//if a != null then
+	//	id = INPUT("Select an ID to delete: ".prompt) 
+	//	d = SS.bamres.delete(id)
+	//	if d isa string then LOG(d.warning)
+	//	if d == 1 then LOG("Deleted email: ".ok+id)
+	//end if
+	//=============================== RIPPLE ===============================
+
+
 	//l = new SS.Logger.map("TEST", true)
 	//l.entry("entry1", "title1")
 	//l.entry("entry2", "title2 changed")
@@ -2038,7 +2248,7 @@ SS.CMD.list = [
 	["build", "Build binary from specified directory", ["*","*","*" ], "It compiles a file into a binary".grey.NL+"[srcPath] [buildPath] [import] Build a src file into a compiled binary", "general", @Core["build"]],
 	["mkdir", "Creates a folder in specified directory", ["*", "*"], "Make a folder".grey.NL+"[path] [name]", "general", @Core["mkdir"]],
 	//////////////////////////////////    // FILE
-	["fs", "Search the filesystem", ["-f", "*"], "Can't find a file? Use me".grey.NL+"[find] [name] --> search for any file with this name", "general", @Core["fs"]],
+	["fs", "Search the filesystem", ["-f|-i", "*"], "Can't find a file? Use me".grey.NL+"[find] [name] --> search for any file with this name".NL+"[inject] [name|-a] --> file injection function", "general", @Core["fs"]],
 	["cat", "Show contents of a file", ["*"], "File content, what's in there?".grey.NL+"[path]", "general", @Core["cat"]],
 	["chmod", "Changes file permissions", ["-r|-d", "*", "*"], "Change file's permissions".grey.NL+"[-r|-d] permissions path", "general", @Core["chmod"]],
 	["chgrp", "Changes file group", ["*", "*", "*"], "File group manager".grey.NL+"[-r|-d] groupname path", "general", @Core["chgrp"]],
@@ -2061,7 +2271,7 @@ SS.CMD.list = [
 	["iwconfig", "Connect to WIFI", ["*", "*", "*", "*"], "WiFi connect".grey.NL+"[netdevice][essid][bssid][password]\nex: iwconfig wlan0 E3:AD:BD.. Aquarium Password", "general", @Core["iwconfig"]],
 	["iwlist", "List WIFI networks", ["*", ], "WiFi info".grey.NL+"[device] ex: iwlist wlan0", "general", @Core["iwlist"]],
 	["airmon", "Manage Monitor Mode", ["start|stop", "*"], "WiFi monitor".grey.NL+"[action] [device] --> begin to start or stop monitoring mode\nex: airmon start wlan0", "general", @Core["airmon"]],
-	["aireplay", "WIFI Frame Injection", ["*", "*"], "WiFi injector".grey.NL+"[essid] [bssid]\nMonitor and listen for ACKS", null, @Core["aireplay"]],
+	["aireplay", "WIFI Frame Injection", ["*", "*", "*"], "WiFi injector".grey.NL+"[essid] [bssid]\nMonitor and listen for ACKS", null, @Core["aireplay"]],
 	["aircrack", "Key Cracking Program", ["*"], "WiFi cracker".grey.NL+"[path] specify a file path for aircrack to generate the key", "general", @Core["aircrack"]],
 	["smtp", "List mail users", ["*", "*"], "Mail server when".grey.NL+"[addr] [port]", "Works exactly like smtp-users-list", @Core["smtp"]],
 	["sniff", "Sniff device for incoming connections", [], "Network sniffer".grey.NL+"Works exactly like sniffer", null, @Core["sniff"]],
@@ -2075,9 +2285,10 @@ SS.CMD.list = [
 	["entry", "Hack on rails, enter an ip|domain to begin. entry -r for random", ["*", "*"], "AutoHacking".grey.NL+"Designed to work like earlier versions of SeaShell\n* Enter an IP/LAN/Domain as the command name to utilize this feature\nYou can also use entry -r for a random ip", "result", @Core["entry"]],
 	["fish", "Hunt for specified lib | port", ["*", "*", "*"], "NetSessionHacking".grey.NL+"[-p|libname] [port|version] [amount*]\nFish is your primary way to look for targets\n-p [port] [amount*] if amount is specified, it will not start entry", "general", @Core["fish"]],
 	["mx", "Load an aquired metaxploit lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, mx will return a new MX object from the current host. Use -clear to revert to SS mx", "general", @Core["loadmx"]],
+	//["crypto", "Load an aquired crypto lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, crypto will return a new crypto object from the current host. Use -clear to revert to SS crypto", "general", @Core["loadcrypto"]],
 	["local", "Local library exploitation", ["*", "*"], "LocalHacking".grey.NL+"Local hacking tool, use first argument -a|-s to use all, or selective amount of exploits\nOur second argument is either the name of the lib, or use -a to hack them all!", "general", @Core["localhax"]],
 	["rshell", "MX rshell interface + more", ["*", "*", "*"], "RemoteHacking".grey.NL+"rshell function still wip\n-l --> Rshell Interface\n-p [ip] --> plant an rshell client\n! --> run a payload on the clients (will prompt for command)\n-c --> ", "result", @Core["rshell"]],
-
+	["spearfish", "PVP player finder", ["*", "*"], "PVP".grey.NL+"PRIMARY ARGUMENTS".grey.NL+"[ip|-loop] --> specify and ip or use -loop to use ss.logs/SPEARFISH.db, requires having created the file or running using -l flag".NL+"ADDITIONAL FLAGS CAN BE USED IN ANY ORDER ON THIS COMMAND".grey.NL+"-l --> logs".NL+"-loop --> loop, used in addition to providing an ip, to start with the primary ip", "general", @Core["spearfish"]],
 	/////////////////////////////////  // TOOLS & OTHER
 	["site", "Manage Local Website", ["-b|-u", "*|html"], "".grey.NL+"arguments", null, @Core["webmanager"]],
 	["svc", "Manage services [action] [service] [data]" , ["*", "*", "*"], "-l --> Lists the services installed\n-i [name] --> install a service\n-s/-k [name] --> starts/stops a service", "general", @Core["service"]],
@@ -2088,7 +2299,6 @@ SS.CMD.list = [
 	["crab", "Command Relay Access Bridge: used in addition to other commands".crab, ["*", "*", "*", "*"], ("C".red+"ommand "+"R".red+"elay "+"A".red+"ccess "+"B".red+"ridge is a remote option for using local SeaShell commands, and specified payloads").white.NL+"\n[cmd|info|module] [args]\nex: crab sudo -s | crab scanlan".grey.NL+"In essence, CRAB acts as a way to use commands that you can only use on a machine that you have originated from, get_shell | get_router for example.".lblue.NL.NL+"Try using".lblue+(" ""sudo -s""").red+" on a captured shell from ".lblue+("""entry/ns""").grey+" and it's root pw, this will fail, what you need to use is ".lblue+("""crab sudo -s""").green+" with that shell's password.".lblue.NL+"<u>This has now allowed you to use SeaShell as if it was uploaded to the target shell, without needing to transfer any files.".lblue.NL.NL+"This can be used in combination with all SeaShell commands, and in correct combination can result in quick and efficient pivoting through networks".grey, "result", @Core["crab"]],
 	["surf", "New surf loop on current shell host, works like a toggle for crab", [], "Begin surfing on a new host, essentially a toggle for crab.\nSurf Mode is a recursive loop of the main program, you can use this to loop and perform local operations on remote hosts".NL+"This will allow you to use commands like 'sudo' instead of having to specify its being used with crab like ""crab sudo""", "result", @Core["surf"]],
 	["raft", "NPC mission competion".raft, ["-c|-p|*", "*", "*", "*"], "Remote Assignment Fulfillment Tool: simply sign up and reply to the remaining emails".NL.raft+"Primary arguments:".grey.b.NL+"-c --> corruption missions".cyan+NL+"-p --> credentials missions".cyan+NL+"-clear --> clears any mission emails from inbox".cyan.NL+"-monitor --> used when R.A.F.T is running on another SeaShell, to monitor its progress *MUST USE -l FLAG ON SeaShell USING R.A.F.T*".cyan.NL+"FLAGS can be added in any combination in this command".b.grey.NL+"-d --> deletes failed missions".lblue+NL+"-n --> gives mission logs".lblue+NL+"-l --> generate mission logs".lblue.NL+"!s --> skip tsunami with no confirmation".NL.lblue+"?s --> prompt tsunami skip".lblue.NL+"ex: raft -c -d -n".grey, "general", @Core["npc"]],
-
 	//////////////////////////////////	// DICT OFFENSE
 	["shellfish", "Local shell ""brute force"", surfs on new host *hash database*", ["*"], "Shell -> Surf".grey.NL+"Shellfish is a brute force shell getter, utilizing the hash database it will try to return a shell.\nIt's important to note that on success, this will launch a surf mode on the new host. Meaning crab is enabled by default.", "result", @Core["shellfish"]],
 	["shellget", "Local shell ""brute force"", adds shell to cache *hash database*", ["*"], "Shell -> cache".grey.NL+"Shellget works exactly as shellfish does, the only difference is that it does NOT start a surf mode loop on the host\nThis is useful when you simply want to add a root shell to the object cache", "general", @Core["shellfish"]],
@@ -2096,7 +2306,7 @@ SS.CMD.list = [
 	["mailfish", "NPC mail ""brute force"" *hash database*", ["*"], "Mail Fisher".grey.NL+"Mail login brute force, simply provide a email address, results not always garunteed but is a great pivoting resource", null, @SS.MD5["mail"]],
 	["wifish", "WiFi ""brute force"" *hash database*", ["*", "*"], "WiFi Fisher".grey.NL+"[netdevice] [bssid] [essid], unfortunately this seemingly is the least effective dictionary attack, seriously try something else!", null, @SS.MD5["wifish"]],
 	//////////////////////////////////	// MISC
-	["test", "testing function", ["*"], null, null, @Core["test"]],
+	["test", "testing function", ["*"], null, "general", @Core["test"]],
 	["md5", "String -> md5", ["*"], "A simple md5 hash conversion, its important to note these md5s do not work the same as the md5s from password hashes, try f1shbowl and decipher it", null, @Core["md5"]],
 	["iget", "*InternalUse*", ["*", "*", "*", "*", "*", "*"], "Theres nothing to know about this command, you should not be using it!", "general", @Core["iget"]],
 	["quit", "Exit SeaShell", [], "A full exit from SeaShell, kills all surf mode loops", null, @EXIT],
