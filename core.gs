@@ -39,6 +39,7 @@ SS.cfg.burnmailpw = "Bitch"
 SS.cfg.mailacct = "mail@bolds.net"
 SS.cfg.mailpw = "mail"
 SS.cfg.hackip = "214.85.237.165"
+SS.cfg.repoip = "214.85.237.165"//TODO: add to config
 SS.cfg.dat = null // data file
 SS.cfg.macros = null // macro folder
 SS.cfg.wf = null // weak lib file
@@ -2021,6 +2022,8 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 		SS.bamres = transfer
 	else if act == "crypto" then 
 		//TODO: crypto lib load
+		crpyto = SS.Utils.hasLib(o, "crypto.so")
+		if crypto == null then return null
 
 	else 
 		LOG("Invalid use of iget".error)
@@ -2136,10 +2139,9 @@ Core["spearfish"] = function(o, ip, f1=null,f2=null)
 	if not shell then return LOG("No shell returned from initial probe".warning)
 	if shell.is != "root" then shell.escalate
 	SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["mx"])
-	if SS.bamres == null then return LOG("THERE WAS AN ISSUE ACQUIRING MX ON THE BOUNCE MACHINE".warning)
+	if T(SS.bamres) != "MetaxploitLib" then return LOG("THERE WAS AN ISSUE ACQUIRING MX ON THE BOUNCE MACHINE".warning)
 	_mx = new SS.MX
 	_mx.map(shell.o, SS.bamres)
-	if not _mx or _mx.x then return null
 	_mx.l(SS.cfg.wf.name)
 	if _mx.libs.len<1 then return LOG("no mx loaded".warning) 
 	//TODO: check current version on the system and if its the weak lib skip upload process
@@ -2285,7 +2287,7 @@ SS.CMD.list = [
 	["entry", "Hack on rails, enter an ip|domain to begin. entry -r for random", ["*", "*"], "AutoHacking".grey.NL+"Designed to work like earlier versions of SeaShell\n* Enter an IP/LAN/Domain as the command name to utilize this feature\nYou can also use entry -r for a random ip", "result", @Core["entry"]],
 	["fish", "Hunt for specified lib | port", ["*", "*", "*"], "NetSessionHacking".grey.NL+"[-p|libname] [port|version] [amount*]\nFish is your primary way to look for targets\n-p [port] [amount*] if amount is specified, it will not start entry", "general", @Core["fish"]],
 	["mx", "Load an aquired metaxploit lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, mx will return a new MX object from the current host. Use -clear to revert to SS mx", "general", @Core["loadmx"]],
-	//["crypto", "Load an aquired crypto lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, crypto will return a new crypto object from the current host. Use -clear to revert to SS crypto", "general", @Core["loadcrypto"]],
+	["crypto", "Load an aquired crypto lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, crypto will return a new crypto object from the current host. Use -clear to revert to SS crypto", "general", @Core["loadcrypto"]],
 	["local", "Local library exploitation", ["*", "*"], "LocalHacking".grey.NL+"Local hacking tool, use first argument -a|-s to use all, or selective amount of exploits\nOur second argument is either the name of the lib, or use -a to hack them all!", "general", @Core["localhax"]],
 	["rshell", "MX rshell interface + more", ["*", "*", "*"], "RemoteHacking".grey.NL+"rshell function still wip\n-l --> Rshell Interface\n-p [ip] --> plant an rshell client\n! --> run a payload on the clients (will prompt for command)\n-c --> ", "result", @Core["rshell"]],
 	["spearfish", "PVP player finder", ["*", "*"], "PVP".grey.NL+"PRIMARY ARGUMENTS".grey.NL+"[ip|-loop] --> specify and ip or use -loop to use ss.logs/SPEARFISH.db, requires having created the file or running using -l flag".NL+"ADDITIONAL FLAGS CAN BE USED IN ANY ORDER ON THIS COMMAND".grey.NL+"-l --> logs".NL+"-loop --> loop, used in addition to providing an ip, to start with the primary ip", "general", @Core["spearfish"]],
