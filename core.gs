@@ -395,7 +395,7 @@ SS.getDb = function
 	SS.dbl = SS.Utils.hasFolder(SS.s, "ss.logs")
 	if T(SS.dbl) != "file" then;LOG("Logger not loaded".grey.sys);else; LOG("Loaded logger: ".ok+SS.dbl.path); end if;
 	SS.cfg.wf = SS.Utils.fileFromPath(SS.s, p)
-	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.path);if SS.mx then;SS.cfg.wv=SS.mx.load(SS.wf.path).version;end if; end if;
+	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.path);if SS.mx then;SS.cfg.wv=SS.mx.load(SS.cfg.wf.path).version;end if; end if;
 	if (SS.dbe == null and SS.dbh == null) then return LOG("Database was not configured".warning)
 	if SS.dbe != null then
 		for each in SS.dbe.get_folders 
@@ -639,7 +639,7 @@ SS.setUserConfig = function(act, flag=null, p = null)
 		if flag == "-b" then
 			run = @SS["setDat"] 
 			p = "ss.dat"
-			d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"apiIp=null"+NL+"apiMemZone=null"+NL+"apiMemVal=null"+NL+"hackShopIp=214.85.237.165"+NL+"weakMemZone=null"+NL+"weakMemAddr=null"
+			d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"apiIp=null"+NL+"apiMemZone=null"+NL+"apiMemVal=null"+NL+"hackShopIp=214.85.237.165"+NL+"hackRepoIp=214.85.237.165"+NL+"weakMemZone=null"+NL+"weakMemAddr=null"
 		else 
 			return SS.cfgDat(flag, p)
 		end if
@@ -694,19 +694,20 @@ SS.setDat = function(data)
 			end if
 		else if p[0] == "oldArtMode" then 
 			if p[1].to_int == 1 then SS.og = true else SS.og = false
+		else if p[0] == "hackShopIp" then 
+			SS.cfg.hackip =  p[1]
+		else if p[0] == "hackRepoIp" then 
+			SS.cfg.repoip =  p[1]
+		else if p[0] == "weakMemZone" then 
+			SS.cfg.wm =  p[1]
+		else if p[0] == "weakMemAddr" then 
+			SS.cfg.wa =  p[1]
 		else if p[0] == "apiIp" then 
 			SS.Server.API.ip = p[1]
 		else if p[0] == "apiMemZone" then 
 			SS.Server.API.memzone = p[1]
 		else if p[0] == "apiMemVal" then 
 			SS.Server.API.memval = p[1]
-		else if p[0] == "hackShopIp" then 
-			SS.cfg.hackip =  p[1]
-		//TODO: add to config file build
-		else if p[0] == "weakMemZone" then 
-			SS.cfg.wm =  p[1]
-		else if p[0] == "weakMemAddr" then 
-			SS.cfg.wa =  p[1]
 		end if
 	end for 
 end function
@@ -743,6 +744,9 @@ SS.cfgDat = function(item, change)
 			edit = i; break;
 		else if item == "hackip" and p[0] == "hackShopIp" then
 			label = "hackshop ip"
+			edit = i; break;
+		else if item == "repoip" and p[0] == "hackRepoIp" then
+			label = "repository ip"
 			edit = i; break;
 		else if item == "weak1" and p[0] == "weakMemZone" then
 			label = "weak library memory zone"
@@ -2197,9 +2201,87 @@ Core["test"] = function(_, a=null)
 	//	if d isa string then LOG(d.warning)
 	//	if d == 1 then LOG("Deleted email: ".ok+id)
 	//end if
+	_n = function
+		if split(_.host_computer.show_procs, "Notepad").len > 1 then return 1
+		return null
+	end function
+	if not _n then return LOG("Open Notepad for resmon".warning)
 	//=============================== RIPPLE ===============================
-
-
+	ROOTED = null
+	while ROOTED == null
+		if not _n then break
+		if SS.cfg.wf == null then return LOG("No weak lib".warning)
+		if not ip or (not is_valid_ip(ip) and ip != "-loop") then return LOG("Invalid ip specified".warning)
+		args = [];if f1 then args.push(f1); if f2 then args.push(f2)
+		loop=null;log=null;	
+		if args.indexOf("-loop") != null then loop = true
+		if args.indexOf("-log") != null then log = true 
+		if log then 
+			logbot = new SS.Logger
+			logbot.map("SPEARFISH")
+		end if
+		router = new SS.NS; router.map(SS.Utils.random_ip, 0, "-f")
+		if not router or not router.session then return LOG("Unable to establish net session".warning)
+		hacks = router.mlib.of(null, SS.cfg.unsecure_pw)
+		shell = null 
+		if hacks.len == 0 then return LOG("No objects returned from router net session".warning)
+		seo = null
+		for h in hacks 
+			if T(h) != "shell" then continue
+			seo = new SS.EO
+			seo.map(h)
+			shell = seo
+			break;
+		end for
+		if not shell then return LOG("No shell returned from initial probe".warning)
+		if shell.is != "root" then shell.escalate
+		SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["mx"])
+		if T(SS.bamres) != "MetaxploitLib" then return LOG("THERE WAS AN ISSUE ACQUIRING MX ON THE BOUNCE MACHINE".warning)
+		_mx = new SS.MX
+		_mx.map(shell.o, SS.bamres)
+		_mx.l(SS.cfg.wf.name)
+		if _mx.libs.len<1 then return LOG("no mx loaded".warning) 
+		//TODO: check current version on the system and if its the weak lib skip upload process
+		if SS.cfg.wv == null then SS.cfg.wv = SS.mx.load(SS.cfg.wf.path).version
+		if _mx.libs[0].v == SS.cfg.wv then 
+			LOG("Weak lib already loaded!".ok)
+		else
+			LOG("Preparing to load weak library. . .".grey.sys) 
+			div = shell.o.host_computer.File("/lib/init.so")
+			if div then div.rename("init.so"+str(floor(rnd*10)))
+			if T(div) == "string" then return LOG("An error occured renaming the library".warning)
+			SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["wl"])
+			if SS.bamres != 1 then return LOG("Unable to deliver the payload")
+			_mx.libs = []
+			_mx.l(SS.cfg.wf.name)
+			if _mx.libs.len<1 then return LOG("no mx loaded".warning) 
+		end if
+		SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["network", "maplan"])
+		if SS.bamres == null then return LOG("network not mapped".warning)
+		net = SS.bamres
+		pcs = []
+		LOG(("The water is about to ripple. . .".sys).ogsniff)
+		for lan in net.lans
+			root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], lan)
+			if root.len == 0 then continue
+			pcs.push(root[0])
+		end for
+		LOG(pcs.len)
+		fishes = []
+		for p in pcs 
+			if T(p) != "computer" then continue
+			if p.get_name == "fishtank" then continue
+			hek = new SS.EO
+			hek.map(p)
+			fishy = hek.check_player()
+			if fishy then fishes.push(hek)
+		end for 
+		if fishes.len > 0 then 
+			//if INPUT("FISHY ACTIVITY DETECTED | 1 to cache fishes".prompt).to_int != 1 then break
+			SS.cache(fishes)
+		else;LOG("No fishies found in this pond, did we miss them?".warning)
+		end if
+	end while 
 	//l = new SS.Logger.map("TEST", true)
 	//l.entry("entry1", "title1")
 	//l.entry("entry2", "title2 changed")
