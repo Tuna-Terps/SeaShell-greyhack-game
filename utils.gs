@@ -898,6 +898,43 @@ SS.Utils.secure = function(o, a)
         end if
     end if
 end function
+SS.Utils.webmanager = function(o, f)
+    FFP = @SS.Utils.fileFromPath
+    if f == "-b" then 
+        if SS.Utils.user(o) != "root" then return LOG("Requires root permission, for shells use sudo".warning)
+        o = SS.Utils.ds(o, "computer")
+        if not o then return
+        p = FFP(o, "/Public")
+        if not p then o.create_folder("/", "Public")
+        p = FFP(o, "/Public"); if not p then return LOG("Failed to create Public folder".warning)
+        p2 = FFP(o, "/Public/htdocs")
+        if not p2 then o.create_folder("/Public", "htdocs")
+        p2 = FFP(o, "/Public/htdocs"); if not p2 then return LOG("Failed to create htdocs folder".warning)
+        p3 = FFP(o, "/Public/htdocs/downloads")
+        if not p3 then o.create_folder("/Public/htdocs", "downloads")
+        p3 = FFP(o, "/Public/htdocs/downloads"); if not p3 then return LOG("Failed to create downloads folder".warning)
+        p4 = FFP(o, "/Public/htdocs/website.html")
+        if not p4 then o.touch("/Public/htdocs", "website.html")
+        p4 = FFP(o, "/Public/htdocs/website.html"); if not p4 then return LOG("Failed to create html file".warning)
+        p.chmod("o-wrx", 1)
+        p.set_owner("root", 1)
+        p.set_group("root", 1)
+        if ["bank","isp","bank"].indexOf(f) == null return LOG("Build success - Invalid website template specified".warning)
+        if f == "bank" then pl = "<!DOCTYPE html>*<style type='text/css'>*h1 { font-size: 40px; text-align: center}*body { font: 12px Helvetica, sans-serif; color: #333; margin:0; overflow-y:auto; height:100%; }*.btn {*background-color: #072C3F;*border: 1px solid #4B4B4B;*color: white;*padding: 8px 8px;*font-size: 18;*width: 130px; *}*.btn-group button:hover {*background-color: #137AACFF;*}**article { display: block; text-align: left; width: 600px; margin: 0 auto; }*html{*background-color: white;*height:100%;*}*.btn-group{*text-align: center;*}*.logo{*text-align: center;*padding: 10px;*}*img{*display: block;*margin: 0 auto;*}*</style>*<div style='background-color:#4A6470;color:white;padding:11px;'>*<font size='30'>Eners</font>*</div>*<div style='background-color:#00445A;color:white;padding:5px;'>*<div class='btn-group'>*<button type='button' class='btn btn-primary' id='Home'>Home</button>*<button type='button' class='btn btn-primary' id='RegisterBank'>Register</button>*<button type='button' class='btn btn-primary' id='LoginBank'>Login</button>*</div>*</div>*<article>*<div class='logo text-center'>*<p>*Do you need a reliable bank to store your money?@In Eners we have the solution.*</p>*<img src='bank.png' width='120' height='120' align='center'>*</div>*</article>*"
+        if f == "isp" then pl = "<!doctype html>**<style>*h1 { font-size: 16px; text-align: center; color: grey;}*p { color: whitesmoke; }*body { font: 20px Helvetica, sans-serif; color: #333; margin:0; overflow-y:auto; height:100%; }*.btn {*background-color: #006699;*border: 1px solid grey;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}*article { display: block; text-align: left; width: 600px; margin: 0 auto; }* html{*background-color: #10063D;*height:100%;*}*.btn-sel{*background-color: #008CD1;*}*.btn-group button:hover {*background-color: #008CD1;*}*.btn-group{*padding-top: 4px;*}*.logo{*text-align: center;*padding: 10px;*}*img{*display: block;*margin: 0 auto;*}*</style>*</div>*<div padding:11px;'>*<div class='btn-group' style='text-align: center;'>*<button type='button' class='btn btn-primary' id='Home'>Main</button>*<button type='button' class='btn btn-primary' id='ISPConfig'>Services</button>*</div>**</div>*<article>*<div class='logo text-center'>*<p><i>*Lucentan. The Internet Provider Service designed for you!*<font size=13>*@ Rental servers available*@ Cancel your subscription at any time*@ Subscription is paused when you don't use it*</font>*</i></p>*<img src='isp.jpg' width='440' height='180' align='center'>@*</div>*</article>*".replace("@","<br"+">")
+        if f == "hack" then pl = "<!DOCTYPE html>*<style type='text/css'>**body { font: 12px Helvetica, sans-serif; margin:0; overflow-y:auto; height:100%; }**html{*background-color: #131c23;*height:100%;*margin:0; overflow-y:auto;*}**.hackshop {*text-align: center;*    padding: 100px;*padding-top: 25px;*}**.btn {*background-color: #151515;*border: 1px solid #2b4f4f;*color: white;*padding: 8px 8px;*text-align: center;*text-decoration: none;*display: inline-block;*font: 18;*width: 130px;*}**.btn-group{*padding-top: 4px;*}**.btn-sel{*background-color: #2b2b2b;*}*.btn-group button:hover {*background-color: #2b2b2b;*}*</style>*<div class='btn-group' style='text-align: center;'>*<button type='button' class='btn btn-primary btn-sel' id='Main'>Main</button>*<button type='button' class='btn btn-primary' id='HackShopTools'>Tools</button>*<button type='button' class='btn btn-primary' id='HackShopExploits'>Exploits</button>*<button type='button' class='btn btn-primary' id='Jobs'>Jobs</button>*</div>**<div class='hackshop'>*<img src='gecko.png' width='80' height='80' align='center'>*<p style='font-size:18px;'>HackShop</p>*<p>Welcome to my personal store. Buy what you want, I will not ask questions.</p>*</div>*".replace("@","<br"+">")
+        pl = pl.replace("*",char(10)).replace("'","""")
+        if p4.set_content(pl) == 1 then LOG("Saved HTML".ok) else LOG("Issue occured saving HTML".warning)
+    else if f == "-d" then 
+        p = FFP(o, "/Public"); 
+        if (p != null) and( p.delete.len < 1) then
+            h = include_lib("/lib/libhttp.so")
+            if T(h) == "Service" then h.stop_service 
+            return LOG("Public folder removed".ok)
+        end if
+    else;LOG("Invalid argument".warning) 
+    end if
+end function
 ///======================== Menu =========================////
 SS.Utils.menu = function(title, options, cb = null)
     LOG("Loading menu: ".sys+title)
@@ -1156,7 +1193,9 @@ SS.Network.drop = function(ip)
     end for
 end function
 // [ { "t:": type, "v": version "lan": lan, "essid":, "bssid":, "rules:" "devices": [ {"lan":lan, "ports":[] }]} ]
-SS.Network.maplan = function
+SS.Network.maplan = function(self)
+    self.mappedlan = null
+    self.lans = []
     ret = []
     devList = [];subs = [];c = 0;
     for device in get_router.devices_lan_ip
@@ -1275,6 +1314,7 @@ SS.Network.map = function(addr)
     self.router = v.r
     self.devices = v.r.devices_lan_ip
     self.services = []
+    self.lans = []
     if self.ip == null then self.ip = self.router.public_ip
     self.pingable = v.devices.len
     self.nmap = "LIBRARY".cyan+" "+"STATE".cyan+" "+"VERSION".cyan+" "+"LAN".cyan+" "+"PORT".cyan+NL    
@@ -1297,7 +1337,8 @@ SS.Network.map = function(addr)
     else 
         self.nmap = "No open ports found".warning
     end if
-    return self
+    ret = self
+    return ret
 end function
 SS.Network.scanlan = function
     if self.isLan == false then return LOG("Local use only".warning)
@@ -1458,7 +1499,7 @@ SS.Server.API.get = function(mx, cv)
     if not netSession then return 501
     metaLib = netSession.dump_lib
     if not metaLib then return 500
-    remoteShell = metaLib.overflow("0x28BF967B", "parame")
+    remoteShell = metaLib.overflow(self.wz, self.wa)
     if typeof(remoteShell) != "shell" then return 503
     api = {}
     api.classID = "RocketOrbit SecureAPI"
@@ -1519,6 +1560,40 @@ SS.Server.API.get = function(mx, cv)
     //all api method end
     return api
 end function
+///======================= CRYPTO =========================////
+SS.CRO = {}
+SS.CRO.o = null
+SS.CRO.c = null 
+SS.CRO.i = function(o, sw=null)
+    self.o = o
+    r = SS.Utils.rootFromFile(SS.Utils.ds(o, "file"))
+    cf = r.get_folders+r.get_files 
+    ret = null
+    while cf.len
+        f = cf.pull 
+        if f.is_folder then cf = cf+f.get_folders+f.get_files
+        if f.name == "crypto.so" then
+            ret = include_lib(f.path); break;
+        end if
+    end while
+    if ret == null then return LOG("Unable to find MX on this system".warning)
+    if not ret then return null
+    self.c = ret
+    return self
+end function
+SS.CRO.fi = function(o=null)
+    if T(self.o) != "shell" and (T(o) != "shell") then return null
+    ip = SS.cfg.repoip 
+    if ip == null then ip = SS.cfg.hackip
+    if not ip then ip = INPUT("Specify repo ip".prompt)
+    o.launch("/bin/apt-get", "update")
+    o.launch("/bin/apt-get", "addrepo "+ip)
+    o.launch("/bin/apt-get", "update")
+    o.launch("/bin/apt-get", "install crypto.so")
+    o.launch("/bin/apt-get", "delrepo "+ip)
+    self.i(o)
+    return self
+end function
 ///======================= METAXPLOIT =========================////
 SS.MX = {}
 SS.MX.x = null // metaxploitlib
@@ -1547,7 +1622,7 @@ SS.MX.i = function(o)// include
 end function
 SS.MX.fi = function(o, ip = null) // forced include
     if ip == null then ip = SS.cfg.hackip
-    if T(self.o) != "shell" then return null
+    if T(self.o) != "shell" and (T(o) != "shell") then return null
     if not ip then ip = INPUT("Specify repo ip".prompt)
     o.launch("/bin/apt-get", "update")
     o.launch("/bin/apt-get", "addrepo "+ip)
@@ -1586,7 +1661,7 @@ SS.MX.l = function(l = null)//
 end function
 SS.MX.map = function(o, x = null)
     self.x = x
-    if self.x == null and SS.cmx != null then self.x = SS.cmx
+    if (self.x == null) and (SS.cmx != null) then self.x = SS.cmx
     self.o = o
     self.lib = []
     self.rshells = []
@@ -1598,7 +1673,7 @@ end function
 SS.MX.rs = function(a, i = null, d = null)
     if not self.x then return null
     if a == "-l" then return self.rsCfg
-    if a then
+    if a == "-p" then
         if not d then d = self.rsn
         if not i then i = SS.rsip
         if not is_valid_ip(i) then return
@@ -1616,9 +1691,9 @@ SS.MX.rs = function(a, i = null, d = null)
     else if a == "-depo" then 
         if i == null then i = SS.cwd
         dir = SS.Utils.fileFromPath(self.o, SS.cwd+"/fishes")
-        if not file then self.o.host_computer.create_folder(SS.cwd, "fishes")
+        if not dir then self.o.host_computer.create_folder(SS.cwd, "fishes")
         dir = SS.Utils.fileFromPath(self.o, SS.cwd+"/fishes")
-        if not file then
+        if not dir then
             LOG("couldnt find fishes folder".warning) 
             return
         end if
@@ -1777,6 +1852,7 @@ SS.ML.n = null // metalib name
 SS.ML.v = null // metalib name
 SS.ML.scanned = null
 SS.ML.scanlabel = null
+SS.ML.results = []// batch of raw results
 SS.ML.hasScanned = function(lib, libV) 
     LOG("ML: <i>Searching db for library: ".grey.sys+lib+" "+libV)
     exploits = null
@@ -1975,6 +2051,7 @@ SS.ML.map = function(ml, flag, x)
     self.x = x
     self.scanlabel = "unknown".red
     self.scanned = self.get(ml)
+    self.results = []
     if self.scanned.get_content.len < 1 then
         LOG("ML: New library detected".sys) 
         r = null
@@ -2036,7 +2113,7 @@ SS.ML.of = function(vuln = null, data = null)// OVERFLOW, NO MAPPING
 end function
 SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
     if data == null then data = SS.cfg.unsecure_pw
-    ret = []
+    //ret = []
     _d = self.m
     _h = function(hack, data)
         if SS.debug then LOG("hack: ".debug+hack+NL+hack[1]["memory"]+" "+hack[2]["string"]+" "+data)
@@ -2046,21 +2123,17 @@ SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
         LOG((("["+"overflow".purple+"]").s+hack[1]["memory"].wrap.cap(hack[2]["string"].grey)))
         r = _d.overflow(hack[1]["memory"], hack[2]["string"], data)
         if r == null then 
-            s = "-- overflow result --> ".warning+"FAIL".red.b
-            if hack.len > 3 then s = s+NL+hack[3]["requirements"].i.grey//+NL+"".fill
-            LOG(s);return;
+            s = "-- overflow result --> ".warning+"FAIL".red.b;if hack.len > 3 then s = s+NL+hack[3]["requirements"].i.grey;
+            LOG(s)
+            return;
         end if 
-        if r != null then ret.push(r)
-        res = T(r)
-        LOG("Overflow resulted in: ".ok+res.green.b)
-        return r
+        self.results.push([hack, r])
+        LOG("Overflow resulted in: ".ok+T(res).green.b)
     end function
     if vuln == null then // overflow all values
         for hack in SS.EXP.format(self.scanned)
             if hack.len == 0 then continue
-            hackdata = _h(hack, data)
-            if not hackdata then continue
-
+            _h(hack, data)            
         end for
     else  // overflow specific values
         for v in vuln
@@ -2068,6 +2141,8 @@ SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
         end for
     end if
     return ret
+end function
+SS.ML.eval = function(self )
 end function
 SS.ML.browse = function(self)
     if self.scanned == null then return null
@@ -2115,7 +2190,6 @@ SS.ML.getBetterScan = function(l, v)
     if (ns == null )or (ns.session == null) then return null
     return true
 end function
-
 ///======================= NetSession =========================////
 SS.NS = {"exploits":[]}
 SS.NS.ip = null // public ip
@@ -2242,6 +2316,7 @@ SS.EO.map = function(o, ip = null, lan = null)
     self.type = T(o)
     self.users = []
     if self.type == "number" or self.type == "string" then return null
+    self.ln = null;self.lv=null;self.string="";self.label=null;self.mz=null;self.ma=null;
     if self.type != "file" then 
         self.pc = SS.Utils.ds(o, "computer")
     else 
@@ -2397,7 +2472,7 @@ SS.EO.mass_pw_change = function()
         p = self.pc.change_password(u, SS.cfg.unsecure_pw)
         if T(p) != "string" then r.push(1)
     end for
-    return (r.len == users.len)
+    return (r.len == self.users.len)
 end function
 SS.EO.weakget = function
     if self.type != "shell" or self.type != "ftpshell" then return null
