@@ -395,7 +395,7 @@ SS.getDb = function
 	SS.dbl = SS.Utils.hasFolder(SS.s, "ss.logs")
 	if T(SS.dbl) != "file" then;LOG("Logger not loaded".grey.sys);else; LOG("Loaded logger: ".ok+SS.dbl.path); end if;
 	SS.cfg.wf = SS.Utils.fileFromPath(SS.s, p)
-	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);if SS.mx then;SS.cfg.wv=SS.mx.load(SS.wf.path).version;end if;else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.path); end if;
+	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.path);if SS.mx then;SS.cfg.wv=SS.mx.load(SS.wf.path).version;end if; end if;
 	if (SS.dbe == null and SS.dbh == null) then return LOG("Database was not configured".warning)
 	if SS.dbe != null then
 		for each in SS.dbe.get_folders 
@@ -2191,7 +2191,6 @@ Core["test"] = function(_, a=null)
 		SS.BAM.handler(SS.s, SS.CMD.getOne("iget"), ["mail"])
 		LOG("Mailbox: ".sys+SS.bamres.fetch.len)
 	end if
-	if a == "inject" then return _inject(_)
 	//if a != null then
 	//	id = INPUT("Select an ID to delete: ".prompt) 
 	//	d = SS.bamres.delete(id)
