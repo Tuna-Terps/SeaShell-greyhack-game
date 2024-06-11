@@ -258,7 +258,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         return r_obj
     end function
     //TODO: wrap the file transfer in a launch, to catch IO errors
-    _ezb_old = function(eo, ss, tl)
+    _ezb = function(eo, ss, tl)
         if eo.type != "shell" then return null
         if T(SS.cfg.wf) != "file" then return null
         LOG("".fill+("Task: Easy Bounce with "+eo.lan.white).title)
@@ -310,7 +310,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
         end if
         return null
     end function
-    _ezb = function(eo, ss, tl)
+    _ezb_wonk = function(eo, ss, tl)
         if eo.type != "shell" then return null
         if T(SS.cfg.wf) != "file" then return null
         LOG("".fill+("Task: Easy Bounce with "+eo.lan.white).title)
