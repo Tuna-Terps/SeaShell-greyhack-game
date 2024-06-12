@@ -1443,7 +1443,7 @@ Core["fs"] = function(o, a, f)
 		end if
 		if (not files) and (not folders) then return LOG("No file/directory found with the name: ".warning+f)
 	else if a == "-i" then
-		_im = function(c, parse)
+		_im = function(c, parse,p)
 			while 1
 				LOG((parent_path(c.path)+"/").grey+c.name.red+NL+"Content of the file: ".sys+NL+p) 
 				select = INPUT("SELECT A LINE TO INJECT | any to skip".prompt)
