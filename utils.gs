@@ -302,6 +302,19 @@ SS.mutate = function
     string.asHex = function(self)
         return "<font=""LiberationSans SDF""><mark=#FFFFFF>"+self.black.b+"</color></mark></font>"
     end function
+    string.raftPic = function(self)
+        o=[
+            "                   "+"v".white+"  ~.      "+"v".white,
+            "          "+"v".white+"           /|",
+            "                     / |          "+"v".white,
+            "              "+"v".white+"     /__|__",
+            "                  \--------/",
+            "~~~~~~~~~~~~~~~~~~~".lblue+"`"+"~~~~~~".lblue+"'"+"~~~~~~~~~~~~~~~~~~~~~~~~".lblue,
+            self,
+        ]
+        if not SS.og then return self
+        return o.join(NL)
+    end function
     // ======== LISTS
     list.table = function(title)
         return self
@@ -935,6 +948,77 @@ SS.Utils.webmanager = function(o, f)
     else;LOG("Invalid argument".warning) 
     end if
 end function
+SS.Utils.getLaunchPoint = function(o,i=null)
+    sb=null;if not i then sb = true
+    while 1
+        ret = null
+        if not i then i = SS.Utils.random_ip
+        r0 = new SS.NS.map(i, 0 , "-f"); 
+        if not r0 or not r0.session then
+            if not sb then continue else return null 
+        end if
+        hs = r0.of(null, SS.cfg.unsecure_pw)
+        if hs.len == 0 then
+            if not sb then continue else return null 
+        end if
+        for h in hs 
+            if T(h) == "shell" then; ret = h; break; end if
+        end for
+        if not ret then continue
+        seo = new SS.EO; seo.map(ret)
+        if seo.is != "root" then seo.escalate
+        if seo.is != "root" then
+            if not sb then continue else return null 
+        end if
+        SS.BAM.handler(seo.o, SS.CMD.getOne("iget"), ["mx"])
+        if T(SS.bamres) != "MetaxploitLib" then
+            if not sb then continue else return null 
+        end if
+        _mx = new SS.MX
+        _mx.map(seo.o, SS.bamres)
+        if SS.cfg.wf == null then return seo
+        _mx.l(SS.cfg.wf.name)
+        if _mx.libs.len<1 then
+            if not sb then continue else return null 
+        end if
+        if SS.cfg.wv == null then SS.cfg.wv = SS.mx.load(SS.cfg.wf.path).version
+        if _mx.libs[0].v == SS.cfg.wv then 
+            LOG("Weak lib already loaded!".ok)
+        else
+            LOG("Preparing to load weak library. . .".grey.sys) 
+            div = seo.o.host_computer.File("/lib/"+SS.cfg.wf.name)
+            if div then div.rename(SS.cfg.wf.name+str(floor(rnd*10)))
+            if not div or T(div) == "string" then
+                if not sb then continue else return null 
+            end if
+            SS.BAM.handler(seo.o, SS.CMD.getOne("iget"), ["wl"])
+            if SS.bamres != 1 then return LOG("Unable to deliver the payload")
+            _mx.libs = []
+            _mx.l(SS.cfg.wf.name)
+            if _mx.libs.len<1 then 
+                if not sb then continue else return null
+            end if
+            return seo 
+        end if
+        if not sb then continue;break
+    end while
+    return null
+end function
+SS.Utils.getfs = function(o, p = null)
+    if T(o) != "file" then o = SS.Utils.ds(o, "file")
+    if o == null then return null
+    if o.name != "/" then o = SS.Utils.rootFromFile(o)
+    cf = o.get_files+o.get_folders 
+    out = []
+    while cf.len 
+        c = cf.pull 
+        if c.is_folder then cf = cf+c.get_folders+c.get_files
+        if not p then out.push(c)
+        if p == 1 then out.push(f.path)
+        if p == 2 then out.push(f.name)
+    end while
+    return out
+end function
 ///======================== Menu =========================////
 SS.Utils.menu = function(title, options, cb = null)
     LOG("Loading menu: ".sys+title)
@@ -1007,12 +1091,6 @@ SS.Phim.screen = []
 SS.Phim.file = null
 SS.Phim.rawTxt = null // the original content
 SS.Phim.parseTxt = null // the original content, split
-SS.Phim.arrow = function(i, l)
-    if (i == "LeftArrow") and (self.x > 0) then self.x = self.x-1
-    if (i == "RightArrow") and (self.x < l.len) then self.x = self.x+1
-    if (i == "UpArrow") and (self.y != 0) then self.y = self.y-1
-    if (i == "DownArrow") and (self.y > -1) then self.y = self.y+1
-end function
 SS.Phim.map = function(o)
     if T(o) != "file" then; LOG("Operation must either be with a file, path specified".warning); return null; end if
     self.x = 0 
@@ -1030,12 +1108,25 @@ SS.Phim.edit = function
     current_edit = null
     current_parse = null
     file = self.file
-    _header = function()
-        return LOG("|".lblue+"Editing: ".sys+file.path.lblue+NL+"|".lblue+"Escape: ".grey+"Exit without saving".NL+"|".lblue+"F1: ".grey+"Quit and save".NL+"|".lblue+"F2: ".grey+"Toggle insert mode *anykey*".NL+"|".lblue+"F3: ".grey+"Toggle paste mode *no anykey*")
+    cc = file.get_content.len
+    _header = function(cm)
+        if cm == 1 then 
+            c1 = ":q!" // quit without saving
+            c2 = ":wq" // write to file and quit
+            //c3 = ":w name" // write to seperate file
+            c3 = ":i" // insert before cursor, append maybe in the future
+            c4 = ":r" // refresh the page
+            //c4 = ":sh" // build launch and execute
+        else 
+            c1 = "ESC" // write to file and quit
+            c2 = "F1" // quit without saving
+            c3 = "F2" // insert before cursor, append maybe in the future    
+            c4 = "F3" // refresh the page
+        end if
+        return LOG("|".lblue+"Editing: ".sys+file.path.lblue+NL+"|".lblue+c1.grey+": ".white+"Exit without saving".NL+"|".lblue+c2.grey+": ".white+"Quit and save".NL+"|".lblue+c3.grey+": ".white+"Toggle mode".NL+"|".lblue+c4.grey+": ".white+"Refresh page content")
     end function
     _screen = function(p, x, y)// parse, x, y 
         out = []
-        // build the entire user screen of text
         c = 1
         for index in range(0, p.len-1)
             if index != y then out.push(c+".) "+p[index])
@@ -1063,22 +1154,23 @@ SS.Phim.edit = function
         // show the user where their cursor is with the hex charactor
         LOG("".fill+NL+out.join(NL)+NL+"".fill)
     end function
-    _footer = function(x,y)
-        return LOG("ln ".wrap("FFFFFF",5).cap(str(y+1))+"col".wrap("FFFFFF",5).cap(str(x))+"char".wrap("FFFFFF",5).cap(str(cc)))
+    _footer = function(x,y,c)
+        return LOG("ln ".wrap("FFFFFF",5).cap(str(y+1))+"col".wrap("FFFFFF",5).cap(str(x))+"char".wrap("FFFFFF",5).cap(str(c)))
     end function 
     while 1
         CLEAR() 
         if current_edit == null then current_edit = self.rawTxt
         if current_parse == null then current_parse = current_edit.split(NL)
+        if self.y > current_parse.len then self.y = current_parse.len-1
         current_line = current_parse[self.y]
         mutable_line = ""
         xlen = current_line.len
         ylen = current_parse.len
-        _header
+        _header(current_mode)
         _screen(current_parse,self.x,self.y)
-        _footer(self.x, self.y)
+        _footer(self.x, self.y, cc)
         if current_mode == 0 then // INSERT
-            uInput = INPUT("["+"INSERT".lblue+"]", 0, 1)
+            uInput = INPUT("["+"INSERT".lblue+"] "+"> ".lblue, 0, 1)
             if uInput == "Escape" then break
             if self.invalidInput.indexOf(uInput) != null then continue
             if self.arrowInput.indexOf(uInput) != null then 
@@ -1102,14 +1194,23 @@ SS.Phim.edit = function
             else if uInput == "F1" then 
                 return self.save_edit(current_parse)
             else if uInput == "F2" then
-                current_mode = 0
+                if current_mode == 1 then current_mode = 0 else current_mode = 1
                 continue
             else if uInput == "F3" then 
-                current_mode = 1
+                current_parse = self.file.get_content.split(NL)
                 continue
             end if
         else if current_mode == 1 then // PASTE
-            uInput = INPUT("["+"PASTE".purple+"]", 0, 1)
+            uInput = INPUT("["+"PASTE".purple+"] "+"> ".purple)
+            if uInput == ":q!" then break
+            if uInput == ":i" then 
+                current_mode = 0; continue
+            else if uInput == ":wq" then 
+                return self.save_edit(current_parse)
+            else if uInput == ":r" then 
+                current_parse = self.file.get_content.split(NL)
+                continue
+            end if
         end if
         char_index = 0
         if current_mode == 0 then 
@@ -1124,12 +1225,14 @@ SS.Phim.edit = function
                         mutable_line = mutable_line+" "
                     else 
                         mutable_line = mutable_line+uInput+chars
+                        cc = cc+1
                     end if
                 end if
                 char_index=char_index+1
             end for
         else
             mutable_line = current_line.insert(self.x, uInput)
+            cc = cc + uInput.len
         end if
         current_parse[self.y] = mutable_line
         current_parse.remove(self.y); current_parse.insert(self.y, mutable_line)
@@ -1469,6 +1572,17 @@ SS.Server.proxtunnel = function(o)
         if i == 3 then base.start_terminal
     end while
 end function
+SS.Server.dirtytunnel = function(o,a)
+    return LOG("wip".warning)
+    if T(o) != "shell" then return LOG("Need shell".warning)
+    start = SS.Utils.getLaunchPoint(o)
+    mut = null
+    while a > 0 
+        if not mut then mut = SS.Utils.getLaunchPoint(start) else mut = SS.Utils.getLaunchPoint(mut)
+        a=a-1 
+    end while
+    return mut
+end function
 SS.Server.API = {}
 SS.Server.API.memzone = null
 SS.Server.API.memval = null
@@ -1681,9 +1795,6 @@ SS.MX.rs = function(a, i = null, d = null)
         if plant == 1 then LOG("rshell client planted".ok)
         if T(plant) == "string" then LOG(plant.warning)
         return 
-    else if a == "!" then // launching payloads
-        if not d then d = INPUT("Specify command to connected rshell")
-        if d == " " or d == "" then return 
     else if a == "-c" then
         LOG("Attempting to locate reverse connections . . . ".sys) 
         self.rsGet
@@ -1697,23 +1808,13 @@ SS.MX.rs = function(a, i = null, d = null)
             LOG("couldnt find fishes folder".warning) 
             return
         end if
-        if self.rshells.len then self.rsGet
-        if self.rshells.len then return null
+        if self.rshells.len == 0 then self.rshells = self.rsGet
+        if self.rshells.len == 0 then return null
         for r in self.rshells 
-            dc = file.get_files.len
-            log = r.host_computer.File("/var/system.log")
-            if (not log) or (log.is_binary == false)  then continue 
-            depo = r.scp("/var/system.log", dir.path, o)
-            if depo != 1 then continue 
-            tl = o.host_computer.File(dir.path+"/system.log")
-            if not tl then continue
-            tl.chmod("o-wrx", 0)
-            tln = tl.split("\.")
-            tln.insert(1, str((dc+1))) 
-            rn = tl.rename(tln.join("."))
-            if rn.len == 0 then LOG("New log logged, moving on . . .")
+            self.depoOne(r)
             //TODO: add bank mails etc, 
         end for
+    else;LOG("Invalid arguments, expected:".warning+" -l|-p|-c|-depo")
     end if
 end function
 SS.MX.rsGet = function 
@@ -1731,16 +1832,38 @@ SS.MX.rsCfg = function
     if rs.len == 0 then rs = self.rsGet
     if rs == null then return null
     opt = 0
+    oa = []
+    il = null
     while T(opt) != "number" or (opt < 1 or opt > rs.len)
-        LOG("RSHELL self.interface".title.NL+("[ "+str(rs.len).white.b+" ]"+" connections(s) established".grey))
+        LOG("RSHELL interface".title.NL+("[ "+str(rs.len).white.b+" ]"+" connections(s) established".grey))
+        na = []
         for i in range(0, rs.len-1)
             u = SS.Utils.user(rs[i])
             pc = rs[i].host_computer
-            LOG("".fill.NL+str(i+1).b.white+"."+") ".white+"Shell".purple.b+" ["+u.isRoot+"]"+NL+"Public IP: ".white+pc.public_ip+NL+"Local IP: ".white+pc.local_ip+NL+whois(pc.public_ip))
+            ip = pc.public_ip
+            log = rs[i].host_computer.File("/var/system.log")
+            if not log then log = "00"
+            if rs.len > 30 then fmt = " " else fmt = NL
+            LOG("".fill.NL+str(i+1).b.white+"."+") ".white+" ["+u.isRoot.b+"]"+fmt+"IP".wrap("FFFFFF", 10).red.cap(ip.a).red+fmt+"LAN".wrap("FFFFFF", 10).red.cap(pc.local_ip).red+fmt+"Domain".wrap("FFFFFF", 10).red.cap(whois(pc.public_ip).split(NL)[0].split(":")[1].trim().a).red+fmt+"Log".wrap("FFFFFF", 10).red.cap(log.size.bitToByte).red)
+            if il == null then oa.push(ip)
+            if na.indexOf(ip) == null then na.push(ip)
         end for
         LOG("".fill)
+        if oa != na then
+            if oa.len > na.len then 
+                LOG("rshell loss detected".warning)
+                for a in oa 
+                    if na.indexOf(a) == null then LOG("RSHELL LOSS: ".red+a+" "+whois(pc.public_ip).split(NL)[0].split(" ")[1].grey)
+                end for
+            else if na.len > oa.len then 
+                LOG("new rshell client detected".ok)
+            end if
+        else;LOG("No changes detected".sys)
+        end if
         opt = INPUT("Select a shell | 0 to return".prompt).to_int
         if opt == 0 then break
+        rs = self.rsGet
+        if not il then il = true
     end while
     if opt == 0 then return 
     choice = INPUT(["Surf Mode", "Terminal", "Implode", "Kill System", "Log Collection"].select+NL+"Select".prompt).to_int
@@ -1749,6 +1872,7 @@ SS.MX.rsCfg = function
     else if choice == 2 then ; rs[opt-1].start_terminal ;
     else if choice == 3 then ; self.implode(rs[opt-1]); return null;
     else if choice == 4 then ; self.ks(rs[opt-1]); return null;
+    else if choice == 5 then ; self.depoOne(rs[opt-1]); return null;
     end if
 end function
 SS.MX.implode = function(o, n = null)
@@ -1802,49 +1926,31 @@ SS.MX.mutate = function(o, n = null, ip = null)
     end for
     return self
 end function
-SS.MX.depo = function(o, n=null)
-    rs = self.rshells
-    if rs.len == 0 then rs = self.rsGet
-    if rs == null then return null
-    opt = 0
-    for r in rs 
-
-    end for
-end function
-// TODO: path payloadArg flag
-SS.MX.rsLaunch = function(o, p=null, arg = null, flag = null)
-
-    if flag == "-a" then 
-        for i in self.rshells
-            pc = i.host_computer
-            h = pc.File(h)
-            if not p then h = SS.Utils.goHome(i)
-            if not h then 
-                LOG(("Unable to establish home cache @ "+pc.public_ip.grey+":"+pc.local_ip.red).warning)
-                continue;
-            end if
-            if not pc.File(h.path+"/fish.src") then src = pc.touch(h.path, "fish.src")
-            if T(src) == "string" then 
-                LOG(src.warning); continue;
-            else 
-                // payload build
-            end if
-        end for
-    else
-        options = []
-        for s in self.rshells 
-            n = new SS.EO 
-            n.map(s)
-            options.push(n.info)
-        end for
-        selection = SS.Utils.menu("RShell Selection", [{"name": "rshells", "options": options}])
-        if selection[0] == 0 or selection[1] == 0 then return null
-        // finish me
-        
-
+SS.MX.depoOne = function(r)
+    dir = SS.Utils.fileFromPath(self.o, SS.cwd+"/fishes")
+    if not dir then self.o.host_computer.create_folder(SS.cwd, "fishes")
+    dir = SS.Utils.fileFromPath(self.o, SS.cwd+"/fishes")
+    if not dir then
+        LOG("couldnt find fishes folder".warning) 
+        return null
     end if
-    
-end function 
+    dir.chmod("o-wrx", true)
+    bl = SS.Utils.fileFromPath(self.o, dir.path+"/system.log")
+    if bl then bl.rename("system."+str((dir.get_files.len+1))+".log")
+    log = r.host_computer.File("/var/system.log")
+    if (not log) or (log.is_binary == false)  then; LOG("Invalid log file detected".red.sys); return null; end if
+    LOG("Retrieving system log: ".grey.sys+r.host_computer.public_ip.a)
+    depo = r.scp("/var/system.log", dir.path, self.o)
+    if T(depo) == "string" then LOG(depo.warning)
+    if depo != 1 then return 
+    tl = r.host_computer.File(dir.path+"/system.log")
+    if not tl then return
+    tl.chmod("o-wrx", 0)
+    tln = tl.split("\.")
+    tln.insert(1, str((dir.get_files.len+1))) 
+    rn = tl.rename(tln.join("."));wait(0.1)
+    if rn.len == 0 then; LOG("New log saved!".ok); return true; else; LOG(rn.warning); end if 
+end function
 ///======================= MetaLib =========================////
 SS.ML = {"exploits":[], "file":null}
 SS.ML.m = null // metalib
@@ -2275,6 +2381,7 @@ SS.EO.lv = null// lib name, version
 SS.EO.string = "" // hashing purposes
 SS.EO.mz = null // memory zone 
 SS.EO.ma = null // memory address
+SS.EO.fs = [] // filesystem
 SS.EO.isCached = function(self)
     to = T(self.o)
     if to == "file" then 
@@ -2315,6 +2422,7 @@ SS.EO.map = function(o, ip = null, lan = null)
     self.o = o
     self.type = T(o)
     self.users = []
+    self.fs = []
     if self.type == "number" or self.type == "string" then return null
     self.ln = null;self.lv=null;self.string="";self.label=null;self.mz=null;self.ma=null;
     if self.type != "file" then 
@@ -2504,17 +2612,15 @@ SS.EO.check_player = function()
             end if
         end for
     end for
-    //r = SS.Utils.rootFromFile(SS.Utils.ds(self.o, "file"))
-    //cf = r.get_files+r.get_folders 
-    //out = []
-    //while cf.len 
-    //    c = cf.pull 
-    //    if c.is_folder then cf = cf+c.get_folders+c.get_files
-    //    out.push(c.path)
-    //end while
-    //self.fs = out
-    //if out != SS.dfs then return true
+    
     return null
+end function
+SS.EO.check_fs = function(f=null)
+    if self.fs.len == 0 then self.fs = SS.Utils.getfs(self.o)
+    if f != null and SS.Utils.hasFile(self.o, f) != null then return true
+    if f != null and SS.Utils.hasFolder(self.o, f) != null then return true
+    //TODO: check filesystem for anything out of the ordinary
+    if out != SS.dfs then return true
 end function
 ///======================= EXPLOIT DB =========================////
 SS.EXP={"exploits":[]}
