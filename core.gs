@@ -1478,7 +1478,7 @@ Core["fs"] = function(o, a, f)
 					if ((content.len == 0)  or (content.split(NL) == null)) and (INPUT("This file is empty, proceed?".prompt).to_int != 1) then continue
 					parse = content.split(NL)
 					p = parse.select
-					inj = _im(f, parse, p)
+					inj = _im(c, parse, p)
 					if not inj then continue
 					if inj then return true
 				end if
