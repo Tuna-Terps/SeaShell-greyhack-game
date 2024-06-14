@@ -951,6 +951,7 @@ Core["whois"] = function(a)
 end function
 Core["nslookup"] = function(a)
 	if a == null then return LOG("Invalid arguments".warning)
+	if split(a, "www.").len < 1 then return LOG("Must be a domain".warning)
 	LOG(nslookup(a).sys)
 end function
 Core["terminal"] = function(obj, _)
@@ -999,6 +1000,8 @@ Core["sudo"] = function(s, a1, a2=null, a3=null)
 end function
 Core["build"] = function(o, pF, tF, fN)
 	if T(o) != "shell" then return LOG("Only shells can compile binaries".warning)
+	if pF == null then return LOG("Invalid path specified".warning)
+	if tF == null then tF = SS.cwd
 	if pF[0] != "/" then pF = SS.Utils.path(pF)//pathfile
 	if tF[0] != "/" then tF = SS.Utils.path(tF)//targetfile
 	if not SS.Utils.fileFromPath(o, pF) then return LOG("File not found".warning)
@@ -1088,6 +1091,7 @@ end function
 Core["kill"] = function(o, p, a = null)
 	o = SS.Utils.ds(o, "computer")
 	if o == null then return
+	if not p then return LOG("Provide a PID or NAME".warning)
 	procs = o.show_procs.split(NL)
 	if procs.len == 1 then return LOG("No processes to close".warning)
 	n = null
@@ -1317,6 +1321,7 @@ Core["ls"] = function(o, p = null)
 	return LOG("Listing Directory: ".sys+f.path+NL+"".fill+NL+COLUMNS(out))
 end function
 Core["chmod"] = function(o, r, u, pa)
+	if r == null or u == null then return LOG("Invalid args".warning)
 	o = SS.Utils.ds(o, "file")
 	if o == null then return
 	rec = false 
@@ -1325,11 +1330,12 @@ Core["chmod"] = function(o, r, u, pa)
 	f = SS.Utils.fileFromPath(o, pa)
 	if f == null then return LOG("Unable to chmod file: not found".warning)
 	out = f.chmod(u, rec)
-	if out.len > 1 then return LOG(out.warning)
+	if (T(out) == "string" and out.len > 1) then return LOG(out.warning)
 	fp = "/".lblue; if f.path != "/" then fp = parent_path(f.path).grey+"/"+f.name.lblue
 	LOG((fp+" has been given permissions: "+u).ok)
 end function
 Core["chgrp"] = function(o, r, u, pa)
+	if r == null or u == null then return LOG("Invalid args".warning)
 	o = SS.Utils.ds(o, "file")
 	if o == null then return
 	rec = false 
@@ -1338,12 +1344,12 @@ Core["chgrp"] = function(o, r, u, pa)
 	f = SS.Utils.fileFromPath(o, pa)
 	if f == null then return LOG("Unable to chgrp file: not found".warning)
 	out = f.set_group(u, rec)
-	if out.len > 1 then return LOG(out.warning)
+	if (T(out) == "string" and out.len > 1) then return LOG(out.warning)
 	fp = "/".lblue; if f.path != "/" then fp = parent_path(f.path).grey+"/"+f.name.lblue
 	LOG((fp+" has been assigned group: "+u).ok)
 end function
 Core["chown"] = function(o, r, u, pa)
-	if SS.debug then LOG("debug".debug+o+NL+r+u+pa)
+	if r == null or u == null then return LOG("Invalid args".warning)
 	o = SS.Utils.ds(o, "file")
 	if o == null then return
 	rec = false 
@@ -1352,7 +1358,7 @@ Core["chown"] = function(o, r, u, pa)
 	f = SS.Utils.fileFromPath(o, pa)
 	if f == null then return LOG("Unable to change file owner: file not found".warning)
 	out = f.set_owner(u, rec)
-	if out.len > 1 then return LOG(out.warning)
+	if (T(out) == "string" and out.len > 1) then return LOG(out.warning)
 	fp = "/".lblue; if f.path != "/" then fp = parent_path(f.path).grey+"/"+f.name.lblue
 	LOG((fp+" is now owned by: "+u).ok)
 end function
@@ -1534,6 +1540,7 @@ Core["edit"] = function(o, p, clean = null)
 end function
 Core["ping"] = function(s, i)
 	if T(s) != "shell" then return LOG("Must be of type shell".error)
+	if (i == null) or (is_valid_ip(i) == false) then return LOG("Invalid ip".warning)
 	r = s.ping(i)
 	if r == null then return LOG("Address unreachable".warning)
 	if T(r) == "string" then return LOG(r.warning)
