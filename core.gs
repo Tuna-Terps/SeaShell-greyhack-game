@@ -1729,8 +1729,10 @@ Core["ns"] = function(addr, p, a = null, d = null)
 	exploits = null
 	LOG(netsesh.summary)
 	if a == "-s" then // select
+		if T(SS.dbe) != "file" then return LOG("Database not configured, build using cd ; -cfg -e -b") 
 		exploits = netsesh.mlib.browse
 	else if a == "-a" then // all
+		if T(SS.dbe) != "file" then return LOG("Database not configured, build using cd ; -cfg -e -b") 
 		exploits = netsesh.mlib.scanned
 	else if a == "-i" then 
 		return
@@ -1837,9 +1839,11 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	LOG(ns.summary)
 	sel = INPUT([("Use "+"ALL".green+" Exploits").white, ("Select Exploit("+"s".green+")").white, ("Manual Scan "+"(No Saves)".red).white].select.NL+"confirm option".prompt).to_int
 	payload = null
-	if sel == 1 then 
+	if sel == 1 then
+		if T(SS.dbe) != "file" then return LOG("Database not configured, build using cd ; -cfg -e -b") 
 		payload = ns.mlib.scanned
-	else if sel == 2 then 
+	else if sel == 2 then
+		if T(SS.dbe) != "file" then return LOG("Database not configured, build using cd ; -cfg -e -b")  
 		payload = ns.mlib.browse
 	else if sel == 3 then 
 		payload = ns.mlib.manscan
