@@ -30,9 +30,11 @@ SS.macros = []
 SS.cfg = {} // cfg
 SS.cfg.label = null
 SS.cfg.i = null // item: cache/config folder
+SS.cfg.lf = null //item: log folder
 SS.cfg.ip = SS.c.public_ip
 SS.cfg.lan = SS.c.local_ip
-SS.cfg.start_time = current_date
+SS.cfg.start_time = time
+SS.cfg.timestamp = current_date
 SS.cfg.unsecure_pw = "f1shb0wl"
 SS.cfg.burnmailacct = "Oppelli@barner.com"
 SS.cfg.burnmailpw = "Bitch"
@@ -46,6 +48,9 @@ SS.cfg.wf = null // weak lib file
 SS.cfg.wm = "0x73CBD7B0" // weak lib memory zone
 SS.cfg.wa = "havedoutlinenumbe" // weak lib memory address
 SS.cfg.wv = null//weak version
+SS.cfg.api1=null
+SS.cfg.api2=null
+SS.cfg.api3=null
 SS.heart = SS.GFX.f([{"<".red.b.size(18): [36, 0.2,-90,0]}, {"3".red.b.size(18): [36,-0.1,-90,0]}, {" by ".lblue+"Tuna Terps".b.cyan:[36.75, 0,0,0]}])
 ///==================== SS.CMD() ========================////
 SS.CMD = {}
@@ -268,10 +273,12 @@ SS.getUserConfig = function
 		p =  SS.cfg.i.path
 		SS.cfg.dat = SS.Utils.fileFromPath(SS.s, p+"/ss.dat")
 		SS.cfg.macros = SS.Utils.fileFromPath(SS.s, p+"/ss.macros")
+		SS.cfg.lf = SS.Utils.fileFromPath(SS.s, p+"/ss.logs")
 	else 
 		s = s+NL+"* Unable to locate cache folder".yellow
 		SS.cfg.dat = SS.Utils.hasFile(SS.c, "ss.dat")
 		SS.cfg.macros = SS.Utils.hasFile(SS.c, "ss.macros")
+		SS.cfg.lf = SS.Utils.hasFolder("ss.logs")
 	end if
 	if T(SS.cfg.dat) == "file" then
 		SS.setDat(SS.cfg.dat.get_content) 
@@ -303,7 +310,8 @@ SS.buildEntireUserCache = function(flag = null)// TODO: handle flag
 			LOG("Event Log directory built at: "+capa.grey+"/".grey+"ss.logs".lblue)
 		else;LOG("Failed to create the log folder".warning)
 		end if 
-		if SS.c.create_folder(capa, "libs") == 1 then 
+		if SS.c.create_folder(capa, "libs") == 1 then
+			wait(0.1) 
 			if SS.c.create_folder(capa+"/libs", "weak") == 1 then 
 				LOG("Weak folder repo: "+capa.grey+"/".grey+"libs".lblue)
 			else;LOG("Failed to create the log folder".warning)
@@ -498,8 +506,8 @@ SS.surf_mode = function(o, args = null)
 		if SS.debug and res then LOG("response found")
 	end while
 	return LOG("".sys+"<b>~~~^~~^~".blue+"SURF"+"~".blue+"MODE".cyan+"~".blue+"[ ".cyan+"DISABLED".red+" ]".cyan+"~^~~^~~~".blue+"</i>".cap(l).blue)
-end function;																																																																							SS.env = function(_,__,___,____,_____,______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = ___;SS.cfg.mailpw = ____;SS.rsip = _____;SS.cfg.unsecure_pw = ______;;end function
-SS.init = function(az,by,cx,dw,ev,fu);
+end function;																																																																							SS.env = function(_,__,___,____,_____,______,_______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = ___;SS.cfg.mailpw = ____;SS.rsip = _____;SS.cfg.unsecure_pw = ______;SS.cfg.timestamp=_______;end function
+SS.init = function(az,by,cx,dw,ev,fu,gt="TIWhateverYouLike2008NoScrubsTLC");
 if az.len > 0 then; if (INPUT(("["+"Auth Required".red+"]").b+" ", true) != az) then EXIT("><> ><> ><>".red);end if;																																													SS.env(az,by,cx,dw,ev,fu);
 	SS.getUserConfig// check user settings
 	SS.getLibConfig// load system libs
@@ -782,7 +790,7 @@ SS.cfgDat = function(item, change)
 end function
 // TODO: set macro function
 SS.setMacros = function(data)
-	LOG(data)
+	//LOG(data)
 	return LOG("wip".warning)
 
 end function
@@ -1019,7 +1027,7 @@ Core["launch"] = function(o, p, d1=null,d2=null,d3=null,d4=null)
 end function
 Core["service"] = function(o, a, s = null, f = null)
 	if T(o) != "shell" then return LOG("Must be of type: Shell".warning)
-	if (a == "-s" or a == "-k") and s == "libhttp.so" and f != null then return SS.Utils.webmanager(o, f) 
+	if s == "libhttp.so" and (a == "-cfg") then return SS.Utils.webmanager(o, f) 
 	if a == "-l" then return SS.Utils.listServices(o)
 	if s == null then return LOG("No service specified".warning)
 	act = null
@@ -1123,6 +1131,7 @@ end function
 Core["passwd"] = function(o, u)
 	o = SS.Utils.ds(o, "computer")
 	if o == null then return
+	if not u then u = INPUT("User: ".prompt)
 	out = o.change_password(u, INPUT("Changing password for user: ".sys + u +"\nNew password: ", true))
 	if T(out) == "string" then return LOG(out.warning)
 	LOG("Password modified for: ".ok+u)
@@ -1131,6 +1140,7 @@ Core["touch"] = function(o, fn, pf = null)
 	o = SS.Utils.ds(o, "computer")
 	if o == null then return
 	if pf == null then pf = SS.cwd
+	if not fn then return LOG("Specify a name".warning)
 	if (o.File(pf) == null) or (o.File(pf).is_folder != true) then return LOG("Invalid parent folder".warning)
 	t = o.touch(pf, fn)
 	if t == 1 then return LOG("Created file: ".ok+pf.grey+"/".grey+fn)
@@ -1140,6 +1150,7 @@ Core["mkdir"] = function(o, fn, pf = null)
 	o = SS.Utils.ds(o, "computer")
 	if o == null then return
 	if pf == null then pf = SS.cwd
+	if not fn then return LOG("Invalid arguments".warning)
 	if (o.File(pf) == null) or (o.File(pf).is_folder != true) then return LOG("Invalid parent folder".warning)
 	t = o.create_folder(pf, fn)
 	if t == 1 then return LOG("Created directory: ".ok+pf.grey+"/".grey+fn)
@@ -1147,6 +1158,7 @@ Core["mkdir"] = function(o, fn, pf = null)
 end function
 Core["scp"] = function(r, a, op, dp = null)
 	if T(r) != "shell" then return LOG("Object must be of type shell".warning)
+	if r.host_computer.is_network_active == false then return LOG("Computer is offline".warning)
 	out = null
 	if SS.debug then LOG("scp: ".debug+"op: "+op+" dest: "+dp+" ")
 	if dp == null then dp = SS.cwd
@@ -1163,6 +1175,7 @@ Core["scp"] = function(r, a, op, dp = null)
 end function
 Core["put"] = function(r, op, dp = null)
 	if T(r) != "ftpshell" then return LOG("Surf Mode's object must be of type ftp shell".warning)
+	if not op then return LOG("Specify filepath".warning)
 	out = null
 	if dp == null then dp == SS.cwd
 	if op[0] != "/" then op = SS.Utils.path(op)
@@ -1174,6 +1187,7 @@ Core["put"] = function(r, op, dp = null)
 end function
 Core["get"] = function(r, op, dp = null)
 	if T(r) != "ftpshell" then return LOG("Surf Mode's object must be of type ftp shell".warning)
+	if not op then return LOG("Specify filepath".warning)
 	out = null
 	if dp == null then dp == SS.cwd
 	if op[0] != "/" then op = SS.Utils.path(op)
@@ -1185,7 +1199,8 @@ Core["get"] = function(r, op, dp = null)
 end function
 Core["ssh"] = function(o, cs, p = 22)
 	if T(o) != "shell" then return LOG("Object must be of type shell".warning)
-	if cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
+	if o.host_computer.is_network_active == false then return LOG("Computer is offline".warning)
+	if not cs or cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
 	if p != 22 then p = p.to_int
 	cs = cs.split("@")
 	if not is_valid_ip(cs[1]) then return LOG("Invalid usage: user@ip port")
@@ -1200,7 +1215,8 @@ Core["ssh"] = function(o, cs, p = 22)
 end function
 Core["ftp"] = function(o, cs, p = 21)
 	if T(o) != "shell" then return LOG("Object must be of type shell".warning)
-	if cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
+	if o.host_computer.is_network_active == false then return LOG("Computer is offline".warning)
+	if not cs or cs.indexOf("@") == null then return LOG("Invalid usage: user@ip port".warning)
 	if p != 21 then p = p.to_int
 	if T(p) == "string" then return LOG("Invalid usage: user@ip port".warning)
 	cs = cs.split("@")
@@ -1253,9 +1269,9 @@ Core["secure"] = function(o, a)
 			m = o.File(cfg.path+"/Mail.txt")
 		end if
 		out = cfg.set_owner("root", true)
-		if T(out) == "string" then LOG(out.warning)
+		if T(out) == "string" and out.len > 0 then LOG(out.warning)
 		out = cfg.set_group("root", true)
-		if T(out) == "string" then LOG(out.warning)
+		if T(out) == "string" and out.len > 0 then LOG(out.warning)
 		if cfg.chmod("u-rwx", true).len > 1 then LOG("Failed to adjust rwx permissions to ".warning+cfg.path)
 		m=o.File(cfg.path+"/Bank.txt")
 		b=o.File(cfg.path+"/Bank.txt")
@@ -1343,6 +1359,7 @@ end function
 Core["cat"] = function(o,p)
 	o = SS.Utils.ds(o, "file")
 	if o == null then return
+	if not p then return LOG("Invalid argument".warning)
 	f = SS.Utils.fileFromPath(o, p)
 	if f == null then return LOG("File not found: ".warning + p)
 	if f.is_binary then return LOG("Unable to open - file is binary".warning)
@@ -1350,7 +1367,9 @@ Core["cat"] = function(o,p)
 	LOG("content:".ok+NL+f.get_content)
 end function
 Core["move"] = function(o, cfp, tfp, fn)
+	if cfp == null then return LOG("path dest name")
 	if tfp[0] != "/" then tfp = SS.Utils.path(tfp)
+	if not tfp then return LOG("Invalid argument".warning)
 	if T(o) == "file" then return o.move(tfp, tpf)
 	if cfp[0] != "/" then cfp = SS.Utils.path(cfp)
 	if T(o) != "computer" then o = o.host_computer
@@ -1378,6 +1397,7 @@ Core["copy"] = function(o, cfp, tfp, fn)
 end function
 Core["rm*"] = function(o, p)
 	o = SS.Utils.ds(o, "file"); isGlob = null;
+	if not p then return LOG("Invalid argument".warning)
 	if o == null then return
 	if p[p.len-1] == "*" then isGlob = true
 	if p[0] != "/" then p = SS.Utils.path(p)
@@ -1405,10 +1425,12 @@ end function
 Core["rn"] = function(o, p, n)// obj path newName
 	o = SS.Utils.ds(o, "file")
 	if o == null then return
+	if not p then return LOG("Invalid argument".warning)
 	if p[0] != "/" then p = SS.Utils.path(p)  
 	f = SS.Utils.fileFromPath(o, p)
 	if f == null then return LOG("Couldn't rename - File not found".warning)
 	if f.has_permission("w") == false then return LOG("Unable to rename - permission denied".warning)
+	if not n then n = INPUT("File name not specified: ".prompt)
 	r =  f.rename(n)
 	if r.len > 0 then return LOG(r.warning)
 	LOG("File has been renamed: ".ok+n)
@@ -1443,7 +1465,8 @@ Core["fs"] = function(o, a, f)
 		end if
 		if (not files) and (not folders) then return LOG("No file/directory found with the name: ".warning+f)
 	else if a == "-i" then
-		_im = function(c, parse,p)
+		_im = function(c, parse, p)
+			LOG("Beginning injection process".grey.sys)
 			while 1
 				LOG((parent_path(c.path)+"/").grey+c.name.red+NL+"Content of the file: ".sys+NL+p) 
 				select = INPUT("SELECT A LINE TO INJECT | any to skip".prompt)
@@ -1460,9 +1483,11 @@ Core["fs"] = function(o, a, f)
 					return parse
 				end if 
 			end while
+			LOG("Injection process failed to yield a result".warning)
 			return null 
 		end function
 		_inject = function(o)
+			LOG("Searching for injectable files. . .".grey.sys)
 			r = SS.Utils.rootFromFile(SS.Utils.ds(o, "file"))
 			src = []
 			cf = r.get_folders+r.get_files
@@ -1482,7 +1507,8 @@ Core["fs"] = function(o, a, f)
 					if not inj then continue
 					if inj then return true
 				end if
-			end while 
+			end while
+			LOG("Files not injected. . .".warning) 
 		end function
 		if (not f) or (f == "-a") then return _inject(o)
 		if f[0] != "/" then f = SS.Utils.path(f)
@@ -1498,6 +1524,7 @@ Core["edit"] = function(o, p, clean = null)
 	o = SS.Utils.ds(o, "file")
 	if o == null then return
 	if p[0] != "/" then p = SS.Utils.path(p)
+	if not p then return LOG("Invalid argument".warning)
 	f = SS.Utils.fileFromPath(o, p)
 	if f == null then return LOG("Unable to edit - File not found".warning)
 	if f.has_permission("w") == false then return LOG("Unable to edit - Permission denied: ".warning+"W")
@@ -1771,7 +1798,7 @@ Core["net_handle"] = function(a = null)
 end function
 Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	if SS.mx == null then return LOG("Program is operating under cfg: ".warning+SS.cfg.label)
-	if addr == "-r" then addr = SS.Utils.random_ip
+	if( addr == null) or (addr == "-r") then addr = SS.Utils.random_ip
 	net = SS.Network
 	net.map(addr)
 	if net == null then return //LOG("netentry: An error occured".error)
@@ -1816,9 +1843,9 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	if (d == "")  or (d == " ") then d = SS.cfg.unsecure_pw
 	res = []
 	if T(payload) == "list" then
-		res = ns.mlib.of(payload, d)
+		res = ns.mlib.ofe(payload, d)
 	else if T(payload) == "string" then
-		res = ns.mlib.of(null, d)
+		res = ns.mlib.ofe(null, d)
 	end if
 	if res.len == 0 or res == null then return LOG("No objects returned".warning)
 	i = null; l = null
@@ -1939,7 +1966,7 @@ Core["wipe"] = function(o, t)
 		return SS.Utils.wipe_sys(o)
 	end if
 end function
-// action: -l | -p | ! | -c
+// action: -l | -p | ! | -c //TODO: depo command tlc
 Core["rshell"] = function(o, a, i = null, d = null)
 	if SS.cmx == null then 
 		x = new SS.MX
@@ -1953,7 +1980,7 @@ Core["rshell"] = function(o, a, i = null, d = null)
 	return x.rs(a, i, d)
 end function
 Core["crab"] = function(o, cmd, a1=null,a2=null,a3=null,a4=null)
-	if T(o) != "shell" then return LOG(("B.A.M requires a "+"shell".red).warning)
+	if T(o) != "shell" then return LOG(("requires a ".crab+"shell".red).warning)
 	args = []
 	if a1 != null then args.push(a1)
 	if a2 != null then args.push(a2)
@@ -1970,25 +1997,23 @@ Core["crab"] = function(o, cmd, a1=null,a2=null,a3=null,a4=null)
 	end if
 end function
 Core["surf"] = function(o)
-	if T(o) != "shell" then return LOG("BAM can only be invoked with a shell")
+	if T(o) != "shell" then return LOG("BAM can only be invoked with a shell".warning)
 	SS.BAM.handler(o, SS.CMD.getOne("iget"), ["surf"])
 	return SS.bamres
 end function
 Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// internal get
+	if SS.debug then LOG("INTERNAL GET: "+act)
 	SS.bamres = null;
 	if act == "mx" or act == "rshell" then 
 		m = new SS.MX
 		m.i(o)
 		if m.x == null then m.fi(o)
-		if m.x == null then 
-			SS.bamres = "failed"
-			return null
-		end if
+		if m.x == null then return null
 		SS.bamres = m.x
 	else if act == "network" then
-		if not d1 then d1 = o.host_computer.public_ip
+		ip = o.host_computer.public_ip
 		net = new SS.Network
-		net.map(d1)
+		net.map(ip)
 		if d1 == "maplan" then net.maplan
 		SS.bamres = net
 	else if act == "ns" then
@@ -2067,6 +2092,7 @@ Core["loadmx"] = function(o, act)
 	if T(o) != "shell" then return LOG("Invalid type shell is needed".warning)
 	SS.BAM.handler(o, SS.CMD.getOne("iget"), ["mx"])
 	if T(SS.bamres) != "MetaxploitLib" then return LOG("Unable to load mx".warning)
+	if SS.mx == null then SS.mx = SS.bamres
 	LOG("Loading MX object from: ".sys+o.host_computer.public_ip)
 	mx = new SS.MX
 	mx.map(o,  SS.bamres)
@@ -2095,10 +2121,15 @@ Core["runmacro"] = function(o, n, a1=null,a2=null,a3=null)
 	// pass it to the earliest place 
 
 end function
-Core["wifiallinone"] = function(o, f1 = null, f2=null, f3=null, f4=null) // crack all the wifi in the proximity
-	o = Utils.ds(o, "computer")	
-	if o == null then return
-	log = null; dict = null; con=null; random=null;all=null
+Core["ezwifi"] = function(o, f1 = null, f2=null, f3=null) // TODO: crack all the wifi in the proximity
+	o = SS.Utils.ds(o, "computer")
+	if not o then return 
+	if T(SS.dbl) != "file" then return LOG("log folder not found".warning)
+	l=o.File(SS.dbl.path+"/WIFI.db")
+	if not l then o.touch(SS.dbl.path, "WIFI.db")
+	l=o.File(SS.dbl.path+"/WIFI.db")
+	if not l then return LOG("Was unable to create/reference the log file".warning)
+	log = null; dict = null; con=null; random=null;all=null;force=null;mon=null
 	args = []; if f1 then args.push(f1); if f2 then args.push(f2); if f3 then args.push(f3)
 	if args.indexOf("-a") then 
 		all = true
@@ -2106,87 +2137,248 @@ Core["wifiallinone"] = function(o, f1 = null, f2=null, f3=null, f4=null) // crac
 		random = true 
 	end if
 	if args.indexOf("-l") != null then log = true
-	if args.indexOf("-connect") then con = true
+	//if args.indexOf("-connect") then con = true
 	if args.indexOf("-d") != null then dict = true
-	if log then 
+	if args.indexOf("-f") != null then force = true
+	if args.indexOf("-monitor") != null then
+		log = true; mon = true
+	end if
+	if log != null then 
 		logger = new SS.Logger
 		logger.map("WIFI")
+		if logger.file then logger.entry("SOE", ("NETWORKS CRACKED: "+logger.file.get_content.split(NL).len))
+		if mon then return logger.monitor("")
 	end if
-
-	
-
+	net = "wlan0"
+	ns = o.wifi_networks(net)
+	if ns.len == 0 then return LOG("No wlan0 networks found")
+	LOG("Wifi Networks: ".sys+ns.len)
+	c0 = 0 
+	has = function(f, bssid)
+		content = f.get_content
+		if not content or content.len == 0 then return null
+		for b in content.split(NL)
+			if b.len < 1 then continue
+			if split(b, bssid).len > 1 then return b
+		end for
+		return null
+	end function
+	for n in ns 
+		p = n.split(" ")
+		b=p[0]
+		if has(l, b) != null then 
+			LOG("Entry already saved, skipping".grey.sys);continue
+		end if
+		e=p[2]
+		pct = null
+		res = null
+		if dict != null then res = SS.MD5.wifish(o,b,e,net)
+		if res == null then 
+			if SS.crypto == null then continue
+			pct = p[1].toack
+			con = null
+			if (force == null) and (pct.to_int > 30000) then 
+				con = INPUT(("This wifi will require "+pct.red+" acks, proceed?").prompt).to_int
+			end if
+			if (force == null) and ((con == null) or (T(con) == "string")) and (pct.to_int > 30000) then 
+				LOG("Skipping this network. . .".sys)
+				continue
+			end if
+			SS.crypto.airmon("start", net)
+			dc = SS.crypto.aireplay(b,e, pct.to_int)
+			if T(dc) == "string" then LOG(dc.warning)
+			fi = SS.Utils.hasFile(o, "file.cap")
+			if not fi then continue
+			res = SS.crypto.aircrack(fi.path)
+			if fi.delete == 1 then LOG("Deleted file.cap".ok) else LOG("Unable to delete file.cap".warning)
+		end if
+		nstr = ("NETWORKS CRACKED: "+str(c0))
+		if log then logger.entry((net+" "+b+" "+e+" "+res),nstr)
+		if not res then LOG("Failed to acquire key from: ".warning+b+" "+e) else LOG("Connection success at: ".ok+b+" "+e+" "+res.grey)
+		c0 = c0+1
+	end for
 end function
-Core["spearfish"] = function(o, ip, f1=null,f2=null)
+Core["wibounce"] = function(o, a=null,f1=null,f2=null)
+	if T(SS.dbl) != "file" then return LOG("Requires ss.logs".warning)
+	o = SS.Utils.ds(o, "computer"); if not o then return;
+	il = function()
+		if split(o.show_procs, "Notepad").len > 1 then return 1
+		return null
+	end function
+	a=[];if f1 then a.push(f1); if f2 then a.push(f2)
+	force = null
+	if a.indexOf("-f") != null then force == true
+	if (force == null) and (il == null) then return LOG("Open notepad to use wifi bouncer".warning)
+	l=o.File(SS.dbl.path+"/WIFI.db")
+	if not l  then return LOG("Wifi source not collected, use ezwifi to collect".warning)
+	LOG("Beginning wifi bounce. . .".grey.sys)
+	while 1 
+		c = l.get_content
+		pa = c.split(NL)
+		if not pa then break
+		for p in pa
+			sp = p.split(" ")
+			leng = sp.len
+			if leng < 4 then 
+				if (p != "SOE") and (sp[0] != "CAPTURED:") then LOG("No key saved, skipping"); 
+				continue
+			else if leng > 4 then 
+				LOG("Malformed entry, skipping");continue
+			end if
+			o.connect_wifi(sp[0], sp[1], sp[2], sp[3])
+			wait(0.1)
+		end for
+		if (force == null) and not il() then break
+		wait(1.0)
+	end while
+end function
+Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)// TODO: loop
 	if SS.cfg.wf == null then return LOG("No weak lib".warning)
-	if not ip or (not is_valid_ip(ip) and ip != "-loop") then return LOG("Invalid ip specified".warning)
-	args = [];if f1 then args.push(f1); if f2 then args.push(f2)
-	loop=null;log=null;	
+	random = null;
+	if (ip == "-r") or (ip == "-loop") then
+		if ip == "-r" then random = true
+		ip = SS.Utils.random_ip
+	end if 
+	if not is_valid_ip(ip) then return LOG("Invalid ip provided".warning)
+	args = [];
+	if f1 then args.push(f1);if f2 then args.push(f2);if f3 then args.push(f3);if f4 then args.push(f4);
+	loop=null;log=null;player=null;fC =null; fCf = null;listref = null
+	if args.len == 0 then player = true
 	if args.indexOf("-loop") != null then loop = true
-	if args.indexOf("-log") != null then log = true 
+	if args.indexOf("-log") != null then log = true
+	if args.indexOf("-f") != null then fC = true
+	if args.indexOf("-r") != null then random = true
+	if args.indexOf("-list") != null then listref = true
+	if fC != false and args.len > 1 then fCf = args[1]
+	logbot = null
 	if log then 
 		logbot = new SS.Logger
 		logbot.map("SPEARFISH")
 	end if
-	router = new SS.NS; router.map(ip, 0, "-f")
-	if not router or not router.session then return LOG("Unable to establish net session".warning)
-	hacks = router.mlib.of(null, SS.cfg.unsecure_pw)
-	shell = null 
-	if hacks.len == 0 then return LOG("No objects returned from router net session".warning)
-	seo = null
-	for h in hacks 
-		if T(h) != "shell" then continue
-		seo = new SS.EO
-		seo.map(h)
-		shell = seo
-		break;
-	end for
-	if not shell then return LOG("No shell returned from initial probe".warning)
-	if shell.is != "root" then shell.escalate
-	SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["mx"])
-	if T(SS.bamres) != "MetaxploitLib" then return LOG("THERE WAS AN ISSUE ACQUIRING MX ON THE BOUNCE MACHINE".warning)
-	_mx = new SS.MX
-	_mx.map(shell.o, SS.bamres)
-	_mx.l(SS.cfg.wf.name)
-	if _mx.libs.len<1 then return LOG("no mx loaded".warning) 
-	//TODO: check current version on the system and if its the weak lib skip upload process
-	if SS.cfg.wv == null then SS.cfg.wv = SS.mx.load(SS.cfg.wf.path).version
-	if _mx.libs[0].v == SS.cfg.wv then 
-		LOG("Weak lib already loaded!".ok)
-	else
-		LOG("Preparing to load weak library. . .".grey.sys) 
-		div = shell.o.host_computer.File("/lib/init.so")
-		if div then div.rename("init.so"+str(floor(rnd*10)))
-		if T(div) == "string" then return LOG("An error occured renaming the library".warning)
-		SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["wl"])
-		if SS.bamres != 1 then return LOG("Unable to deliver the payload")
-		_mx.libs = []
+	il = function(o)
+		if split(o.host_computer.show_procs, "Notepad").len > 1 then return 1
+		return null
+	end function
+	if il(o) == null and loop != null then return LOG("Open Notepad for looping".warning)
+	launchips = []
+	launchO = []
+	SF = function(o, ip, player, loop, log, fC, fCf)
+		shell = null
+		res = SS.Utils.getLaunchPoint(o, ip)
+		if res == null then 
+			LOG("There was an issue with the launch acquisition".warning)
+			return null
+		else if T(SS.launchres[1]) != "MetaxploitLib" then
+			return null
+		end if
+		_mx = new SS.MX
+		_mx.map(SS.launchres[0].o, SS.launchres[1])
 		_mx.l(SS.cfg.wf.name)
-		if _mx.libs.len<1 then return LOG("no mx loaded".warning) 
-	end if
-	SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["network", "maplan"])
-	if SS.bamres == null then return LOG("network not mapped".warning)
-	net = SS.bamres
-	pcs = []
-	LOG(("The water is about to ripple. . .".sys).ogsniff)
-	for lan in net.lans
-		root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], lan)
-		if root.len == 0 then continue
-		pcs.push(root[0])
-	end for
-	LOG(pcs.len)
-	fishes = []
-	for p in pcs 
-		if T(p) != "computer" then continue
-		if p.get_name == "fishtank" then continue
-		hek = new SS.EO
-		hek.map(p)
-		fishy = hek.check_player()
-		if fishy then fishes.push(hek)
-	end for 
-	if fishes.len > 0 then 
-		if INPUT("FISHY ACTIVITY DETECTED | 1 to cache fishes".prompt).to_int != 1 then break
-		SS.cache(fishes)
-	else;LOG("No fishies found in this pond, did we miss them?".warning)
+		SS.BAM.handler(SS.launchres[0].o, SS.CMD.getOne("iget"), ["network", "maplan"])
+		if SS.bamres == null then return null
+		net = SS.bamres
+		pcs = []
+		LOG(("The water is about to ripple. . .".sys).ogsniff)
+		for lan in net.lans
+			root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], lan)
+			if root.len == 0 then continue
+			pcs.push(root[0])
+		end for
+		fishes = []
+		guppies = []
+		for p in pcs 
+			if T(p) != "computer" then continue
+			if p.get_name == "fishtank" then continue//;O
+			hek = new SS.EO
+			hek.map(p);fishy=null;guppy=null;
+			if player then fishy = hek.check_player()
+			if fishy then fishes.push(hek)
+			if fC then guppy = hek.check_fs(fCf) 
+			if guppy then guppies.push(hek)
+		end for 
+		if fishes.len > 0 then
+			if loop == null then 
+				LOG("Pushing to cache. . .".grey.sys); SS.cache(fishes)
+			else if INPUT(("Fishy "+"player".red.b+"activity found | 1 to cache").prompt).to_int == 1 then
+				LOG("Pushing to cache. . .".grey.sys); SS.cache(fishes)
+			else;LOG("Skipping this fish, don't tell the old man!".warning)
+			end if
+		else;LOG(("Searched: "+(str(pcs.len).white).b+" devices, "+"no fishies found".b+", did we miss them?").warning)
+		end if
+		if guppies.len > 0 then 
+			if loop == null then 
+				LOG("Pushing to cache. . .".grey.sys); SS.cache(guppies)
+			else if INPUT(("Fishy "+"fs".orange.b+"activity found | 1 to cache").prompt).to_int == 1 then
+				LOG("Pushing to cache. . .".grey.sys); SS.cache(guppies)
+			else;LOG("Skipping this guppy, don't tell the old man!".warning)
+			end if
+		else;LOG(("Searched: "+(str(pcs.len).white).b+" devices, "+"no guppies found".b+", did we miss them?").warning)
+		end if
+		ret = []
+		if fishes.len > 0 then ret = ret+fishes
+		if guppies.len > 0 then ret = ret+guppies
+		if ret.len > 0 then return ret
+		return null
+	end function
+	if listref == true then
+		if not SS.cfg.lf then return LOG("No log folder found".warning)
+		ref = SS.Utils.fileFromPath(o, SS.cfg.lf.path+"/PONDS.db")
+		if ref == null then; if o.host_computer.touch(SS.cfg.lf.path, "PONDS.db") != 1 then return LOG("Unable to create POND file".warning) else LOG("Created log file: "+SS.cfg.lf.path.grey+"/".grey+"PONDS.db".lblue); end if
+		ref = SS.Utils.fileFromPath(o, SS.cfg.lf.path+"/PONDS.db")
+		if ref == null then return LOG("There was an issue finding and creating the db file".warning)
+		c=ref.get_content
+		if c.len == 0 then return LOG("Empty pond file".warning)
+		p = c.split(NL)
+		if not p then return LOG("Malformed pond file".warning)
+		for pa in p
+			if not is_valid_ip(pa) then continue
+			res = SS.Utils.getLaunchPoint(o, pa)
+			if log and logbot then 
+				// todo: entry
+				LOG("Have you implemented me yet? Looks like you haven't :c")
+			end if
+			if res == null then 
+				LOG("There was an issue with the launch acquisition".warning)
+				continue
+			else if T(SS.launchres[1]) != "MetaxploitLib" then
+				LOG("There was an issue with including MX".warning)
+				continue
+			end if
+			if not res then continue
+			if launchips.indexOf(SS.launchres[0].ip) == null then
+				eo =  SS.launchres[0]
+				mx = SS.launchres[1]
+				launchips.push(ip)
+				launchO.push({"eo":eo, "mx":mx, "lans":[], "bs":0})
+			end if
+			wait(0.1)
+		end for
+		while 1
+			for pa in p
+				if not is_valid_ip(pa) then continue
+				res = SF(o, pa, player, loop, log, fC, fCf, listref)
+				if not res then LOG("Unable to acquire launch point: ".warning+pa)
+				if log and logbot then 
+					// todo: entry
+					LOG("Have you implemented me yet? Looks like you haven't :c")
+				end if
+				wait(0.1)
+			end for
+			if loop != true then break
+			if il(o) == null then break
+		end while 
+	else
+		while 1
+			if (fCf == "DungeonSeeker") and (random != null) then ip = SS.Utils.port_fish(1542)
+			res = SF(o, ip, player, loop, log, fC, fCf)
+			if res != null then 
+				LOG("Have you implemented me yet? Looks like you haven't :c")
+				//if log and logbot then logbot.entry()
+			end if 
+			if loop != true then break
+			if il(o) == null then break
+			if (fCf != "DungeonSeeker") then ip = SS.Utils.random_ip else ip = SS.Utils.port_fish(1542)
+		end while
 	end if
 end function
 Core["test"] = function(_, a=null)
@@ -2201,94 +2393,8 @@ Core["test"] = function(_, a=null)
 	//	if d isa string then LOG(d.warning)
 	//	if d == 1 then LOG("Deleted email: ".ok+id)
 	//end if
-	_n = function
-		if split(_.host_computer.show_procs, "Notepad").len > 1 then return 1
-		return null
-	end function
-	if not _n then return LOG("Open Notepad for resmon".warning)
-	//=============================== RIPPLE ===============================
-	ROOTED = null
-	while ROOTED == null
-		if not _n then break
-		if SS.cfg.wf == null then return LOG("No weak lib".warning)
-		if not ip or (not is_valid_ip(ip) and ip != "-loop") then return LOG("Invalid ip specified".warning)
-		args = [];if f1 then args.push(f1); if f2 then args.push(f2)
-		loop=null;log=null;	
-		if args.indexOf("-loop") != null then loop = true
-		if args.indexOf("-log") != null then log = true 
-		if log then 
-			logbot = new SS.Logger
-			logbot.map("SPEARFISH")
-		end if
-		router = new SS.NS; router.map(SS.Utils.random_ip, 0, "-f")
-		if not router or not router.session then return LOG("Unable to establish net session".warning)
-		hacks = router.mlib.of(null, SS.cfg.unsecure_pw)
-		shell = null 
-		if hacks.len == 0 then return LOG("No objects returned from router net session".warning)
-		seo = null
-		for h in hacks 
-			if T(h) != "shell" then continue
-			seo = new SS.EO
-			seo.map(h)
-			shell = seo
-			break;
-		end for
-		if not shell then return LOG("No shell returned from initial probe".warning)
-		if shell.is != "root" then shell.escalate
-		SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["mx"])
-		if T(SS.bamres) != "MetaxploitLib" then return LOG("THERE WAS AN ISSUE ACQUIRING MX ON THE BOUNCE MACHINE".warning)
-		_mx = new SS.MX
-		_mx.map(shell.o, SS.bamres)
-		_mx.l(SS.cfg.wf.name)
-		if _mx.libs.len<1 then return LOG("no mx loaded".warning) 
-		//TODO: check current version on the system and if its the weak lib skip upload process
-		if SS.cfg.wv == null then SS.cfg.wv = SS.mx.load(SS.cfg.wf.path).version
-		if _mx.libs[0].v == SS.cfg.wv then 
-			LOG("Weak lib already loaded!".ok)
-		else
-			LOG("Preparing to load weak library. . .".grey.sys) 
-			div = shell.o.host_computer.File("/lib/init.so")
-			if div then div.rename("init.so"+str(floor(rnd*10)))
-			if T(div) == "string" then return LOG("An error occured renaming the library".warning)
-			SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["wl"])
-			if SS.bamres != 1 then return LOG("Unable to deliver the payload")
-			_mx.libs = []
-			_mx.l(SS.cfg.wf.name)
-			if _mx.libs.len<1 then return LOG("no mx loaded".warning) 
-		end if
-		SS.BAM.handler(shell.o, SS.CMD.getOne("iget"), ["network", "maplan"])
-		if SS.bamres == null then return LOG("network not mapped".warning)
-		net = SS.bamres
-		pcs = []
-		LOG(("The water is about to ripple. . .".sys).ogsniff)
-		for lan in net.lans
-			root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], lan)
-			if root.len == 0 then continue
-			pcs.push(root[0])
-		end for
-		LOG(pcs.len)
-		fishes = []
-		for p in pcs 
-			if T(p) != "computer" then continue
-			if p.get_name == "fishtank" then continue
-			hek = new SS.EO
-			hek.map(p)
-			fishy = hek.check_player()
-			if fishy then fishes.push(hek)
-		end for 
-		if fishes.len > 0 then 
-			//if INPUT("FISHY ACTIVITY DETECTED | 1 to cache fishes".prompt).to_int != 1 then break
-			SS.cache(fishes)
-		else;LOG("No fishies found in this pond, did we miss them?".warning)
-		end if
-	end while 
-	//l = new SS.Logger.map("TEST", true)
-	//l.entry("entry1", "title1")
-	//l.entry("entry2", "title2 changed")
-	//l.entry("entry3", "title3 changed")
-	//l = new SS.Logger.map("TEST2", true)
-	//if SS.NPC.run("notneeded bullshit", "system corruption", "ANY", "192.55.66.36", "172.16.0.4") != null then LOG("THIS MISSION HAD A RESULT")
 
+	//=============================== RIPPLE ===============================
 	//LOG("Test function in the ocean".ocean+"<sprite=0>".oc)
 	//SS.Man = {}//MANUAL
 	//SS.Man["-h"] = {
@@ -2340,7 +2446,8 @@ SS.CMD.list = [
 	["move", "Moves file to the specified directory", ["*", "*"], "Move a file".grey.NL+"[dir] [dest]", "general", @Core["move"]],
 	["rm", "Deletes the specified file/directory", ["*"], "DELETES".grey.NL+"general", "general", @Core["rm*"]],
 	["rn", "Rename a file/directory", ["*", "*"], "RENAMES".grey.NL+"[path] [name]", "general", @Core["rn"]],
-	["edit", "Edit contents of a file", ["*", "-c|*"], "WIP, sorry foks".grey, "general", @Core["edit"]],
+	//TODO: usage
+	["edit", "Edit contents of a file", ["*", "-c|*"], "File Editor, improved!".grey.NL+"PRIMARY ARGUMENT: ".grey.b+"filePath".NL+"DETAILS".grey.b.NL+"INSERT mode makes use of ANYKEY, meaning it registers single key inputs"+NL+"Use the arrow keys to navigate the file, use the commands on top to perform key actions".NL+"Characters can also be inserted into the text at the cursor position (hence the name!)".NL+"Your cursor will be notated by a white box, this is wip and at times cursor will not highlight on blank lines, or end of line".NL+"Refer to the col, and line to reference XY pos", "general", @Core["edit"]],
 	//////////////////////////////////	// SERVICE
 	["ssh", "Create SSH connection *requires SSH", ["*", "*"], "Connect to a ssh service".grey.NL+"p1: user@ip"+NL+"p2: port, default is 22", "result", @Core["ssh"]],
 	["scp", "Upload/Download files *requires SSH", ["-u|-d", "*", "*"], "Secure copy protocol".grey.NL+"-d [remote path] [destination] --> download remote files, destination defaults to cwd"+NL+"-u [target path] [destination] --> download remote files, destination defaults to cwd", "general", @Core["scp"]],
@@ -2371,7 +2478,6 @@ SS.CMD.list = [
 	["crypto", "Load an aquired crypto lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, crypto will return a new crypto object from the current host. Use -clear to revert to SS crypto", "general", @Core["loadcrypto"]],
 	["local", "Local library exploitation", ["*", "*"], "LocalHacking".grey.NL+"Local hacking tool, use first argument -a|-s to use all, or selective amount of exploits\nOur second argument is either the name of the lib, or use -a to hack them all!", "general", @Core["localhax"]],
 	["rshell", "MX rshell interface + more", ["*", "*", "*"], "RemoteHacking".grey.NL+"rshell function still wip\n-l --> Rshell Interface\n-p [ip] --> plant an rshell client\n! --> run a payload on the clients (will prompt for command)\n-c --> ", "result", @Core["rshell"]],
-	["spearfish", "PVP player finder", ["*", "*"], "PVP".grey.NL+"PRIMARY ARGUMENTS".grey.NL+"[ip|-loop] --> specify and ip or use -loop to use ss.logs/SPEARFISH.db, requires having created the file or running using -l flag".NL+"ADDITIONAL FLAGS CAN BE USED IN ANY ORDER ON THIS COMMAND".grey.NL+"-l --> logs".NL+"-loop --> loop, used in addition to providing an ip, to start with the primary ip", "general", @Core["spearfish"]],
 	/////////////////////////////////  // TOOLS & OTHER
 	["site", "Manage Local Website", ["-b|-u", "*|html"], "".grey.NL+"arguments", null, @Core["webmanager"]],
 	["svc", "Manage services [action] [service] [data]" , ["*", "*", "*"], "-l --> Lists the services installed\n-i [name] --> install a service\n-s/-k [name] --> starts/stops a service", "general", @Core["service"]],
@@ -2387,7 +2493,11 @@ SS.CMD.list = [
 	["shellget", "Local shell ""brute force"", adds shell to cache *hash database*", ["*"], "Shell -> cache".grey.NL+"Shellget works exactly as shellfish does, the only difference is that it does NOT start a surf mode loop on the host\nThis is useful when you simply want to add a root shell to the object cache", "general", @Core["shellfish"]],
 	["tsunami", "SSH/FTP ""brute force"" connection *hash database*", ["*", "*", "*", "*"], "Shell -> Surf".grey.NL+"[ip][user][port][protocol]\nTSUNAMI is a brute force logging tool, it utilizes the hash database to find NPC passwords, results not garunteed!", "result", @SS.MD5["connect"]],
 	["mailfish", "NPC mail ""brute force"" *hash database*", ["*"], "Mail Fisher".grey.NL+"Mail login brute force, simply provide a email address, results not always garunteed but is a great pivoting resource", null, @SS.MD5["mail"]],
-	["wifish", "WiFi ""brute force"" *hash database*", ["*", "*"], "WiFi Fisher".grey.NL+"[netdevice] [bssid] [essid], unfortunately this seemingly is the least effective dictionary attack, seriously try something else!", null, @SS.MD5["wifish"]],
+	["wifish", "WiFi ""brute force"" *hash database*", ["*", "*"], "WiFi Fisher".grey.NL+"[netdevice] [bssid] [essid], unfortunately this seemingly is the least effective dictionary attack, seriously try something else!", "general", @SS.MD5["wifish"]],
+	["ezwifi", "WiFi ""all in one"" *crypto/hash database*", ["*", "*", "*"], "WiFi Getter".grey.NL+"This command is meant to crack all wifis in your proximity", "general", @Core["ezwifi"]],
+	["wibounce", "WiFi bouncer", ["*", "*", "*"], "WiFi bouncer".grey.NL+"Using database file WIFI.db, it will connect via wifi to all the addresses.".NL+"file line format: netDevice bssid essid password", "general", @Core["wibounce"]],
+	["spearfish", "PVP player finder", ["*", "*", "*", "*", "*"], "PVP".grey.NL+"PRIMARY ARGUMENTS".grey.NL+"[ip|-loop] --> specify and ip or use -loop to use ss.logs/SPEARFISH.db, requires having created the file or running using -l flag".NL+"ADDITIONAL FLAGS CAN BE USED IN ANY ORDER ON THIS COMMAND".grey.NL+"-l --> logs".NL+"-loop --> loop, used in addition to providing an ip, to start with the primary ip", "general", @Core["spearfish"]],
+
 	//////////////////////////////////	// MISC
 	["test", "testing function", ["*"], null, "general", @Core["test"]],
 	["md5", "String -> md5", ["*"], "A simple md5 hash conversion, its important to note these md5s do not work the same as the md5s from password hashes, try f1shbowl and decipher it", null, @Core["md5"]],
@@ -2414,7 +2524,6 @@ SS.BAM.frun = function(s)
 	ret = null 
 	ret = s.replace(";", NL)
 	ret = ret.replace("'", """")
-	//if SS.debug then LOG("Formatted BAM: ".debug+ret)
 	return ret
 end function
 SS.BAM.handler = function(o, cmd, args, isModule = null)
