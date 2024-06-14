@@ -463,13 +463,13 @@ NEXT = function(label)
     if INPUT(("Press 1 to | "+label.white+" | any to exit").prompt).to_int != 1 then EXIT("Exiting SeaShell installer".sys)
 end function
 
-CSTR = "Sepcify the name youd like for your cache directory, or enter to default to .ss".prompt
-USTR = ("Specify the user to build SS as, or enter for"+USER).prompt
+CSTR = "Specify the name youd like for your cache directory, or enter to default to .ss".prompt
+USTR = ("Specify the user to build SS as, or enter for "+USER.green).prompt
 AUTHSTR = "Provide an auth pass to use seashell, or enter for no password".prompt
-M1STR = "Sepcify mail account, or hit enter to login when using raft".prompt
-M2STR = "Sepcify mail pw, or hit enter to login when using raft".prompt
+M1STR = "Specify mail account, or hit enter to login when using raft".prompt
+M2STR = "Specify mail pw, or hit enter to login when using raft".prompt
 RSSTR = "Provide an rshell ip, or enter to specify on use".prompt
-UPSTR = "Sepcify the unsecure pw value you want NPCs computers to be changed to".prompt
+UPSTR = "Specify the unsecure pw value you want NPCs computers to be changed to".prompt
 UCON = function(label)
     set = INPUT(label)
     confirm = INPUT("CONFIRM: ".sys+": ".prompt)
@@ -499,37 +499,38 @@ build_main = function
     if auth.len == 0 then
         LOG("This build of SeaShell will NOT have a password".warning) 
         auth = ""
-    else;LOG("Auth pass set to: "+auth)
+    else;
+        LOG("Auth pass set to: ".sys+auth)
     end if
     user = INPUT(USTR)
     if user.len == 0 then
-        LOG("This build of SeaShell will use: ".grey+active_user) 
+        LOG("This build of SeaShell will use: ".sys+active_user) 
         user = active_user
-    else;LOG("SS user set to: "+auth)
+    else;LOG("SS user set to: ".sys+user)
     end if
     email = INPUT(M1STR)
     if email.len == 0 then
         LOG("This build of SeaShell will NOT have a email account saved, raft will prompt login".warning) 
         email = ""
-    else;LOG("Email set to: "+email)
+    else;LOG("Email set to: ".sys+email)
     end if
     email_pw = INPUT(M2STR)
     if email_pw.len == 0 then
         LOG("This build of SeaShell will NOT have a email pw saved, raft will prompt login".warning) 
         email_pw = ""
-    else;LOG("Email pw saved: "+email)
+    else;LOG("Email pw saved: ".sys+email)
     end if
     rshell = INPUT(RSSTR)
     if rshell.len == 0 then
         LOG("This build of SeaShell will prompt for an rshell".warning) 
         rshell = "1.1.1.1"
-    else;LOG("rshell ip saved: "+rshell)
+    else;LOG("rshell ip saved: ".sys+rshell)
     end if
     upw = INPUT(UPSTR)
     if upw.len == 0 then
         LOG("This build of SeaShell will default to NPC pw f1shb0wl".warning) 
         upw = "f1shb0wl"
-    else;LOG("NPC unsecure pw: "+upw)
+    else;LOG("NPC unsecure pw: ".sys+upw)
     end if
     p1 = HOME+"/src/utils"
     p2 = HOME+"/src/core"
@@ -628,7 +629,7 @@ build_launch = function(CACHEFILE)
     if not CACHEFILE then C.create_folder(HOME, ".ss")   
     S.launch(CACHEFILE.path+"/dict/builder");
     if SS.cb != true then return print("Warning: we did not get a reponse from builder.".warning)
-    print(fill+"Builder return --> OK !"+char(10)+"Starting cleanup . . .");
+    print("".fill+NL+"Builder return --> OK !".ok+char(10)+"Starting cleanup . . .");
     for file in C.File(CACHEFILE.path+"/dict").get_files
         if file.indexOf("brute") or file.indexOf("builder") then 
             f = file.name
@@ -641,7 +642,7 @@ build_hashes = function(CACHEFILE)
     LOG("<color=green>[init]</color> Building hash files . . .") 
     if not CACHEFILE then C.create_folder(HOME, ".ss")  
     p = CACHEFILE.path
-    builder_src = "data = get_custom_object;import_"+"code('"+p+"/dict/brute1.src');import_"+"code('"+p+"/dict/brute2.src');import_"+"code('"+p+"/dict/brute3.src');import_"+"code('"+p+"/dict/brute4.src');import_"+"code('"+p+"/dict/brute5.src');import_"+"code('"+p+"/dict/brute6.src');import_"+"code('"+p+"/dict/brute7.src');;Crack={'isNum':['0','1','2','3','4','5','6','7','8','9'],'alpha':'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789','max':64,'classID':'CrackLib','Version':'2.5.1-rc.1'}; Crack.dump = function;print 'Building the rainbow tables ...';l=[];l=brute1+brute2+brute3+brute4+brute5+brute6+brute7;r=[];a=0;c=get_shell.host_computer;p=c.File('"+p+"/dict/data/rainbow').path;for b in l;if self.isNum.indexOf(b[0])!=null then ;r.push b+':'+md5(b);continue;end if;r.push b+':'+md5(b);r.push b.lower+':'+md5(b.lower);if r.len>3792 then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));r=[];a=a+1;end if;end for;if r.len then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));data.cb = true;exit('completed build process');end if;end function;Crack.dump"
+    builder_src = "data = get_custom_object;import_"+"code('"+p+"/dict/brute1.src');import_"+"code('"+p+"/dict/brute2.src');import_"+"code('"+p+"/dict/brute3.src');import_"+"code('"+p+"/dict/brute4.src');import_"+"code('"+p+"/dict/brute5.src');import_"+"code('"+p+"/dict/brute6.src');import_"+"code('"+p+"/dict/brute7.src');;Crack={'isNum':['0','1','2','3','4','5','6','7','8','9'],'alpha':'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789','max':64,'classID':'CrackLib','Version':'2.5.1-rc.1'}; Crack.dump = function;print 'Building the rainbow tables ...';l=[];l=brute1+brute2+brute3+brute4+brute5+brute6+brute7;r=[];a=0;c=get_shell.host_computer;p=c.File('"+p+"/dict/rainbow').path;for b in l;if self.isNum.indexOf(b[0])!=null then ;r.push b+':'+md5(b);continue;end if;r.push b+':'+md5(b);r.push b.lower+':'+md5(b.lower);if r.len>3792 then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));r=[];a=a+1;end if;end for;if r.len then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));data.cb = true;exit('completed build process');end if;end function;Crack.dump"
     p1 = CACHEFILE.path+"/dict/builder.src"
 
     if T(C.touch(CACHEFILE.path+"/dict", "builder.src")) != "string" then 
@@ -667,10 +668,8 @@ build_hashes = function(CACHEFILE)
     end if
 
 end function
-
-
-if (params.len == 0) or (["help", "-h", "-help"].indexOf(params[0]) != null) then EXIT("SeaShell Installer: ".sys.NL+"PRIMARY ARGUMENTS".grey.b.NL+" -a ".wrap.cap("Installs SeaShell, and all required files and directories").NL+" -src ".wrap.cap("Build SeaShell's source code").NL+" -cache ".wrap.cap("Build SeaShell cache").NL+" -db ".wrap.cap("Build exploit database").NL+" -hash ".wrap.cap("Build hash database"))
 CLEAR;LOG("SeaShell Installer".title("FFFFFF", 30))
+if params.len < 1 or (["help", "-h", "-help"].indexOf(params[0]) != null) then EXIT("SeaShell Installer: ".sys.NL+"PRIMARY ARGUMENTS".grey.b.NL+" -a ".wrap.cap("Installs SeaShell, and all required files and directories").NL+" -src ".wrap.cap("Build SeaShell's source code").NL+" -cache ".wrap.cap("Build SeaShell cache").NL+" -db ".wrap.cap("Build exploit database").NL+" -hash ".wrap.cap("Build hash database"))
 if params[0] == "-a" then
     NEXT("build SeaShell src, cache, hash + exploit db")
     CACHEFILE = check_cache
