@@ -1001,7 +1001,7 @@ Core["build"] = function(o, pF, tF, fN)
 	if T(o) != "shell" then return LOG("Only shells can compile binaries".warning)
 	if pF[0] != "/" then pF = SS.Utils.path(pF)//pathfile
 	if tF[0] != "/" then tF = SS.Utils.path(tF)//targetfile
-	if not Utils.fileFromPath(o, pf) then return LOG("File not found".warning)
+	if not SS.Utils.fileFromPath(o, pf) then return LOG("File not found".warning)
 	c = o.build(pF, tF, fN)
 	if c.len > 1 then return LOG(c.warning)
 	LOG((fN.white+" compiled at path: "+pF.yellow).ok)
@@ -1836,6 +1836,7 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 		payload = ns.mlib.browse
 	else if sel == 3 then 
 		payload = ns.mlib.manscan
+		if not payload then return LOG("Manual scan wip, why do this?".warning)
 	else if ns.mlib.scanned == null then 
 		return null 
 	end if
@@ -2220,7 +2221,7 @@ Core["wibounce"] = function(o, a=null,f1=null,f2=null)
 			sp = p.split(" ")
 			leng = sp.len
 			if leng < 4 then 
-				if (p != "SOE") and (sp[0] != "CAPTURED:") then LOG("No key saved, skipping"); 
+				if (p != "SOE") and (sp[0] != "CAPTURED:" or sp[0] != "NETWORKS") then LOG("No key saved, skipping"); 
 				continue
 			else if leng > 4 then 
 				LOG("Malformed entry, skipping");continue
