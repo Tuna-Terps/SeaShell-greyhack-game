@@ -1843,9 +1843,9 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 	if (d == "")  or (d == " ") then d = SS.cfg.unsecure_pw
 	res = []
 	if T(payload) == "list" then
-		res = ns.mlib.ofe(payload, d)
+		res = ns.mlib.of(payload, d)
 	else if T(payload) == "string" then
-		res = ns.mlib.ofe(null, d)
+		res = ns.mlib.of(null, d)
 	end if
 	if res.len == 0 or res == null then return LOG("No objects returned".warning)
 	i = null; l = null
