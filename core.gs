@@ -1001,7 +1001,7 @@ Core["build"] = function(o, pF, tF, fN)
 	if T(o) != "shell" then return LOG("Only shells can compile binaries".warning)
 	if pF[0] != "/" then pF = SS.Utils.path(pF)//pathfile
 	if tF[0] != "/" then tF = SS.Utils.path(tF)//targetfile
-	if not SS.Utils.fileFromPath(o, pf) then return LOG("File not found".warning)
+	if not SS.Utils.fileFromPath(o, pF) then return LOG("File not found".warning)
 	c = o.build(pF, tF, fN)
 	if c.len > 1 then return LOG(c.warning)
 	LOG((fN.white+" compiled at path: "+pF.yellow).ok)
