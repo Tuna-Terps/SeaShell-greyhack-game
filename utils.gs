@@ -14,6 +14,7 @@ SS.bamrun = null// BAM runtask
 SS.bamargs = []
 SS.bamret = null // return?
 SS.bamres = null// result?
+SS.launchres = null
 SS.cb = null
 SS.dbe = null
 SS.dbec = 0
@@ -31,8 +32,11 @@ INPUT = @user_input
 HOME = @home_dir
 T = @typeof
 NL = char(10)
+SP  = char(32)
+E = ""
 COLUMNS = @format_columns
 CLEAR = function; return clear_screen; end function;
+
 ///==================== Maps ========================////
 SS.mutate = function
     string.size = function(self, s)
@@ -209,6 +213,16 @@ SS.mutate = function
         if self == v then return self.red
         return self.white
     end function
+    string.tiempo = function(self,a)
+        return self.join(a)
+    end function
+    string.stampana = function(self,a)
+        o=[]
+        for s in self.values 
+            o.push((s.code)+a)
+        end for
+        return o
+    end function
     // ======== Art from earlier versions of seashell
     string.ogconnect = function(self)
         if SS.og == null then return self
@@ -315,6 +329,12 @@ SS.mutate = function
         if not SS.og then return self
         return o.join(NL)
     end function
+    string.toack = function(self)
+        if self.indexOf("%") != null then self = self.replace("%", "")
+        self = to_int(self)
+        self = str((300000/self))
+        return self
+    end function 
     // ======== LISTS
     list.table = function(title)
         return self
@@ -354,52 +374,6 @@ SS.mutate = function
 // end of mutation
 end function
 SS.mutate// to be reused in sf
-///======================== DATE & UPTIME =========================////
-SS.Date = {}
-SS.Date.dd = null
-SS.Date.mm = null
-SS.Date.yy = null
-SS.Date.hh = null
-SS.Date.mm = null
-SS.Date.add = function 
-    d = current_date.split(" - ")
-    d_p = d[0].split("/")
-    t_p = d[1].split(":")
-    self.dd = d_p[0]
-    self.mm = d_p[1].month_int;
-    self.yy = to_int(d_p[2]);
-    self.hh = to_int(t_p[0]);
-    self.m = to_int(t_p[1]);
-    return self
-end function// current
-// TODO: date now
-SS.Date.now = function()
-    date = current_date.split(" - ")
-    d_p = date[0].split("/");t_p = date[1].split(":");
-    dd = to_int(d_p[0]);
-    mm = d_p[1].month_int;
-    yy = to_int(d_p[2]);
-    hh = to_int(t_p[0]);
-    m = to_int(t_p[1]);
-    ret = (yy * 31536000 + mm * 2592000 + dd * 86400 + hh * 3600 + m * 60)
-    return ret
-end function
-SS.Date.timer = function(start, jt = null)
-    if jt then return str(SS.Date.up(round(time-start)))
-    LOG("Elapsed: ".sys+str(SS.Date.up(round(time-start))))
-end function
-SS.Date.up = function(t = null)
-    s=["s","m","h","d"];
-    i=0;c=60;
-    if not t then t = floor(time)
-    if t<60 then return round(t,2)+s[i]
-    while t>60
-        if i == 3 then c = 24
-        t=t/c
-        i=i+1
-    end while
-    return round(t,2)+s[i]
-end function
 ///======================== UTIL =========================////
 SS.Utils = {}
 SS.Utils.ds = function(o, type = "computer")
@@ -753,9 +727,9 @@ SS.Utils.router_fish = function(v)
     end while
 end function
 SS.Utils.port_fish = function(p,c=null) 
-	if ["21", "22", "25", "80", "141", "8080", "1222", "1542", "3306","3307","3308","6667", "37777"].indexOf(p) == null then LOG("Not a commonly used port, are you trying to catch a marlin?".warning)
-    p = p.to_int
+    if T(p) != "number" then p = p.to_int
     if T(p) != "number" then return LOG("Inalid arguments".warning)
+    if ["21", "22", "25", "80", "141", "8080", "1222", "1542", "3306","3307","3308","6667", "37777"].indexOf(str(p)) == null then LOG("Not a commonly used port, are you trying to catch a marlin?".warning)
     if not c then LOG(("Fishing @ port "+str(p).green+" . . . ><> . . . ><> . . . ><>").sys)
     while 1 
         ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) //Generate a random ip
@@ -911,24 +885,58 @@ SS.Utils.secure = function(o, a)
         end if
     end if
 end function
+SS.Utils.patch = function(o)
+    o = SS.Utils.ds(o, "computer")
+    if not o then return
+    if SS.Utils.user(o) != "root" then return LOG("root is required; this is awkward".warning)
+    dirs = ["boot", "sys", "lib", "etc", "var", "bin", "home"]
+    b = ["System.map", "initrd.img", "kernel.img"]
+    l = ["init.so","net.so","kernel_module.so"]
+    s = ["xorg.sys","config.sys","network.cfg"]
+    for d in dirs 
+        if o.File(d) == null then 
+            if o.create_folder("/", d) == 1 then LOG("Patched dir: ".ok+d)
+        else;LOG("Directory is ok: ".sys+d)
+        end if
+        if o.File == null then 
+            LOG("Failed to patch: ".error+d)
+        end if
+        r = null
+        if d == "boot" then 
+            r = b
+        else if d == "sys" then 
+            r = s
+        else if d == "lib" then 
+            r = l
+        end if
+        if ["boot", "sys", "lib"].indexOf(d) == null then continue
+        for a in r 
+            if o.touch(("/"+d), a) == 1 then LOG("Patched file: ".ok+a) else LOG("Failed to patch".error+a)
+        end for
+    end for
+end function
 SS.Utils.webmanager = function(o, f)
     FFP = @SS.Utils.fileFromPath
+    q1 = "/Public"
+    q2 = q1+"/htdocs"
+    q3 = q2+"/downloads"
+    q4 = q2+"/website.html"
     if f == "-b" then 
         if SS.Utils.user(o) != "root" then return LOG("Requires root permission, for shells use sudo".warning)
         o = SS.Utils.ds(o, "computer")
         if not o then return
-        p = FFP(o, "/Public")
+        p = FFP(o, q1)
         if not p then o.create_folder("/", "Public")
-        p = FFP(o, "/Public"); if not p then return LOG("Failed to create Public folder".warning)
-        p2 = FFP(o, "/Public/htdocs")
-        if not p2 then o.create_folder("/Public", "htdocs")
-        p2 = FFP(o, "/Public/htdocs"); if not p2 then return LOG("Failed to create htdocs folder".warning)
-        p3 = FFP(o, "/Public/htdocs/downloads")
-        if not p3 then o.create_folder("/Public/htdocs", "downloads")
-        p3 = FFP(o, "/Public/htdocs/downloads"); if not p3 then return LOG("Failed to create downloads folder".warning)
-        p4 = FFP(o, "/Public/htdocs/website.html")
-        if not p4 then o.touch("/Public/htdocs", "website.html")
-        p4 = FFP(o, "/Public/htdocs/website.html"); if not p4 then return LOG("Failed to create html file".warning)
+        p = FFP(o, q1); if not p then return LOG("Failed to create Public folder".warning)
+        p2 = FFP(o, q2)
+        if not p2 then o.create_folder(q1, "htdocs")
+        p2 = FFP(o, q2); if not p2 then return LOG("Failed to create htdocs folder".warning)
+        p3 = FFP(o, q3)
+        if not p3 then o.create_folder(q2, "downloads")
+        p3 = FFP(o, q3); if not p3 then return LOG("Failed to create downloads folder".warning)
+        p4 = FFP(o, q4)
+        if not p4 then o.touch(q2, "website.html")
+        p4 = FFP(o, q4); if not p4 then return LOG("Failed to create html file".warning)
         p.chmod("o-wrx", 1)
         p.set_owner("root", 1)
         p.set_group("root", 1)
@@ -949,30 +957,44 @@ SS.Utils.webmanager = function(o, f)
     end if
 end function
 SS.Utils.getLaunchPoint = function(o,i=null)
-    sb=null;if not i then sb = true
+    SS.launchres = []
+    LOG("Attempting to gain launch point. . .".grey.sys)
+    sb=null
+    if i != null then sb = true
     while 1
         ret = null
         if not i then i = SS.Utils.random_ip
-        r0 = new SS.NS.map(i, 0 , "-f"); 
+        r0 = new SS.NS.map(i, 0 , "-f", SS.mx); 
         if not r0 or not r0.session then
             if not sb then continue else return null 
         end if
-        hs = r0.of(null, SS.cfg.unsecure_pw)
+        hs = r0.mlib.of(null, SS.cfg.unsecure_pw)
         if hs.len == 0 then
             if not sb then continue else return null 
         end if
         for h in hs 
             if T(h) == "shell" then; ret = h; break; end if
         end for
-        if not ret then continue
+        if not ret then
+            if sb then break; 
+            continue
+        end if
         seo = new SS.EO; seo.map(ret)
         if seo.is != "root" then seo.escalate
         if seo.is != "root" then
             if not sb then continue else return null 
         end if
+        SS.launchres.push(seo)
         SS.BAM.handler(seo.o, SS.CMD.getOne("iget"), ["mx"])
         if T(SS.bamres) != "MetaxploitLib" then
-            if not sb then continue else return null 
+            LOG("There was an issue with MX during launch phase".warning)
+            if not sb then 
+                continue 
+            else 
+                return null
+            end if 
+        else 
+            SS.launchres.push(SS.bamres)
         end if
         _mx = new SS.MX
         _mx.map(seo.o, SS.bamres)
@@ -984,6 +1006,7 @@ SS.Utils.getLaunchPoint = function(o,i=null)
         if SS.cfg.wv == null then SS.cfg.wv = SS.mx.load(SS.cfg.wf.path).version
         if _mx.libs[0].v == SS.cfg.wv then 
             LOG("Weak lib already loaded!".ok)
+            return [seo, SS.bamres]
         else
             LOG("Preparing to load weak library. . .".grey.sys) 
             div = seo.o.host_computer.File("/lib/"+SS.cfg.wf.name)
@@ -998,10 +1021,11 @@ SS.Utils.getLaunchPoint = function(o,i=null)
             if _mx.libs.len<1 then 
                 if not sb then continue else return null
             end if
-            return seo 
+            return [seo, SS.launchres] 
         end if
-        if not sb then continue;break
+        if sb == true then break
     end while
+    LOG("Failed to acquire launch point".grey.sys)
     return null
 end function
 SS.Utils.getfs = function(o, p = null)
@@ -1074,7 +1098,56 @@ SS.Utils.menu = function(title, options, cb = null)
     end while
     if SS.debug then LOG("Utils:menu ".debug+selected_menu-1+" "+selected_option-1) 
     return [selected_menu-1, selected_option-1]
-end function              
+end function
+///======================== DATE & UPTIME =========================////
+SS.Date = {}
+SS.Date.dd = null
+SS.Date.mm = null
+SS.Date.yy = null
+SS.Date.hh = null
+SS.Date.mm = null
+SS.Date.add = function 
+    d = current_date.split(" - ")
+    d_p = d[0].split("/")
+    t_p = d[1].split(":")
+    self.dd = d_p[0]
+    self.mm = d_p[1].month_int;
+    self.yy = to_int(d_p[2]);
+    self.hh = to_int(t_p[0]);
+    self.m = to_int(t_p[1]);
+    return self
+end function// current
+// TODO: date now
+SS.Date.now = function()
+    date = current_date.split(" - ")
+    d_p = date[0].split("/");t_p = date[1].split(":");
+    dd = to_int(d_p[0]);
+    mm = d_p[1].month_int;
+    yy = to_int(d_p[2]);
+    hh = to_int(t_p[0]);
+    m = to_int(t_p[1]);
+    ret = (yy * 31536000 + mm * 2592000 + dd * 86400 + hh * 3600 + m * 60)
+    return ret
+end function
+SS.Date.timer = function(start, jt = null)
+    if jt then return str(SS.Date.up(round(time-start)))
+    LOG("Elapsed: ".sys+str(SS.Date.up(round(time-start))))
+end function
+SS.Date.up = function(t = null)
+    s=["s","m","h","d"];
+    i=0;c=60;
+    if not t then t = floor(time)
+    if t<60 then return round(t,2)+s[i]
+    while t>60
+        if i == 3 then c = 24
+        t=t/c
+        i=i+1
+    end while
+    return round(t,2)+s[i]
+end function
+SS.Date.timestamp=function(a,b)
+    return s.tiempo(a).stampana(b)
+end function
 ///======================== FILE EDIT =========================////
 SS.Phim = {}
 //EDITOR
@@ -1107,25 +1180,31 @@ SS.Phim.edit = function
     current_mode = 0 // 0 == insert, 1 == paste
     current_edit = null
     current_parse = null
+    append_mode = null
     file = self.file
     cc = file.get_content.len
-    _header = function(cm)
+    header = function(cm)
+        if cm == 1 then s = "|".lblue+"*".white+" INPUT".purple+"*".white+" mode is a normal input, use ANYKEY to navigate; ".grey+"*".white.NL+"use: Edit | Commands" else s = "|".lblue+"*".white+"ANYKEY".lblue+"*".white+" mode uses individual keys as input".grey.NL+"|".lblue+"use: Edit | Navigate | Commands"
         if cm == 1 then 
             c1 = ":q!" // quit without saving
             c2 = ":wq" // write to file and quit
-            //c3 = ":w name" // write to seperate file
             c3 = ":i" // insert before cursor, append maybe in the future
             c4 = ":r" // refresh the page
+            c5 = ":w <i>?name" // save the file
             //c4 = ":sh" // build launch and execute
+            c6 = ""+NL+s
         else 
             c1 = "ESC" // write to file and quit
             c2 = "F1" // quit without saving
             c3 = "F2" // insert before cursor, append maybe in the future    
             c4 = "F3" // refresh the page
+            c5 = "F4" // save the file
+            c6 = NL+"|".lblue+"F5".grey+": ".white+"write to a new file".NL+s
         end if
-        return LOG("|".lblue+"Editing: ".sys+file.path.lblue+NL+"|".lblue+c1.grey+": ".white+"Exit without saving".NL+"|".lblue+c2.grey+": ".white+"Quit and save".NL+"|".lblue+c3.grey+": ".white+"Toggle mode".NL+"|".lblue+c4.grey+": ".white+"Refresh page content")
+
+        return LOG("|".lblue+"Editing: ".sys+file.path.lblue+NL+"|".lblue+c1.grey+": ".white+"Quit without saving".NL+"|".lblue+c2.grey+": ".white+"Quit and save".NL+"|".lblue+c3.grey+": ".white+"Toggle mode".NL+"|".lblue+c4.grey+": ".white+"Refresh page content".NL+"|".lblue+c5.grey+": ".white+"save file without quit"+c6)
     end function
-    _screen = function(p, x, y)// parse, x, y 
+    screen = function(p, x, y)// parse, x, y 
         out = []
         c = 1
         for index in range(0, p.len-1)
@@ -1154,7 +1233,7 @@ SS.Phim.edit = function
         // show the user where their cursor is with the hex charactor
         LOG("".fill+NL+out.join(NL)+NL+"".fill)
     end function
-    _footer = function(x,y,c)
+    footer = function(x,y,c)
         return LOG("ln ".wrap("FFFFFF",5).cap(str(y+1))+"col".wrap("FFFFFF",5).cap(str(x))+"char".wrap("FFFFFF",5).cap(str(c)))
     end function 
     while 1
@@ -1166,11 +1245,12 @@ SS.Phim.edit = function
         mutable_line = ""
         xlen = current_line.len
         ylen = current_parse.len
-        _header(current_mode)
-        _screen(current_parse,self.x,self.y)
-        _footer(self.x, self.y, cc)
+        header(current_mode)
+        screen(current_parse,self.x,self.y)
+        footer(self.x, self.y, cc)
         if current_mode == 0 then // INSERT
-            uInput = INPUT("["+"INSERT".lblue+"] "+"> ".lblue, 0, 1)
+            uInput = INPUT("["+"ANYKEY".lblue+"] "+"> ".lblue, 0, 1)
+            if SS.debug then LOG(uInput+" "+T(uInput))
             if uInput == "Escape" then break
             if self.invalidInput.indexOf(uInput) != null then continue
             if self.arrowInput.indexOf(uInput) != null then 
@@ -1193,43 +1273,62 @@ SS.Phim.edit = function
                 continue
             else if uInput == "F1" then 
                 return self.save_edit(current_parse)
+            else if uInput == "F5" then 
+                self.save_edit(current_parse);continue
             else if uInput == "F2" then
                 if current_mode == 1 then current_mode = 0 else current_mode = 1
                 continue
             else if uInput == "F3" then 
                 current_parse = self.file.get_content.split(NL)
                 continue
+            else if uInput == "F4" then 
+                self.save_copy(current_parse, INPUT("specify file name".prompt))
             end if
         else if current_mode == 1 then // PASTE
-            uInput = INPUT("["+"PASTE".purple+"] "+"> ".purple)
+            uInput = INPUT("["+"INPUT".purple+"] "+"> ".purple)
             if uInput == ":q!" then break
             if uInput == ":i" then 
                 current_mode = 0; continue
-            else if uInput == ":wq" then 
-                return self.save_edit(current_parse)
+            else if (uInput.len > 1) and (uInput[:2] == ":w") then
+                if uInput == ":wq" then return self.save_edit(current_parse)
+                if uInput == ":w" then; self.save(current_parse); continue; end if
+                wn = uInput.split(" "); if (wn == null) or (wn.len == 1) then continue
+                self.save_copy(current_parse, wn[1]); continue
             else if uInput == ":r" then 
                 current_parse = self.file.get_content.split(NL)
                 continue
             end if
         end if
         char_index = 0
-        if current_mode == 0 then 
-            for chars in current_line.values
-                if char_index != self.x then 
-                    mutable_line = mutable_line+chars 
-                else 
-                    if uInput == "Backspace" then 
-                        mutable_line = mutable_line+""
-                        self.x= self.x-1
-                    else if uInput == "Spacebar" then 
-                        mutable_line = mutable_line+" "
-                    else 
-                        mutable_line = mutable_line+uInput+chars
-                        cc = cc+1
-                    end if
+        if current_mode == 0 then
+            if current_line.len == 0 then 
+                if uInput == char(32) then // spacebar
+                    mutable_line = " "
+                else if uInput != "Backspace" then 
+                    mutable_line = uInput+" "
+                    if cc > 0 then cc = cc-1
                 end if
-                char_index=char_index+1
-            end for
+            else 
+                for chars in current_line.values
+                    if char_index != self.x then 
+                        mutable_line = mutable_line+chars 
+                    else 
+                        if uInput == "Backspace" then
+                            if append_mode == true then mutable_line = mutable_lines+""  else mutable_line = ""+mutable_line
+                            if self.x > 0 then self.x= self.x-1
+                            if cc > 0 then cc = cc-1
+                        else if uInput == char(32) then // spacebar
+                            if append_mode == true then mutable_line = mutable_line+chars+" "  else mutable_line = mutable_line+" "+chars
+                        else 
+                            CLEAR()
+                            LOG("C3".debug)
+                            if append_mode == true then mutable_line = mutable_line+chars+uInput  else mutable_line = mutable_line+uInput+chars
+                            cc = cc+1
+                        end if
+                    end if
+                    char_index=char_index+1
+                end for
+            end if
         else
             mutable_line = current_line.insert(self.x, uInput)
             cc = cc + uInput.len
@@ -1242,6 +1341,17 @@ end function
 SS.Phim.save_edit = function(content)
     edit = self.file.set_content(content.join(NL))
     if edit == 1 then return LOG("Successfully saved: ".ok+self.file.name)
+    LOG(edit.warning)
+end function
+SS.Phim.save_copy = function(content, n)
+    if not self.file then return
+    par = self.file.parent
+    if not par then return
+    if self.file.copy(parent_path(self.file.path), n) == 1 then return null
+    f = SS.Utils.fileFromPath(self.file, parent_path(self.file.path)+"/"+n)
+    if not f then return
+    edit = f.set_content(content.join(NL))
+    if edit == 1 then return LOG("Successfully saved: ".ok+f.name)
     LOG(edit.warning)
 end function
 ///======================= NETWORK =========================////
@@ -1396,7 +1506,7 @@ SS.Network.mapsub = function(ip = null, g = null) // map a subnet, or the gatewa
 end function
 // maps the entire network 
 SS.Network.map = function(addr)
-    if SS.anon == null then LOG("Mapping network: ".sys+addr.a)
+    LOG("Mapping network: ".sys+addr.a)
     i_i = is_valid_ip(addr); 
     i_l = is_lan_ip(addr);    
     v = null;
@@ -1572,6 +1682,7 @@ SS.Server.proxtunnel = function(o)
         if i == 3 then base.start_terminal
     end while
 end function
+//TODO: finish
 SS.Server.dirtytunnel = function(o,a)
     return LOG("wip".warning)
     if T(o) != "shell" then return LOG("Need shell".warning)
@@ -1581,18 +1692,24 @@ SS.Server.dirtytunnel = function(o,a)
         if not mut then mut = SS.Utils.getLaunchPoint(start) else mut = SS.Utils.getLaunchPoint(mut)
         a=a-1 
     end while
-    return mut
+    return mut[0]
 end function
 SS.Server.API = {}
+SS.Server.API.ip = null
 SS.Server.API.memzone = null
 SS.Server.API.memval = null
 SS.Server.API.interface = {}
-SS.Server.API.set = function(ip, mem=null, value=null)
+SS.Server.API.set = function(ip=null, mem=null, value=null)
+    if not ip and T(SS.cfg.dat) != "file" then return null
+    if not ip then ip == SS.cfg.api1
     if not is_valid_ip(ip) then return LOG("Invalid IP specified".warning) 
     self.ip = ip
-    if mem then self.memzone = mem 
-    if value then self.memval = value
-
+    if mem then self.memzone = mem else self.memzone = SS.cfg.api2
+    if value then self.memval = value else self.memval = SS.cfg.api3
+    if not self.memzone or not self.memval then
+        LOG("No memory zone defined".warning)
+        return null
+    end if
 end function
 SS.Server.API.get = function(mx, cv)
     if T(metaxploit) != "MetaxploitLib" then return LOG("metaxploit required for api to work".warning)
@@ -1690,7 +1807,7 @@ SS.CRO.i = function(o, sw=null)
             ret = include_lib(f.path); break;
         end if
     end while
-    if ret == null then return LOG("Unable to find MX on this system".warning)
+    if ret == null then return LOG("Unable to find Crypto on this system".warning)
     if not ret then return null
     self.c = ret
     return self
@@ -1705,6 +1822,37 @@ SS.CRO.fi = function(o=null)
     o.launch("/bin/apt-get", "update")
     o.launch("/bin/apt-get", "install crypto.so")
     o.launch("/bin/apt-get", "delrepo "+ip)
+    self.i(o)
+    return self
+end function
+///======================= APT =========================////
+SS.APT = {}
+SS.APT.o = null
+SS.APT.a = null 
+SS.APT.i = function(o, sw=null)
+    self.o = o
+    r = SS.Utils.rootFromFile(SS.Utils.ds(o, "file"))
+    cf = r.get_folders+r.get_files 
+    ret = null
+    while cf.len
+        f = cf.pull 
+        if f.is_folder then cf = cf+f.get_folders+f.get_files
+        if f.name == "aptclient.so" then
+            ret = include_lib(f.path); break;
+        end if
+    end while
+    if ret == null then return LOG("Unable to find APT on this system".warning)
+    if not ret then return null
+    self.c = ret
+    return self
+end function
+SS.APT.fi = function(o=null)
+    if T(self.o) != "shell" and (T(o) != "shell") then return null
+    ip = SS.cfg.repoip 
+    if ip == null then ip = SS.cfg.hackip
+    if not ip then ip = INPUT("Specify repo ip".prompt)
+    o.launch("/bin/apt-get", "update")
+    o.launch("/bin/apt-get", "install aptclient.so")
     self.i(o)
     return self
 end function
@@ -1726,16 +1874,18 @@ SS.MX.i = function(o)// include
         f = cf.pull 
         if f.is_folder then cf = cf+f.get_folders+f.get_files
         if f.name == "metaxploit.so" then
+            LOG("MX loaded successfully".ok)
             ret = include_lib(f.path); break;
         end if
     end while
-    if ret == null then return LOG("Unable to find MX on this system".warning)
+    if ret == null then return LOG("Unable to include MX on this system".warning)
     if not ret then return null
     self.x = ret
     return self
 end function
 SS.MX.fi = function(o, ip = null) // forced include
     if ip == null then ip = SS.cfg.hackip
+    LOG("Attempting to force include MX. . .".grey.sys)
     if T(self.o) != "shell" and (T(o) != "shell") then return null
     if not ip then ip = INPUT("Specify repo ip".prompt)
     o.launch("/bin/apt-get", "update")
@@ -1870,10 +2020,11 @@ SS.MX.rsCfg = function
     if choice == 0 then ;return null;
     else if choice == 1 then ; return rs[opt-1];
     else if choice == 2 then ; rs[opt-1].start_terminal ;
-    else if choice == 3 then ; self.implode(rs[opt-1]); return null;
-    else if choice == 4 then ; self.ks(rs[opt-1]); return null;
-    else if choice == 5 then ; self.depoOne(rs[opt-1]); return null;
+    else if choice == 3 then ; self.implode(rs[opt-1]);
+    else if choice == 4 then ; self.ks(rs[opt-1]);
+    else if choice == 5 then ; self.depoOne(rs[opt-1]);
     end if
+    return null
 end function
 SS.MX.implode = function(o, n = null)
     if not n then n = self.rsn
@@ -1946,7 +2097,7 @@ SS.MX.depoOne = function(r)
     tl = r.host_computer.File(dir.path+"/system.log")
     if not tl then return
     tl.chmod("o-wrx", 0)
-    tln = tl.split("\.")
+    tln = tl.name.split("\.")
     tln.insert(1, str((dir.get_files.len+1))) 
     rn = tl.rename(tln.join("."));wait(0.1)
     if rn.len == 0 then; LOG("New log saved!".ok); return true; else; LOG(rn.warning); end if 
@@ -2219,7 +2370,7 @@ SS.ML.of = function(vuln = null, data = null)// OVERFLOW, NO MAPPING
 end function
 SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
     if data == null then data = SS.cfg.unsecure_pw
-    //ret = []
+    ret = []
     _d = self.m
     _h = function(hack, data)
         if SS.debug then LOG("hack: ".debug+hack+NL+hack[1]["memory"]+" "+hack[2]["string"]+" "+data)
@@ -2232,9 +2383,14 @@ SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
             s = "-- overflow result --> ".warning+"FAIL".red.b;if hack.len > 3 then s = s+NL+hack[3]["requirements"].i.grey;
             LOG(s)
             return;
-        end if 
-        self.results.push([hack, r])
-        LOG("Overflow resulted in: ".ok+T(res).green.b)
+        end if
+        ty = T(res)
+        LOG("Overflow resulted in: ".ok+ty.green.b)
+         
+        eo = new SS.EO 
+        eo.map(eo)
+        eo.m2m(hack, hack[1]["memory"], hack[2]["string"])
+        if (eo.type == "string") or (eo.type == "number") then self.results.push(eo) else ret.push(eo)
     end function
     if vuln == null then // overflow all values
         for hack in SS.EXP.format(self.scanned)
@@ -2247,6 +2403,9 @@ SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
         end for
     end if
     return ret
+end function
+SS.ML.manscan = function(self)
+    return null
 end function
 SS.ML.eval = function(self )
 end function
@@ -2378,7 +2537,7 @@ SS.EO.risk = 0 // risk
 SS.EO.label = ""
 SS.EO.ln = null// lib name, version
 SS.EO.lv = null// lib name, version
-SS.EO.string = "" // hashing purposes
+SS.EO.es = "" // exploit string
 SS.EO.mz = null // memory zone 
 SS.EO.ma = null // memory address
 SS.EO.fs = [] // filesystem
@@ -2418,23 +2577,19 @@ SS.EO.info = function(self)
     for i in l; ret = ret + i ; end for 
     return ret
 end function
-SS.EO.map = function(o, ip = null, lan = null)
+SS.EO.map = function(o, ip = null, lan = null,dlc=null)
     self.o = o
     self.type = T(o)
-    self.users = []
-    self.fs = []
+    self.pc = null;self.users = [];self.fs = [];self.mz = null;self.ma = null;self.es=null
+    // changed
     if self.type == "number" or self.type == "string" then return null
     self.ln = null;self.lv=null;self.string="";self.label=null;self.mz=null;self.ma=null;
-    if self.type != "file" then 
-        self.pc = SS.Utils.ds(o, "computer")
-    else 
-        self.pc = null
-    end if
+    if self.type != "file" then self.pc = SS.Utils.ds(o, "computer")
     self.is = SS.Utils.user(o)
     if self.is == "unknown" then self.risk = self.risk+1
     self.is_r = (self.is == "root")
     self.home = SS.Utils.goHome(o, self.is)
-    if self.home == "/" then self.risk = self.risk + 1;
+    if self.home == "/" then self.risk = self.risk + 2;
     self.cfg = SS.Utils.goConfig(o, self.is)
     users = null
     if self.pc != null then 
@@ -2465,6 +2620,12 @@ SS.EO.map = function(o, ip = null, lan = null)
     if T(self.e) == "file" then; if self.e.has_permission("r") then; self.e = self.e.get_content;else ;self.e = "r".red.b;end if; else;self.e = "f".red.b;end if;
     if T(self.b) == "file" then ;if self.b.has_permission("r") then;self.b = self.b.get_content;else ;self.b = "r".red.b;end if;else;self.b = "f".red.b;end if;
     if T(self.br) == "file" then ;if self.br.has_permission("r") then;self.br = self.br.get_content;else ;self.br = "r".red.b;end if;else;self.br = "f".red.b;end if;
+    return self
+end function
+SS.EO.m2m = function(e, m, a)// map eo to memory
+    self.es = e
+    self.mz = m 
+    self.ma = a 
     return self
 end function
 SS.EO.same = function(eo)// our comparitive eo
@@ -2618,9 +2779,10 @@ end function
 SS.EO.check_fs = function(f=null)
     if self.fs.len == 0 then self.fs = SS.Utils.getfs(self.o)
     if f != null and SS.Utils.hasFile(self.o, f) != null then return true
-    if f != null and SS.Utils.hasFolder(self.o, f) != null then return true
+    //if f != null and SS.Utils.hasFolder(self.o, f) != null then return true
     //TODO: check filesystem for anything out of the ordinary
-    if out != SS.dfs then return true
+    //if self.fs != SS.dfs then return true
+    return null
 end function
 ///======================= EXPLOIT DB =========================////
 SS.EXP={"exploits":[]}
@@ -2894,26 +3056,18 @@ SS.MD5.mail = function(addr)
 	end for
     LOG("Unable to find mail password".warning)
 end function
-SS.MD5.wifish = function(o, bssid, essid)
+SS.MD5.wifish = function(o, bssid, essid, net="wlan0")
     pc = SS.Utils.ds(o, "computer")
     if pc == null then return null
     if T(SS.dbh) != "file" then return LOG("No hashes found".warning)
     if SS.dbhl.len == 0 then SS.loadHashes(SS.dbh)
-    LOG("WiFishing . . .".sys)
+    LOG("WiFishing . . .".grey.sys)
 	ret = null
     for f in SS.dbhl
         h = f.split(":")[0]
-        LOG(bssid+" "+essid)
-        attempt = pc.connect_wifi("wlan0", bssid, essid, h)
-        LOG("0 ".red+attempt)
-        if attempt == 1 then;LOG(("WiFish success ! "+h.green.b).ok) ;return attempt ;end if;
-        attempt = pc.connect_wifi("wlan1", bssid, essid, h)
-        LOG("1 ".red+attempt)
-        if attempt == 1 then;LOG(("WiFish success ! "+h.green.b).ok) ;return attempt ;end if;
-       attempt = pc.connect_wifi("wlan2", bssid, essid, h)
-       if attempt == 1 then;LOG(("WiFish success ! "+h.green.b).ok) ;return attempt ;end if;
-       LOG("2 ".red+attempt)
-    end for
+        attempt = pc.connect_wifi(net, bssid, essid, h)
+        if attempt == 1 then;LOG(("WiFish success ! "+h.green.b).ok) ;return h ;end if;
+     end for
     LOG("Unable to find wifi brute force".warning)
 end function
 ///======================== GFX =========================////
@@ -2979,9 +3133,10 @@ SS.Logger.map = function(n,o=null,i=null)// build the file
         tfi = SS.c.File(tf.path+"/"+(n+".db"))
     else 
         if SS.debug then LOG("C2")
-        tf = self.dbl
+        tf = SS.dbl
         tfi = SS.c.File(tf.path+"/"+(n+".db"))
         if not tfi then SS.c.touch(tf.path, (n+".db"))
+        tfi = SS.c.File(tf.path+"/"+(n+".db"))
     end if
     self.file = tfi
     self.fp = tfi.path
