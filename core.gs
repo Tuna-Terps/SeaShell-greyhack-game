@@ -1738,20 +1738,19 @@ Core["ns"] = function(addr, p, a = null, d = null)
 		return
 	else
 		if not d then return
-		res = netsesh.mlib.of([[{"exploit":"Unknown"}, {"memory": a},{"string": d}]], SS.cfg.unsecure_pw)
-		//exploits = true
+		res = netsesh.mlib.ofe([[{"exploit":"Unknown"}, {"memory": a},{"string": d}]], SS.cfg.unsecure_pw)
 	end if
 	if SS.debug then LOG("Exploits: ".debug+exploits)
 	if exploits == null then
 		if INPUT("Press 1 to confirm manual scan".prompt).to_int != 1 then return
-		netsesh.mlib.scan(netsesh.mlib)
-		exploits = netsesh.mlib.get(netsesh.mlib)
+		exploits = netsesh.mlib.manscan(netsesh.mlib)
 	end if
+	if not exploits then return null
 	if not d then d = SS.Utils.datapls
 	if d == ""  or d == " " then d = SS.cfg.unsecure_pw; if d == SS.cfg.unsecure_pw then LOG("Defaulting to unsecure pw . . .".sys)
 	if d == null then return LOG("Data error".error)
 	if T(exploits) == "list" then
-		res = netsesh.mlib.of(exploits, d)
+		res = netsesh.mlib.ofe(exploits, d)
 	else if T(exploits) == "string" then
 		res = netsesh.mlib.of(null, d)
 	end if
@@ -1850,14 +1849,15 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 		if not payload then return LOG("Manual scan wip, why do this?".warning)
 	else if ns.mlib.scanned == null then 
 		return null 
+	else;return null;
 	end if
 	d = SS.Utils.datapls
 	if (d == "")  or (d == " ") then d = SS.cfg.unsecure_pw
 	res = []
 	if T(payload) == "list" then
-		res = ns.mlib.of(payload, d)
+		res = ns.mlib.ofe(payload, d)
 	else if T(payload) == "string" then
-		res = ns.mlib.of(null, d)
+		res = ns.mlib.ofe(null, d)
 	end if
 	if res.len == 0 or res == null then return LOG("No objects returned".warning)
 	i = null; l = null
