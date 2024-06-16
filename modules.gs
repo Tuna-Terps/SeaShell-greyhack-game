@@ -25,17 +25,16 @@ SS.NPC.storeshell = function(eo)// TODO: fixme
     if T(eo) == "shell" then 
         neo = new SS.EO
         neo.map(eo)
-    else if self.shellips.indexOf() then 
-    
+    else if self.shellips.indexOf(eo.ip) then 
+        self.cache.push(eo)
     end if
 end function
 SS.NPC.mission = function(o, mission, del = null, notes = null, force=null)
-    if SS.cfg.mailacct == "" then SS.cfg.mailacct = INPUT("Enter mail acct".prompt,true)
-    if SS.cfg.mailpw == "" then SS.cfg.mailpw = INPUT("Enter mail pw".prompt,true)
     self.fixmekuro = null
     cmd = SS.CMD.getOne("iget")
-    bam = SS.BAM.handler(o, cmd, ["mail"])
-    if SS.bamres == null then return LOG("An issue occured")
+    SS.BAM.handler(o, cmd, ["mail"])
+    if T(SS.bamres) == "string" then return LOG(SS.bamres.warning)
+    if T(SS.bamres) != "MetaMail" then return LOG("MetaMail login failed".warning)
     self.fixmekuro = SS.bamres
     if T(self.fixmekuro) == "string" then return LOG(self.fixmekuro.warning)
     LOG(("Analyzing metamail. . .".sys)+NL+("Launching raft. . .").raft.sys);start = time;
@@ -75,7 +74,7 @@ SS.NPC.mission = function(o, mission, del = null, notes = null, force=null)
     else if mission == "-inbox" then 
         return LOG("Mailbox: ".sys+self.fixmekuro.fetch.len)
     end if
-    LOG("Beginning NPC mission completion. . .".ok)
+    LOG(("Beginning NPC mission completion. . .".grey.sys).raftPic)
     for plz in self.fixmekuro.fetch()
         target = "any"
 		target_ip = null
