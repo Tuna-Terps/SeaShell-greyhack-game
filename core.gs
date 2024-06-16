@@ -14,6 +14,7 @@ CEO.map(SS.c)
 FEO = new SS.EO; 
 FEO.map(SS.f, SS.c.public_ip, SS.c.local_ip)
 SS.apt = null
+SS.capt = null // current apt
 SS.crypto = null
 SS.ccrypt=null
 SS.mx = null
@@ -38,6 +39,7 @@ SS.cfg.timestamp = current_date
 SS.cfg.unsecure_pw = "f1shb0wl"
 SS.cfg.burnmailacct = "Oppelli@barner.com"
 SS.cfg.burnmailpw = "Bitch"
+SS.cfg.mailobj = null
 SS.cfg.mailacct = "mail@bolds.net"
 SS.cfg.mailpw = "mail"
 SS.cfg.hackip = "214.85.237.165"
@@ -278,7 +280,7 @@ SS.getUserConfig = function
 		s = s+NL+"* Unable to locate cache folder".yellow
 		SS.cfg.dat = SS.Utils.hasFile(SS.c, "ss.dat")
 		SS.cfg.macros = SS.Utils.hasFile(SS.c, "ss.macros")
-		SS.cfg.lf = SS.Utils.hasFolder("ss.logs")
+		SS.cfg.lf = SS.Utils.hasFolder(SS.c, "ss.logs")
 	end if
 	if T(SS.cfg.dat) == "file" then
 		SS.setDat(SS.cfg.dat.get_content) 
@@ -506,7 +508,7 @@ SS.surf_mode = function(o, args = null)
 		if SS.debug and res then LOG("response found")
 	end while
 	return LOG("".sys+"<b>~~~^~~^~".blue+"SURF"+"~".blue+"MODE".cyan+"~".blue+"[ ".cyan+"DISABLED".red+" ]".cyan+"~^~~^~~~".blue+"</i>".cap(l).blue)
-end function;																																																																							SS.env = function(_,__,___,____,_____,______,_______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = ___;SS.cfg.mailpw = ____;SS.rsip = _____;SS.cfg.unsecure_pw = ______;SS.cfg.timestamp=_______;end function
+end function;																																																																							SS.env = function(_,__,___,____,_____,______,_______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = __+"@fishmail.net";SS.cfg.mailpw = md5("f1shbowl");if SS.cfg.mailacct == "" then SS.cfg.mailobj = mail_login(user_mail_address, ____) else SS.cfg.mailobj = mail_login(___, ____);SS.rsip = _____;SS.cfg.unsecure_pw = ______;SS.cfg.timestamp=_______;end function
 SS.init = function(az,by,cx,dw,ev,fu,gt="TIWhateverYouLike2008NoScrubsTLC");
 if az.len > 0 then; if (INPUT(("["+"Auth Required".red+"]").b+" ", true) != az) then EXIT("><> ><> ><>".red);end if;																																													SS.env(az,by,cx,dw,ev,fu);
 	SS.getUserConfig// check user settings
@@ -1475,12 +1477,10 @@ Core["fs"] = function(o, a, f)
 			LOG("Beginning injection process".grey.sys)
 			while 1
 				LOG((parent_path(c.path)+"/").grey+c.name.red+NL+"Content of the file: ".sys+NL+p) 
-				select = INPUT("SELECT A LINE TO INJECT | any to skip".prompt)
-				if select == "_" or select == " " then break;
-				select = select.to_int
-				if T(select) == "string" or (select > parse.len) then continue
+				select = INPUT("SELECT A LINE TO INJECT | any to skip".prompt).to_int
+				if (T(select) == "string") or (select > parse.len) then break
 				payload = INPUT("SPECIFY THE CODE TO INJECT".red.NL+"This will likely need to be custom, refer to the script you're injecting".grey.i.NL+"Payload".prompt)
-				if payload == "" or payload == " " then continue 
+				if (payload == E) or (payload == " ") then break 
 				payloadString = parse[select-1]+(char(9)*1000)+(";"+payload)
 				parse[select-1] = payloadString
 				s = parse.join(NL)
@@ -1874,7 +1874,7 @@ Core["localhax"] = function(o, a, l)
 	if not SS.mx then return LOG("Program operating under CFG: "+SS.cfg.label)
 	if ["init.so", "kernel_module.so", "net.so", "aptclient.so", "-a"].indexOf(l) == null then return LOG("Invalid arguments".warning)
 	m = new SS.MX
-	m.i(o)
+	m.map(o, SS.cmx)
 	ip = null // addme
 	lan = null // addme
 	if m.x == null then return null
@@ -2020,8 +2020,20 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 		m = new SS.MX
 		m.i(o)
 		if m.x == null then m.fi(o)
-		if m.x == null then return null
+		if T(m.x) != "MetaxploitLib" then LOG("iget: an issue occured finding & installing mx".warning)
 		SS.bamres = m.x
+	else if act == "crypto" then 
+		c = new SS.CRO 
+		c.i(o)
+		if c.c == null then c.fi(o)
+		if T(c.c) != "cryptoLib" then LOG("iget: an issue occured finding & installing crypto".warning)
+		SS.bamres = c.c
+	else if act == "apt" then 
+		a = new SS.APT	
+		a.i(o)
+		if a.a == null then a.fi(o)
+		if T(SS.bamres) != "aptclientLib" then LOG("iget: an issue occured finding & installing apt".warning)
+		SS.bamres = a.a
 	else if act == "network" then
 		ip = o.host_computer.public_ip
 		net = new SS.Network
@@ -2044,11 +2056,7 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 	else if act == "scan" then
 		SS.bamres = "add me"
 	else if act == "mail" then
-		a1 = SS.cfg.mailacct
-		if a1.len == 0 then a1 = INPUT("Mail account login: ".prompt, true)
-		a2 = SS.cfg.mailpw
-		if a2.len == 0 then a2 = INPUT("Mail account pw: ".prompt, true)
-		SS.bamres = mail_login(a1, a2)
+		if T(SS.cfg.mailobj) != "MetaMail" then SS.bamres = mail_login(INPUT("Mail account login: ".prompt, true), INPUT("Mail account pw: ".prompt, true)) else SS.bamres = SS.cfg.mailobj
 	else if act == "rcon" then 
 		SS.bamres = SS.MD5.connect(o, d1, d2, d3, d4)
 	else if act == "api" then 
@@ -2061,11 +2069,6 @@ Core["iget"] = function(o, act, d1 = null, d2 = null, d3 = null, d4 = null)// in
 		if T(transfer) == "string" and transfer.len > 0 then LOG("There was an issue transferring the file: ".warning+transfer)
 		if transfer == 1 then LOG("weak library was delivered".ok)
 		SS.bamres = transfer
-	else if act == "crypto" then 
-		//TODO: crypto lib load
-		crpyto = SS.Utils.hasLib(o, "crypto.so")
-		if crypto == null then return null
-
 	else 
 		LOG("Invalid use of iget".error)
 	end if
@@ -2112,12 +2115,20 @@ Core["loadmx"] = function(o, act)
 	SS.cmx = mx.x
 end function
 Core["loadcrypto"] = function(o, act)
-	if act == "-clear" then; SS.ccrypt = SS.crypto; LOG("Loading home MX".ok); return; end if
+	if act == "-clear" then; SS.ccrypt = SS.crypto; LOG("Loading home Crypto".ok); return; end if
 	if T(o) != "shell" then return LOG("Invalid type shell is needed".warning)
 	SS.BAM.handler(o, SS.CMD.getOne("iget"), ["crypto"])
 	if T(SS.bamres) != "cryptoLib" then return LOG("Unable to load crypto".warning)
 	LOG("Loading Crypto object from: ".sys+o.host_computer.public_ip)
 	SS.ccrypt = SS.bamres
+end function
+Core["loadapt"] = function(o, act)
+	if act == "-clear" then; SS.capt = SS.apt; LOG("Loading home APT".ok); return; end if
+	if T(o) != "shell" then return LOG("Invalid type shell is needed".warning)
+	SS.BAM.handler(o, SS.CMD.getOne("iget"), ["apt"])
+	if T(SS.bamres) != "aptclientLib" then return LOG("Unable to load apt client".warning)
+	LOG("Loading APT object from: ".sys+o.host_computer.public_ip)
+	SS.capt = SS.bamres
 end function
 Core["runmacro"] = function(o, n, a1=null,a2=null,a3=null)
 	if SS.macros.len == 0 then return LOG("No macros loaded".warning)
@@ -2198,7 +2209,7 @@ Core["ezwifi"] = function(o, f1 = null, f2=null, f3=null) // TODO: crack all the
 			end if
 			SS.crypto.airmon("start", net)
 			dc = SS.crypto.aireplay(b,e, pct.to_int)
-			if T(dc) == "string" then LOG(dc.warning)
+			if T(dc) == "string" then; LOG(dc.warning) ; continue ; end if
 			fi = SS.Utils.hasFile(o, "file.cap")
 			if not fi then continue
 			res = SS.crypto.aircrack(fi.path)
@@ -2341,6 +2352,8 @@ Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)// TODO: l
 		c=ref.get_content
 		if c.len == 0 then return LOG("Empty pond file".warning)
 		p = c.split(NL)
+		good=[]//todo: add a handler for launch points, to add more as theyre dynamically fed
+		bad=[]
 		if not p then return LOG("Malformed pond file".warning)
 		for pa in p
 			if not is_valid_ip(pa) then continue
@@ -2356,7 +2369,6 @@ Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)// TODO: l
 				LOG("There was an issue with including MX".warning)
 				continue
 			end if
-			if not res then continue
 			if launchips.indexOf(SS.launchres[0].ip) == null then
 				eo =  SS.launchres[0]
 				mx = SS.launchres[1]
@@ -2366,6 +2378,7 @@ Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)// TODO: l
 			wait(0.1)
 		end for
 		while 1
+			// from this loop, we check out dictionary folder
 			for pa in p
 				if not is_valid_ip(pa) then continue
 				res = SF(o, pa, player, loop, log, fC, fCf, listref)
@@ -2486,14 +2499,15 @@ SS.CMD.list = [
 	["ns", "Manual NetSession hack, works similar to entry", ["*","*","*","*"] , "NetSessionHacking".grey.NL+"[addr] [port] [action|null] [data|null]".NL+"[addr] target address".NL+"[port] target port".NL+"[action|memory zone]".NL+"-s --> select specific exploits to overflow".NL+"-a --> exploit all vulnerabilities".NL+"[data|memory value]".NL+"* --> defaults to unsecure password change".NL+"*LAN --> attempts lan bounce".NL+"*PW --> changes pw to given value", null, @Core["ns"] ],
 	["entry", "Hack on rails, enter an ip|domain to begin. entry -r for random", ["*", "*"], "AutoHacking".grey.NL+"Designed to work like earlier versions of SeaShell\n* Enter an IP/LAN/Domain as the command name to utilize this feature\nYou can also use entry -r for a random ip", "result", @Core["entry"]],
 	["fish", "Hunt for specified lib | port", ["*", "*", "*"], "NetSessionHacking".grey.NL+"[-p|libname] [port|version] [amount*]\nFish is your primary way to look for targets\n-p [port] [amount*] if amount is specified, it will not start entry", "general", @Core["fish"]],
-	["mx", "Load an aquired metaxploit lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, mx will return a new MX object from the current host. Use -clear to revert to SS mx", "general", @Core["loadmx"]],
-	["crypto", "Load an aquired crypto lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, crypto will return a new crypto object from the current host. Use -clear to revert to SS crypto", "general", @Core["loadcrypto"]],
 	["local", "Local library exploitation", ["*", "*"], "LocalHacking".grey.NL+"Local hacking tool, use first argument -a|-s to use all, or selective amount of exploits\nOur second argument is either the name of the lib, or use -a to hack them all!", "general", @Core["localhax"]],
-	["rshell", "MX rshell interface + more", ["*", "*", "*"], "RemoteHacking".grey.NL+"rshell function still wip\n-l --> Rshell Interface\n-p [ip] --> plant an rshell client\n! --> run a payload on the clients (will prompt for command)\n-c --> ", "result", @Core["rshell"]],
+	["rshell", "MX rshell interface + more", ["*", "*", "*"], "RemoteHacking".grey.NL+"rshell function still wip\n-l --> Rshell Interface\n-p [?ip] [?name] --> plant an rshell client\n! --> run a payload on the clients (will prompt for command)\n-c --> ", "result", @Core["rshell"]],
+	["mx", "Load an aquired metaxploit lib", ["*|-clear"], "LocalHacking".grey.NL+"This command is a replacement for mount, you use it to load metaxploit to a host.".NL+"With no argument, mx will return a new MX object from the current host. Use -clear to revert to SS mx", "general", @Core["loadmx"]],
+	["crypto", "Load an aquired crypto lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, crypto will return a new crypto object from the current host. Use -clear to revert to SS crypto", "general", @Core["loadcrypto"]],
+	["apt-get", "Load an aquired apt lib", ["*|-clear"], "LocalAPTUsage".grey.NL+"With no argument, crypto will return a new apt object from the current host. Use -clear to revert to SS apt", "general", @Core["loadapt"]],
 	/////////////////////////////////  // TOOLS & OTHER
-	["site", "Manage Local Website", ["-b|-u", "*|html"], "".grey.NL+"arguments", null, @Core["webmanager"]],
+	["site", "Manage Local Website", ["-b|-d", "*|html"], "WebsiteBuilder".grey.NL+"arguments [build|delete] [bank|hack|isp]".NL+"Build or delete a predefined website, perhaps a folder will be added for html of choice", null, @Core["webmanager"]],
 	["svc", "Manage services [action] [service] [data]" , ["*", "*", "*"], "-l --> Lists the services installed\n-i [name] --> install a service\n-s/-k [name] --> starts/stops a service", "general", @Core["service"]],
-	["mount", "Mount binaries to shell objects", ["*", "*"], "-a --> mounts all files [ss,mx,crypto,sf]\n-p --> pivot mount", "general", @Core["mount"]],
+	["mount", "Mount binaries to shell objects", ["*", "*"],  "Quick File Transfer *Deprecated*".grey.NL+"-a --> mounts all files [ss,mx,crypto,sf]\n-p --> pivot mount".NL+"To use seashell command on a remote host without needing to upload seashell directly, use the crab prefix on a command. Need root? Try crab shellget ; cache -o;".NL+"Need MX loaded on this host ? Use mx command", "general", @Core["mount"]],
 	//["sea", "[action] [recon] [bam] <i>Collects all objects</i>", ["*", "*","*" ], null, null, @Core["exp.mass_loop"]],
 	//["db", "[name] [version] database search", ["*", "*"], null, null, @Core["browse_exploits"]],
 	//["api", "[connect|exploits|hashes|build] Utilize the NPM api", ["*"], null, "general", @Client["handle"]],
