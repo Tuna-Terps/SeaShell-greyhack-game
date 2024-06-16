@@ -223,6 +223,12 @@ SS.mutate = function
         end for
         return o
     end function
+    string.r8 = function
+        if self == "file" then return self.orange
+        if self == "computer" then return self.yellow
+        if self == "shell" then return self.green
+        return self.grey
+    end function
     // ======== Art from earlier versions of seashell
     string.ogconnect = function(self)
         if SS.og == null then return self
@@ -576,6 +582,7 @@ SS.Utils.hasFolder = function(o, n, all = false, clean = false)
     if not clean then LOG("Searching for directory: ".sys+n)
         r = null
     ret = []
+    if not o then return null
     if T(o) != "file" then
         if T(o) != "computer" then 
             r = o.host_computer.File("/")
@@ -1184,7 +1191,7 @@ SS.Phim.edit = function
     file = self.file
     cc = file.get_content.len
     header = function(cm)
-        if cm == 1 then s = "|".lblue+"*".white+" INPUT".purple+"*".white+" mode is a normal input, use ANYKEY to navigate; ".grey+"*".white.NL+"use: Edit | Commands" else s = "|".lblue+"*".white+"ANYKEY".lblue+"*".white+" mode uses individual keys as input".grey.NL+"|".lblue+"use: Edit | Navigate | Commands"
+        if cm == 1 then s = "|".lblue+"*".white+"INPUT".purple+"*".white+" mode is a normal input, use ANYKEY to navigate".grey.NL+"use: Edit | Commands" else s = "|".lblue+"*".white+"ANYKEY".lblue+"*".white+" mode uses individual keys as input".grey.NL+"|".lblue+"use: Edit | Navigate | Commands"
         if cm == 1 then 
             c1 = ":q!" // quit without saving
             c2 = ":wq" // write to file and quit
@@ -2107,6 +2114,7 @@ SS.ML = {"exploits":[], "file":null}
 SS.ML.m = null // metalib
 SS.ML.n = null // metalib name
 SS.ML.v = null // metalib name
+SS.ML.f = null // ml file
 SS.ML.scanned = null
 SS.ML.scanlabel = null
 SS.ML.results = []// batch of raw results
@@ -2119,14 +2127,11 @@ SS.ML.hasScanned = function(lib, libV)
         n = fo.name 
         fn = lib.split("\.")[0]
         if fn[:4] == "kern" then fn = fn.replace("_","")// kernel router and modules
-        if T((n[-2:].to_int)) == "number" then 
-            n = n.replace(n[-2:], "")
+        if T((n[-1:].to_int)) == "number" then 
+            n = n.replace(n[-1:], "")
         else if (T((n[-2:].to_int)) != "number") and (T(n[-1:].to_int) == "number") then 
             n = n.replace(n[-1:], "")
         end if
-        //if n[-1:] == "1" then n = n.replace("1","")
-        //if n[-1:] == "2" then n = n.replace("2","")
-        //if n[-1:] == "3" then n = n.replace("3","")
         if (n != fn) then continue
         for fi in fo.get_files
             if fi.name == (lib+"_v"+libV+".db") then
@@ -2137,7 +2142,6 @@ SS.ML.hasScanned = function(lib, libV)
     end for
     s = "Loading vulnerabilities from:</i> ".ok+(lib.red+" v".red+libV.red).b
     if not exploits then s = "<i>Failed to load requested vulnerabilities".warning
-    LOG(s)
     self.scanned = exploits
     return exploits
 end function
@@ -2152,22 +2156,18 @@ SS.ML.get=function(m)
 	if SS.dbe then p = SS.dbe.path
     if not p then; LOG("<i>there was an issue saving file, reinject & try again".grey); return null; end if
 	l=c.File(p+"/"+x+"/"+n)
-	if l then return l
-	l=c.File(p+"/"+x+"1"+"/"+n)
-	if l then return l
-    l=c.File(p+"/"+x+"2"+"/"+n)
-	if l then return l
-    for i in range(3, 10)
+    if l then return l
+    for i in range(1, 10)
         ni = i+1 
         i=str(i)
         ni = str(ni)
-        l=c.File(p+"/"+(x+i)+"/"+n)
+        l=c.File(p+"/"+x+i+"/"+n)
         if l then return l
         if c.File(p+"/"+x+i) then
             r=c.touch(p+"/"+(x+i),n)
             if r isa string then
+                if c.create_folder(p,(x+ni)) != 1 then continue
                 LOG("ML: Exceeded file cap, creating sub directory".warning)
-                c.create_folder(p,(x+ni))
                 c.touch(p+"/"+(x+ni),n)
                 return c.File(p+"/"+(x+ni)+"/"+n)
             else
@@ -2308,6 +2308,7 @@ SS.ML.map = function(ml, flag, x)
     self.x = x
     self.scanlabel = "unknown".red
     self.scanned = self.get(ml)
+    self.f = self.scanned
     self.results = []
     if self.scanned.get_content.len < 1 then
         LOG("ML: New library detected".sys) 
@@ -2320,11 +2321,11 @@ SS.ML.map = function(ml, flag, x)
         end if
         if flag == "-f" or flag == "-a" then 
             if (r == null) then SS.ML.scan(self.m, self.x)
-            self.scanned = SS.ML.hasScanned(self.n,self.v) 
+            self.scanned = self.hasScanned(self.n,self.v) 
             self.scanlabel = "scanned".green
         else if flag == "-i" and INPUT(("Scan & Save "+"1".white+" | Return "+"0".white).prompt).to_int == 1 then 
             SS.ML.scan(self.m, self.x)
-            self.scanned = SS.ML.hasScanned(self.n,self.v) 
+            self.scanned = self.hasScanned(self.n,self.v) 
             self.scanlabel = "scanned".green
         else 
             self.scanned = null
@@ -2349,7 +2350,7 @@ SS.ML.of = function(vuln = null, data = null)// OVERFLOW, NO MAPPING
         r = _d.overflow(hack[1]["memory"], hack[2]["string"], data)
         if r == null then 
             s = "-- overflow result --> ".warning+"FAIL".red.b
-            if hack.len > 3 then s = s+NL+hack[3]["requirements"].i.grey//+NL+"".fill
+            if hack.len > 4 then s = s+NL+hack[4]["requirements"].i.grey//+NL+"".fill
             LOG(s);return;
         end if 
         if r != null then ret.push(r)
@@ -2372,6 +2373,8 @@ SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
     if data == null then data = SS.cfg.unsecure_pw
     ret = []
     _d = self.m
+    self.results = []
+    eo = null
     _h = function(hack, data)
         if SS.debug then LOG("hack: ".debug+hack+NL+hack[1]["memory"]+" "+hack[2]["string"]+" "+data)
         r = null
@@ -2380,22 +2383,26 @@ SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
         LOG((("["+"overflow".purple+"]").s+hack[1]["memory"].wrap.cap(hack[2]["string"].grey)))
         r = _d.overflow(hack[1]["memory"], hack[2]["string"], data)
         if r == null then 
-            s = "-- overflow result --> ".warning+"FAIL".red.b;if hack.len > 3 then s = s+NL+hack[3]["requirements"].i.grey;
+            s = "-- overflow result --> ".warning+"FAIL".red.b;if hack.len > 4 then s = s+NL+hack[4]["requirements"].i.grey;
             LOG(s)
             return;
         end if
-        ty = T(res)
-        LOG("Overflow resulted in: ".ok+ty.green.b)
-         
-        eo = new SS.EO 
-        eo.map(eo)
+        LOG("Overflow resulted in: ".ok+T(r).green.b)
+        if T(r) == "string" or T(r) == "number" then return
+        eo = null
+        eo = new SS.EO
+        eo.map(r)
         eo.m2m(hack, hack[1]["memory"], hack[2]["string"])
-        if (eo.type == "string") or (eo.type == "number") then self.results.push(eo) else ret.push(eo)
+        ret.push(eo)
     end function
     if vuln == null then // overflow all values
         for hack in SS.EXP.format(self.scanned)
             if hack.len == 0 then continue
             _h(hack, data)            
+        end for
+        if ret.len == 0 then return []
+        for r in ret
+            self.ofw(r)
         end for
     else  // overflow specific values
         for v in vuln
@@ -2404,10 +2411,29 @@ SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
     end if
     return ret
 end function
+SS.ML.ofw = function(self, eo)
+    prechange = self.scanned.split(NL)
+    estr = null
+    c = 0
+    for i in prechange 
+        if i.indexOf(eo.ma) != null then; estr = i; break; end if
+        c = c+1
+    end for
+    if eo.is == "unknown" then return LOG("EVAL WARNING".error)
+    if estr == null then return LOG("NO EXPLOIT STRING FOUND".error)
+    prechange.remove(c)
+    ul = eo.is
+    if (ul != "root") and (eo.is != "guest") then ul = "user"
+    cur = eo.es
+    A=cur.pull;B=cur.pull;C=cur.pull;D=cur.pull;E=null
+    if cur.len > 0 then E = cur.pull
+    if E isa map then E = ":::requirements::"+E.requirements.split(NL).join(":")
+    prechange.push("exploit::"+eo.type+":::memory::"+eo.mz+":::string::"+eo.ma+":::user::"+ul+E)
+    self.f.set_content(prechange.join(NL))
+    self.scanned = self.f.get_content
+end function
 SS.ML.manscan = function(self)
     return null
-end function
-SS.ML.eval = function(self )
 end function
 SS.ML.browse = function(self)
     if self.scanned == null then return null
@@ -2416,13 +2442,13 @@ SS.ML.browse = function(self)
     hacks = SS.EXP.format(self.scanned)
     for i in hacks
         if i.len < 1 then continue
-        e= i[0]["exploit"].isUnknown + NL
+        e=  (i[3]["user"].isRoot).wrap.cap(i[0]["exploit"].r8) + NL
         m= "|".lblue+"memory".wrap.cap(i[1]["memory"].white)+ NL
         s= "|".lblue+"string".wrap.cap(i[2]["string"].white)+ NL
         r= "|".lblue+"requirements".wrap.cap("")
-        if i.len > 3 then r= "|".yellow+"requirements:"+ NL+ i[3]["requirements"].grey+ NL
-        o_s = e+m+s+r        
-        options.push(o_s)
+        if i.len > 4 then r= "|".yellow+"requirements:"+ NL+ i[4]["requirements"].grey
+        o_s = e+m+s+r    
+        options.push(o_s+NL+"".fill)
     end for
     while 1
         if options.len == 0 then break
@@ -2454,6 +2480,125 @@ SS.ML.getBetterScan = function(l, v)
     ns = new SS.NS.map(rip, 0, "-f", SS.mx)
     if (ns == null )or (ns.session == null) then return null
     return true
+end function
+///======================= EXPLOIT DB =========================////
+//TODO: finish
+SS.EXP={"exploits":[]}
+SS.EXP.format = function(data)
+    ret = []
+    for parse in data.split("\n")
+        values = []
+        for s in parse.split(":::")
+            pair = {}
+            if s.split("::")[0] == "requirements" then 				
+                pair["requirements"] = s.split("::")[1].replace(":", char(10))
+            else if s.split("::")[0] == "exploit" then
+                pair["exploit"] = s.split("::")[1]
+            else if s.split("::")[0] == "memory" then
+                pair["memory"] = s.split("::")[1]
+            else if s.split("::")[0] == "string" then			
+                pair["string"] = s.split("::")[1]
+            else if s.split("::")[0] == "user" then			
+                pair["user"] = s.split("::")[1]
+            else
+                continue
+            end if
+            values = values + [pair]
+        end for
+        ret = ret+[values]
+    end for
+    return ret
+end function
+SS.EXP.getOne = function(lib, libV)
+    LOG("Searching exploit db for:".sys+lib+" "+libV)
+    ret = null
+    if SS.dbe == null then return LOG("No exploit folder found".warning)
+    for f in SS.dbe.get_folders
+        if ret then break
+        n = fo.name 
+        fn = lib.split("\.")[0]
+        if fn[:4] == "kern" then fn = fn.replace("_","")// kernel router and modules
+        if fn[:-1] == "1" then fn.replace("1","")
+        if fn[:-1] == "2" then fn.replace("2","")
+        if (fo.name != fn) then continue
+        for each in folder.get_files
+            if ret then break
+            if each.name == (library+"_v"+libVersion+".db") then
+                ret = each.get_content
+                break
+            end if
+        end for
+    end for
+    if ret == null then LOG("<i>failed to load requested vulnerabilities file".warning)
+    return ret
+end function
+SS.EXP.getLib = function(lib, libv)
+    if SS.dbe == null then return LOG("Exploit folder not found".warning)
+    dir = null 
+    for f in SS.dbe.get_folders 
+        if f.name == l then dir = f
+        if l == "kernel_router" and (f.name == "kernelrouter1" or f.name == "kernelrouter2") then dir = f
+        if dir then break
+    end for
+    if not dir then return LOG("DB ERROR".error)
+    if lib == "-l" then
+        LOG("Listing all scanned versions of: ".sys+lib) 
+        for f in sub.get_files
+            LOG(f.name.white)
+        end for 
+    else if lib == "-d" then 
+        LOG("Dumping all known exploits for library: ".sys+lib) 
+        for f in sub_get_files
+            LOG(f.name.green.fill+NL)
+            hacks = SS.EXP.format(f.get_content)
+            for e in hacks 
+                if e.len == 0 then continue 
+                LOG("".fill+"Exploit: "+e[0]["exploit"].white +NL+"Address: "+e[1]["memory"].white +NL+"Value: "+e[2]["string"].white+NL+"User: "+e[3]["user"])
+                if e.len > 4 then 
+                    LOG("><> ><> ><>".grey+NL+"Requirements: ".yellow+NL+e[4]["requirements"]+NL+"><> ><> ><>".grey)
+                end if 
+            end for
+        end for
+    else
+        sub = null
+        for f in dir.get_files
+            if f.name == lib+".so_v"+libv+".db" then sub = f
+            if sub then break
+        end for
+        if not sub then return LOG("DB file not found: ".warning)
+        LOG(sub.name.green.fill+NL)
+        hacks = SS.EXP.format(sub.get_content)
+        for e in hacks
+            if e.len == 0 then continue 
+            LOG("".fill + NL +"Exploit: "+e[0]["exploit"].white +NL+"Address: "+e[1]["memory"].white +NL+"Value: "+e[2]["string"].white+NL+"User: "+e[3]["user"])
+            if e.len > 4 then 
+                LOG("><> ><> ><>".grey+NL+"Requirements: ".yellow+NL+e[4]["requirements"]+NL+"><> ><> ><>".grey)
+            end if 
+        end for
+    end if
+end function
+SS.EXP.bdb = function(o, p = null, i_h = null)
+    if p == null then; p = SS.cwd; else if p[0] != "/" then; p = SS.Utils.path(p); end if;
+    ret = "Unable to deploy database".warning
+    if SS.Utils.hasFolder(o, "exploits") then 
+        if INPUT("Exploit db already exists, continue?").to_int != 1 then return
+    end if
+    if i_h then 
+        if not o.File(p+"/"+i_h) then o.create_folder(p, i_h)
+        p = p+"/"+i_h
+    end if
+    if not o.File(p+"/dict") then o.create_folder(p, "dict")
+    //if not o.File(p+"/dict/data") then o.create_folder(p+"/dict", "data")
+    if not o.File(p+"/dict/exploits") then o.create_folder(p+"/dict", "exploits")
+    for f in ["libssh", "libftp", "libhttp", "libsql", "libsmtp", "librepository", "libchat", "librshell", "kernelrouter", "kernelrouter1", "libinit"]
+        if o.create_folder(p+"/dict/exploits", f) == 1 then LOG("Created exploit folder for library: ".white+f.green)
+    end for
+    //if not o.File(p+"/dict/data/rainbow") then o.create_folder(HOME+"/dict/data", "rainbow")
+    if o.File(p+"/dict/exploits") and o.File(p+"/dict/exploits").get_folders.len > 0 then 
+        SS.dbe = o.File(p+"/dict/exploits")    
+        return LOG("Exploit database built at path: ".ok+p.lblue)
+    end if
+    LOG("An error occured during the building process".warning)
 end function
 ///======================= NetSession =========================////
 SS.NS = {"exploits":[]}
@@ -2577,13 +2722,20 @@ SS.EO.info = function(self)
     for i in l; ret = ret + i ; end for 
     return ret
 end function
+SS.EO.m2m = function(h,a,b)
+    self.es = h
+    self.mz = a 
+    self.ma = b
+    return self
+end function
 SS.EO.map = function(o, ip = null, lan = null,dlc=null)
     self.o = o
     self.type = T(o)
     self.pc = null;self.users = [];self.fs = [];self.mz = null;self.ma = null;self.es=null
     // changed
-    if self.type == "number" or self.type == "string" then return null
     self.ln = null;self.lv=null;self.string="";self.label=null;self.mz=null;self.ma=null;
+    self.is = null;self.ip=null;self.lan=null;
+    if (self.type == "number") or (self.type == "string") then return self
     if self.type != "file" then self.pc = SS.Utils.ds(o, "computer")
     self.is = SS.Utils.user(o)
     if self.is == "unknown" then self.risk = self.risk+1
@@ -2620,12 +2772,6 @@ SS.EO.map = function(o, ip = null, lan = null,dlc=null)
     if T(self.e) == "file" then; if self.e.has_permission("r") then; self.e = self.e.get_content;else ;self.e = "r".red.b;end if; else;self.e = "f".red.b;end if;
     if T(self.b) == "file" then ;if self.b.has_permission("r") then;self.b = self.b.get_content;else ;self.b = "r".red.b;end if;else;self.b = "f".red.b;end if;
     if T(self.br) == "file" then ;if self.br.has_permission("r") then;self.br = self.br.get_content;else ;self.br = "r".red.b;end if;else;self.br = "f".red.b;end if;
-    return self
-end function
-SS.EO.m2m = function(e, m, a)// map eo to memory
-    self.es = e
-    self.mz = m 
-    self.ma = a 
     return self
 end function
 SS.EO.same = function(eo)// our comparitive eo
@@ -2784,122 +2930,7 @@ SS.EO.check_fs = function(f=null)
     //if self.fs != SS.dfs then return true
     return null
 end function
-///======================= EXPLOIT DB =========================////
-SS.EXP={"exploits":[]}
-SS.EXP.format = function(data)
-    ret = []
-    for parse in data.split("\n")
-        values = []
-        for s in parse.split(":::")
-            pair = {}
-            if s.split("::")[0] == "requirements" then 				
-                pair["requirements"] = s.split("::")[1].replace(":", char(10))
-            else if s.split("::")[0] == "exploit" then
-                pair["exploit"] = s.split("::")[1]
-            else if s.split("::")[0] == "memory" then
-                pair["memory"] = s.split("::")[1]
-            else if s.split("::")[0] == "string" then			
-                pair["string"] = s.split("::")[1]
-            else
-                continue
-            end if
-            values = values + [pair]
-        end for
-        ret = ret+[values]
-    end for
-    return ret
-end function
-SS.EXP.getOne = function(lib, libV)
-    LOG("Searching exploit db for:".sys+lib+" "+libV)
-    ret = null
-    if SS.dbe == null then return LOG("No exploit folder found".warning)
-    for f in SS.dbe.get_folders
-        if ret then break
-        n = fo.name 
-        fn = lib.split("\.")[0]
-        if fn[:4] == "kern" then fn = fn.replace("_","")// kernel router and modules
-        if fn[:-1] == "1" then fn.replace("1","")
-        if fn[:-1] == "2" then fn.replace("2","")
-        if (fo.name != fn) then continue
-        for each in folder.get_files
-            if ret then break
-            if each.name == (library+"_v"+libVersion+".db") then
-                ret = each.get_content
-                break
-            end if
-        end for
-    end for
-    if ret == null then LOG("<i>failed to load requested vulnerabilities file".warning)
-    return ret
-end function
-SS.EXP.getLib = function(lib, libv)
-    if SS.dbe == null then return LOG("Exploit folder not found".warning)
-    dir = null 
-    for f in SS.dbe.get_folders 
-        if f.name == l then dir = f
-        if l == "kernel_router" and (f.name == "kernelrouter1" or f.name == "kernelrouter2") then dir = f
-        if dir then break
-    end for
-    if not dir then return LOG("DB ERROR".error)
-    if lib == "-l" then
-        LOG("Listing all scanned versions of: ".sys+lib) 
-        for f in sub.get_files
-            LOG(f.name.white)
-        end for 
-    else if lib == "-d" then 
-        LOG("Dumping all known exploits for library: ".sys+lib) 
-        for f in sub_get_files
-            LOG(f.name.green.fill+NL)
-            hacks = SS.EXP.format(f.get_content)
-            for e in hacks 
-                if e.len == 0 then continue 
-                LOG("".fill+"Exploit: "+e[0]["exploit"].white +NL+"Address: "+e[1]["memory"].white +NL+"Value: "+e[2]["string"].white)
-                if e.len > 3 then 
-                    LOG("><> ><> ><>".grey+NL+"Requirements: ".yellow+NL+e[3]["requirements"]+NL+"><> ><> ><>".grey)
-                end if 
-            end for
-        end for
-    else
-        sub = null
-        for f in dir.get_files
-            if f.name == lib+".so_v"+libv+".db" then sub = f
-            if sub then break
-        end for
-        if not sub then return LOG("DB file not found: ".warning)
-        LOG(sub.name.green.fill+NL)
-        hacks = SS.EXP.format(sub.get_content)
-        for e in hacks
-            if e.len == 0 then continue 
-            LOG("".fill + NL +"Exploit: "+e[0]["exploit"].white +NL+"Address: "+e[1]["memory"].white +NL+"Value: "+e[2]["string"].white)
-            if e.len > 3 then 
-                LOG("><> ><> ><>".grey+NL+"Requirements: ".yellow+NL+e[3]["requirements"]+NL+"><> ><> ><>".grey)
-            end if 
-        end for
-    end if
-end function
-SS.EXP.bdb = function(o, p = null, i_h = null)
-    if p == null then; p = SS.cwd; else if p[0] != "/" then; p = SS.Utils.path(p); end if;
-    ret = "Unable to deploy database".warning
-    if SS.Utils.hasFolder(o, "exploits") then 
-        if INPUT("Exploit db already exists, continue?").to_int != 1 then return
-    end if
-    if i_h then 
-        if not o.File(p+"/"+i_h) then o.create_folder(p, i_h)
-        p = p+"/"+i_h
-    end if
-    if not o.File(p+"/dict") then o.create_folder(p, "dict")
-    //if not o.File(p+"/dict/data") then o.create_folder(p+"/dict", "data")
-    if not o.File(p+"/dict/exploits") then o.create_folder(p+"/dict", "exploits")
-    for f in ["libssh", "libftp", "libhttp", "libsql", "libsmtp", "librepository", "libchat", "librshell", "kernelrouter", "kernelrouter1", "libinit"]
-        if o.create_folder(p+"/dict/exploits", f) == 1 then LOG("Created exploit folder for library: ".white+f.green)
-    end for
-    //if not o.File(p+"/dict/data/rainbow") then o.create_folder(HOME+"/dict/data", "rainbow")
-    if o.File(p+"/dict/exploits") and o.File(p+"/dict/exploits").get_folders.len > 0 then 
-        SS.dbe = o.File(p+"/dict/exploits")    
-        return LOG("Exploit database built at path: ".ok+p.lblue)
-    end if
-    LOG("An error occured during the building process".warning)
-end function
+
 ///======================= HASH DB =========================////
 SS.MD5 = {}
 SS.MD5.cache = []
