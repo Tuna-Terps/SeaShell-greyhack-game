@@ -54,7 +54,7 @@ I have had some questions on how to best utilize in game & Here are some tips; <
 4.) <br> mx is a command to dynamically load and unload metaxploit to those systems
 <br>
 Hope you enjoy if you find useful;<br>
-<h2>"Surf Mode"</h2><br>
+<h2>"Surf Mode"</h2><br><br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/1db29cdc-1e6b-4975-b4c5-aba691d1bc35)
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/a94134d9-f97b-43f3-947b-2c608023b3ed)
 <h3>command chaining</h3><br>
