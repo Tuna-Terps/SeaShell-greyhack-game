@@ -402,6 +402,16 @@ SS.mutate = function
         end for
         return NL+BL+"Shells".wrap("A5A5A5",15).cap(c.len.rate).NL+BL+"Computers".wrap("A5A5A5",15).cap(u.len.rate).NL+BL+"Files".wrap("A5A5A5",15).cap(f.len.rate).NL+BL+"Unknown".wrap("A5A5A5",15).cap(u.len.rate)
     end function
+    string.progressBar = function(self,c,t)
+        if t > 100 then return null
+        rate = ceil((t/c)*100)
+
+        if t > 10 then pct = (ceil(((c/t)*100))-1)/10 else pct = ceil(((c/t)*100))
+        rem = t-c
+        if t > 10 then rem = ceil(rem)/10 else rem = rem
+        wait 0.2
+        LOG(self.sys+" ["+("#"* pct).lblue +("-"* rem).grey+"]—["+str(pct).white+"%".grey+"]",1)
+    end function
     number.rate = function(self)
         if self < 3 then return str(self).green
         if self > 3 and self < 10 then return str(self).yellow
@@ -996,7 +1006,8 @@ SS.Utils.webmanager = function(o, f)
     else;LOG("Invalid argument".warning) 
     end if
 end function
-SS.Utils.getLaunchPoint = function(o,i=null)
+SS.Utils.getLaunchPoint = function(o,i=null, mx = null)
+    if mx == null then mx = SS.mx
     SS.launchres = []
     LOG("Attempting to gain launch point. . .".grey.sys)
     sb=null
@@ -1004,7 +1015,8 @@ SS.Utils.getLaunchPoint = function(o,i=null)
     while 1
         ret = null
         if not i then i = SS.Utils.random_ip
-        r0 = new SS.NS.map(i, 0 , "-f", SS.mx); 
+        r0 = new SS.NS.map(i, 0 , "-f", mx);
+        if not sb then i = SS.Utils.random_ip 
         if not r0 or not r0.session then
             if not sb then continue else return null 
         end if
@@ -1013,7 +1025,7 @@ SS.Utils.getLaunchPoint = function(o,i=null)
             if not sb then continue else return null 
         end if
         for h in hs 
-            if T(h) == "shell" then; ret = h; break; end if
+            if T(h) == "shell" then; ret = h; break; end if 
         end for
         if not ret then
             if sb then break; 
@@ -1064,6 +1076,7 @@ SS.Utils.getLaunchPoint = function(o,i=null)
             return [seo, SS.launchres] 
         end if
         if sb == true then break
+        wait(0.1)
     end while
     LOG("Failed to acquire launch point".grey.sys)
     return null
@@ -1724,15 +1737,26 @@ SS.Server.proxtunnel = function(o)
 end function
 //TODO: finish
 SS.Server.dirtytunnel = function(o,a)
-    return LOG("wip".warning)
     if T(o) != "shell" then return LOG("Need shell".warning)
     start = SS.Utils.getLaunchPoint(o)
-    mut = null
-    while a > 0 
-        if not mut then mut = SS.Utils.getLaunchPoint(start) else mut = SS.Utils.getLaunchPoint(mut)
-        a=a-1 
-    end while
-    return mut[0]
+    if start == null then return LOG("Failed to acquire launch".warning)
+    if T(SS.launchres[1]) != "MetaxploitLib" then return LOG("Tunnel: There was an issue including mx".warning)
+    muteo = SS.launchres[0].o
+    SS.Utils.wipe_logs(muteo)
+    mutmx = SS.launchres[1]
+    sa = a
+    for i in range(0, a)
+        //LOG("Diry Tunnel: ".progressBar(a, sa))
+        res = SS.Utils.getLaunchPoint(muteo, null, mutmx)
+        if res == null then continue
+        if T(res) != "MetaxploitLib" then continue
+        muteo = SS.launchres[0].o
+        mutmx = SS.launchres[1]
+        SS.Utils.wipe_logs(muteo)
+        a=a-1
+        wait(0.1) 
+    end for
+    return muteo
 end function
 SS.Server.API = {}
 SS.Server.API.ip = null
