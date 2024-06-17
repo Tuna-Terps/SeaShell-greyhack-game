@@ -57,7 +57,7 @@ Hope you enjoy if you find useful;<br>
 "Surf Mode"<br>
 
 command chaining<br>
-![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/ffb9b890-deaf-4b9f-9af6-8b4466bb0c0a =250x250)
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/ffb9b890-deaf-4b9f-9af6-8b4466bb0c0a=250x250)
 <br>
 port entry<br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/87e1e9a3-3e8b-48db-b314-485a58a8b556)
