@@ -33,7 +33,7 @@ Once complete, the only required filed are ss
 4. The installer script can be ran in stages, or provides a full installation. 
 
 DELETE ALL SRC FILES ONCE YOU HAVE SUCCESFULLY RAN SS<br>
-![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/1ebbffd3-c5ea-49ae-baf6-8945e32bd47e)
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/728f2ded-02af-44a6-9016-00155f37be7d)
 <h1>SeaShell Features </h1><br>
 1.) Manage multiple objects in a sandbox environment<br>
 2.) Capture net sessions remotely, return exploit objects from launched binaries<br>
