@@ -55,8 +55,8 @@ I have had some questions on how to best utilize in game & Here are some tips; <
 <br>
 Hope you enjoy if you find useful;<br>
 <br><h2>"Surf Mode"</h2><br><br>
-![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/1db29cdc-1e6b-4975-b4c5-aba691d1bc35)
-![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/a94134d9-f97b-43f3-947b-2c608023b3ed)
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/9b0994c8-7295-4aea-befc-d757811156bf)
+![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/a3fe0f5a-5715-4c7c-8a1d-d746d03fecf3)
 <br><h2>C.R.A.B command relay access bridge</h2><br><br>
 ![image](https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/727c626b-d84d-479c-85fe-4c821c1893b2)
 <br><h3>command chaining</h3><br>
