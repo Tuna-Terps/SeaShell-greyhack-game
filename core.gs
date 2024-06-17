@@ -2084,7 +2084,8 @@ Core["proxybounce"] = function(o, a1 = null, a2 = 10)
 	if a1 == "-b" then 
 		res = server.proxtunnel(o)
 	else if a1 == "-d" then
-		if T(a2.to_int) != "number" then a2 = 10
+		if T(a2) == "string" then a2 = a2.to_int
+		if a2 != null and T(a2) != "number" then a2 = 10
 		res = server.dirtytunnel(o, a2)
 	end if
 	if T(res) == "shell" then return res
@@ -2455,6 +2456,19 @@ Core["test"] = function(_, a=null)
 		SS.BAM.handler(SS.s, SS.CMD.getOne("iget"), ["mail"])
 		LOG("Mailbox: ".sys+SS.bamres.fetch.len)
 	end if
+
+	for i in range(1, 100)
+		LOG("ProgressBar100".progressBar(i, 100))
+	end for
+	for i in range(1, 10)
+		LOG("ProgressBar10".progressBar(i, 100))
+	end for
+	for i in range(1, 25)
+		LOG("ProgressBar25".progressBar(i, 100))
+	end for
+	for i in range(1, 50)
+		LOG("ProgressBar50".progressBar(i, 100))
+	end for
 	//if a != null then
 	//	id = INPUT("Select an ID to delete: ".prompt) 
 	//	d = SS.bamres.delete(id)
