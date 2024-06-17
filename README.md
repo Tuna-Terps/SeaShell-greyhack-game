@@ -60,6 +60,7 @@ Hope you enjoy if you find useful;<br>
 <img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/a3fe0f5a-5715-4c7c-8a1d-d746d03fecf3" width=50% height=50%>
 
 <br><h2>C.R.A.B command relay access bridge</h2><br><br>
+<img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/727c626b-d84d-479c-85fe-4c821c1893b2" width=50% height=50%>
 <br><h3>command chaining</h3><br>
 <img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/ffb9b890-deaf-4b9f-9af6-8b4466bb0c0a" width=50% height=50%>
 
