@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////
 SS = get_custom_object// SEASHELL INSTALLER CUSTOM OBJECT
 SS.cb = false
-SS.version = "2.0.0"//SEASHELL INSTALLER
+SS.version = "2.0.1"//SEASHELL INSTALLER
 LOG = @print
 INPUT = @user_input
 T = @typeof
@@ -685,8 +685,8 @@ else if params[0] == "-cache" then
     check_cache
 else if params[0] == "-src" then
     CACHEFILE = check_cache
-    install_src(CACHEFILE)
-    build_src(CACHEFILE)
+    install_src
+    build_src
 else if params[0] == "-db" then
     CACHEFILE = check_cache
     if INPUT("Press 1 to build db".prompt).to_int == 1 then build_db(CACHEFILE)
