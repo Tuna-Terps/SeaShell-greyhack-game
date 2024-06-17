@@ -377,9 +377,42 @@ SS.mutate = function
         ret = ret+NL+"Select".prompt
         return ret
     end function
+    string.BL = function(self)
+        return "|".lblue+self
+    end function    
+    string.YL = function(self)
+        return "|".yellow+self
+    end function    
+    string.RL = function(self)
+        return "|".red+self
+    end function
+    string.genSimpleExpSummary = function(self)
+        fi = SS.c.File(self)
+        if T(fi) != "file" then return "ERROR".red
+        u = []
+        s = []
+        c = []
+        f = []
+        for h in SS.EXP.format(fi.get_content)
+            if h.len < 1 then continue
+            if h[0].exploit == "Unknown" then; u.push(h); continue; end if;
+            if h[0].exploit == "shell" then; s.push(h); continue; end if;
+            if h[0].exploit == "computer" then; c.push(h); continue; end if;
+            if h[0].exploit == "file" then; f.push(h); continue; end if;
+        end for
+        return NL+BL+"Shells".wrap("A5A5A5",15).cap(c.len.rate).NL+BL+"Computers".wrap("A5A5A5",15).cap(u.len.rate).NL+BL+"Files".wrap("A5A5A5",15).cap(f.len.rate).NL+BL+"Unknown".wrap("A5A5A5",15).cap(u.len.rate)
+    end function
+    number.rate = function(self)
+        if self < 3 then return str(self).green
+        if self > 3 and self < 10 then return str(self).yellow
+        return str(self).red
+    end function
 // end of mutation
 end function
 SS.mutate// to be reused in sf
+BL = "|".lblue
+YL = "|".yellow
+RL = "|".red
 ///======================== UTIL =========================////
 SS.Utils = {}
 SS.Utils.ds = function(o, type = "computer")
@@ -2440,15 +2473,11 @@ SS.ML.browse = function(self)
     ret = []
     options = []
     hacks = SS.EXP.format(self.scanned)
-    for i in hacks
-        if i.len < 1 then continue
-        e=  (i[3]["user"].isRoot).wrap.cap(i[0]["exploit"].r8) + NL
-        m= "|".lblue+"memory".wrap.cap(i[1]["memory"].white)+ NL
-        s= "|".lblue+"string".wrap.cap(i[2]["string"].white)+ NL
-        r= "|".lblue+"requirements".wrap.cap("")
-        if i.len > 4 then r= "|".yellow+"requirements:"+ NL+ i[4]["requirements"].grey
-        o_s = e+m+s+r    
-        options.push(o_s+NL+"".fill)
+    for h in hacks
+        if h.len < 1 then continue
+        s = BL+"USER".wrap("00BDFF", 10).purple.cap(h[3].user.isRoot(null,"00FFE7")).purple+NL+BL+"TYPE".wrap("00BDFF", 10).purple.cap(h[0].exploit.r8).purple+NL+BL+"ZONE".wrap("00BDFF", 10).purple.cap(h[1].memory.grey).purple+NL+BL+"ADDR".wrap("00BDFF", 10).purple.cap(h[2].string.grey).purple
+        if h.len > 4 then s = s+NL+YL+"*".white+"REQUIRES".grey+"*".white+NL+h[4]["requirements"]
+        options.push(s+NL+"".fill)
     end for
     while 1
         if options.len == 0 then break
@@ -2456,7 +2485,8 @@ SS.ML.browse = function(self)
         choice = INPUT("Select exploit".prompt)
         if choice == "" or choice == " " then break
         if choice.to_int-1 > options.len then continue
-        choice = choice.to_int-1
+        choice = choice.to_int//-1
+        if choice == 1 then choice == 0
         s_o = hacks[choice]
         actions = INPUT(["Add & Return", "Add & Run"].select+NL+"Any to return".prompt)
         if actions == "" or actions == " " then continue
@@ -2510,72 +2540,27 @@ SS.EXP.format = function(data)
     return ret
 end function
 SS.EXP.getOne = function(lib, libV)
-    LOG("Searching exploit db for:".sys+lib+" "+libV)
-    ret = null
     if SS.dbe == null then return LOG("No exploit folder found".warning)
-    for f in SS.dbe.get_folders
-        if ret then break
+    LOG("Searching DB for MetaLib: ".grey.sys+lib.white.s+libV.red)
+    ret = null
+    for fo in SS.dbe.get_folders
         n = fo.name 
-        fn = lib.split("\.")[0]
+        fn = n.split("\.")[0]
         if fn[:4] == "kern" then fn = fn.replace("_","")// kernel router and modules
-        if fn[:-1] == "1" then fn.replace("1","")
-        if fn[:-1] == "2" then fn.replace("2","")
-        if (fo.name != fn) then continue
-        for each in folder.get_files
-            if ret then break
-            if each.name == (library+"_v"+libVersion+".db") then
-                ret = each.get_content
-                break
+        if T((n[-1:].to_int)) == "number" then 
+            n = n.replace(n[-1:], "")
+        else if (T((n[-2:].to_int)) != "number") and (T(n[-1:].to_int) == "number") then 
+            n = n.replace(n[-1:], "")
+        end if
+        if (n != lib) then continue
+        for fi in fo.get_files
+            if fi.name == (lib+".so_v"+libV+".db") then
+                return fi
             end if
         end for
     end for
     if ret == null then LOG("<i>failed to load requested vulnerabilities file".warning)
     return ret
-end function
-SS.EXP.getLib = function(lib, libv)
-    if SS.dbe == null then return LOG("Exploit folder not found".warning)
-    dir = null 
-    for f in SS.dbe.get_folders 
-        if f.name == l then dir = f
-        if l == "kernel_router" and (f.name == "kernelrouter1" or f.name == "kernelrouter2") then dir = f
-        if dir then break
-    end for
-    if not dir then return LOG("DB ERROR".error)
-    if lib == "-l" then
-        LOG("Listing all scanned versions of: ".sys+lib) 
-        for f in sub.get_files
-            LOG(f.name.white)
-        end for 
-    else if lib == "-d" then 
-        LOG("Dumping all known exploits for library: ".sys+lib) 
-        for f in sub_get_files
-            LOG(f.name.green.fill+NL)
-            hacks = SS.EXP.format(f.get_content)
-            for e in hacks 
-                if e.len == 0 then continue 
-                LOG("".fill+"Exploit: "+e[0]["exploit"].white +NL+"Address: "+e[1]["memory"].white +NL+"Value: "+e[2]["string"].white+NL+"User: "+e[3]["user"])
-                if e.len > 4 then 
-                    LOG("><> ><> ><>".grey+NL+"Requirements: ".yellow+NL+e[4]["requirements"]+NL+"><> ><> ><>".grey)
-                end if 
-            end for
-        end for
-    else
-        sub = null
-        for f in dir.get_files
-            if f.name == lib+".so_v"+libv+".db" then sub = f
-            if sub then break
-        end for
-        if not sub then return LOG("DB file not found: ".warning)
-        LOG(sub.name.green.fill+NL)
-        hacks = SS.EXP.format(sub.get_content)
-        for e in hacks
-            if e.len == 0 then continue 
-            LOG("".fill + NL +"Exploit: "+e[0]["exploit"].white +NL+"Address: "+e[1]["memory"].white +NL+"Value: "+e[2]["string"].white+NL+"User: "+e[3]["user"])
-            if e.len > 4 then 
-                LOG("><> ><> ><>".grey+NL+"Requirements: ".yellow+NL+e[4]["requirements"]+NL+"><> ><> ><>".grey)
-            end if 
-        end for
-    end if
 end function
 SS.EXP.bdb = function(o, p = null, i_h = null)
     if p == null then; p = SS.cwd; else if p[0] != "/" then; p = SS.Utils.path(p); end if;
@@ -2731,7 +2716,7 @@ end function
 SS.EO.map = function(o, ip = null, lan = null,dlc=null)
     self.o = o
     self.type = T(o)
-    self.pc = null;self.users = [];self.fs = [];self.mz = null;self.ma = null;self.es=null
+    self.pc = null;self.users = ["root"];self.fs = [];self.mz = null;self.ma = null;self.es=null
     // changed
     self.ln = null;self.lv=null;self.string="";self.label=null;self.mz=null;self.ma=null;
     self.is = null;self.ip=null;self.lan=null;
@@ -2911,6 +2896,7 @@ SS.EO.check_player = function()
     else 
     
     end if
+    if self.users.len != 2 then return null
     for u in self.users
         for n in ["0","1","2","3","4","5","6","7","8","9",]
             if u.indexOf(n) != null then
