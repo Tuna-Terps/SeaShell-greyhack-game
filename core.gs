@@ -1137,8 +1137,11 @@ end function
 Core["passwd"] = function(o, u)
 	o = SS.Utils.ds(o, "computer")
 	if o == null then return
-	if not u then u = INPUT("User: ".prompt)
-	out = o.change_password(u, INPUT("Changing password for user: ".sys + u +"\nNew password: ", true))
+	if not u or u == " " then u = INPUT("User: ".prompt)
+	if u == "" or u == " " then return LOG("Invalid user".warning)
+	p = INPUT("Changing password for user: ".sys + u +"\nNew password: ", true)
+	if p == "" or p == " " then return LOG("Invalid password".warning)
+	out = o.change_password(u, p)
 	if T(out) == "string" then return LOG(out.warning)
 	LOG("Password modified for: ".ok+u)
 end function
@@ -2406,6 +2409,46 @@ Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)// TODO: l
 		end while
 	end if
 end function
+Core["db"] = function(lib, libv)
+	if T(SS.dbe) != "file" then return LOG("DB directory not found, build using cd ; -cfg -e -b".warning)
+	if lib == null then return LOG("Invalid argument [lib] [version|action]".warning)
+	dbf = null
+	if libv == null then
+		dbf = [] 
+		libv == "-a"
+		for fo in SS.dbe.get_folders 
+			n = fo.name 
+			fn = n.split("\.")[0]
+			if fn[:4] == "kern" then fn = fn.replace("_","")// kernel router and modules
+			if T((n[-1:].to_int)) == "number" then 
+				n = n.replace(n[-1:], "")
+			else if (T((n[-2:].to_int)) != "number") and (T(n[-1:].to_int) == "number") then 
+				n = n.replace(n[-1:], "")
+			end if
+			if (n != lib) then continue
+			dbff = []
+			for fi in fo.get_files 
+				dbff.push(BL+fi.name.white.wrap.cap(fi.get_content.split(NL).len.rate)+((fi.path).genSimpleExpSummary))
+			end for 
+			dbf.push({"name": fo.name , "files":dbff})
+		end for
+		if dbf.len == 0 then return null
+		for fob in dbf 
+			LOG("".fill+NL+"DIRECTORY: "+fob.name+NL+"CONTENTS:"+NL+fob.files.join(NL))
+		end for
+	else 
+		dbf = SS.EXP.getOne(lib, libv)
+		if dbf == null then return
+		hacks = SS.EXP.format(dbf.get_content)
+		LOG("DB FILE: ".sys+parent_path(dbf.path).grey+"/".grey+dbf.name.lblue)
+		for h in hacks
+			if h.len < 3 then continue
+			s = "".fill+NL+BL+"USER".wrap("00BDFF", 10).purple.cap(h[3].user.isRoot(null,"00FFE7")).purple+NL+BL+"TYPE".wrap("00BDFF", 10).purple.cap(h[0].exploit.r8).purple+NL+BL+"ZONE".wrap("00BDFF", 10).purple.cap(h[1].memory.grey).purple+NL+BL+"ADDR".wrap("00BDFF", 10).purple.cap(h[2].string.grey).purple
+			if h.len > 4 then s = s+NL+YL+"*".white+"REQUIRES".grey+"*".white+NL+h[4]["requirements"]
+			LOG(s)
+		end for
+	end if
+end function
 Core["test"] = function(_, a=null)
 
 	if a == null then 
@@ -2437,7 +2480,7 @@ SS.CMD.list = [
 	["-c", "Clear the screen", [], "Clears the screen", null, @CLEAR],
 	["-t", "Start a terminal", [], "Starts a terminal on the object, requires a shell".grey, "result", @Core["terminal"]],
 	["-d", "Decipher a hash", ["*", "-c|-d|*"], "Decipher a hash".grey.NL+"* [path] --> Path of file to decrack\n* [-c|-d] --> -c uses CryptoLib, -d uses HashTables (reccomended)", null, @Core["cipher"]],	
-	["!", "Launch a binary file", ["*", "*", "*", "*", "*"], "Launches a binary".grey.NL+"-e --> launches eel\n-s --> launches ss in surf_mode\n[path] [arg*] --> define a path to launch ex: ! /bin/nslookup www.google.com", "general", @Core["launch"]],
+	["!", "Launch a binary file", ["*", "*", "*", "*", "*"], "Launches a binary".grey.NL+"-e --> launches eel\n-s --> launches ss in surf_mode\n[path] [arg*] --> define a path to launch ex: ! /bin/nslookup www.google.com".NL+"MULTIPLAYER: DO NOT USE THIS COMMAND ON UNTRUSTED BINARIES".red, "general", @Core["launch"]],
 	
 	["-anon", "Toggle anonymous mode", ["-s|*"], "Tries to hide as many IPs as possible,".grey.NL+" streaming mode made this rather obsolete but good to have", null, @Core["anon"]],
 	["-dev", "Toggle debug mode", ["-s|*"], "debugging mode, no need to worry", null, @Core["dev"]],
@@ -2457,7 +2500,6 @@ SS.CMD.list = [
 	["user", "Prints current user | Add/Del User", ["-a|-d|*", "*"], "User manager".grey.NL+"-a [username] --> add a user\n-d [username] --> delete a user", "general", @Core["me"]],
 	["passwd", "Change a user's password [requires root]", ["*"], "Password changer".grey.NL+"[user] --> this requires root permission", "general", @Core["passwd"]],
 	["groups", "Group View | Add/Del Group", ["-a|-d|*", "*", "*"], "Groups manager".grey.NL+"-a [username] [group] --> add a group\n-d [username] [group] --> delete a group", "general", @Core["groups"]],
-
 	["touch", "Creates a file in specified directory", ["*", "*"], "It makes a file".grey.NL+"[path] [name]", "general", @Core["touch"]],
 	["build", "Build binary from specified directory", ["*","*","*" ], "It compiles a file into a binary".grey.NL+"[srcPath] [buildPath] [import] Build a src file into a compiled binary", "general", @Core["build"]],
 	["mkdir", "Creates a folder in specified directory", ["*", "*"], "Make a folder".grey.NL+"[path] [name]", "general", @Core["mkdir"]],
@@ -2507,9 +2549,9 @@ SS.CMD.list = [
 	/////////////////////////////////  // TOOLS & OTHER
 	["site", "Manage Local Website", ["-b|-d", "*|html"], "WebsiteBuilder".grey.NL+"arguments [build|delete] [bank|hack|isp]".NL+"Build or delete a predefined website, perhaps a folder will be added for html of choice", null, @Core["webmanager"]],
 	["svc", "Manage services [action] [service] [data]" , ["*", "*", "*"], "-l --> Lists the services installed\n-i [name] --> install a service\n-s/-k [name] --> starts/stops a service", "general", @Core["service"]],
-	["mount", "Mount binaries to shell objects", ["*", "*"],  "Quick File Transfer *Deprecated*".grey.NL+"-a --> mounts all files [ss,mx,crypto,sf]\n-p --> pivot mount".NL+"To use seashell command on a remote host without needing to upload seashell directly, use the crab prefix on a command. Need root? Try crab shellget ; cache -o;".NL+"Need MX loaded on this host ? Use mx command", "general", @Core["mount"]],
+	["mount", "Mount binaries to shell objects", ["*", "*"],  "Quick File Transfer *Deprecated*".grey.NL+"-a --> mounts all files [ss,mx,crypto,sf]\n-p --> pivot mount".NL+"To use seashell command on a remote host without needing to upload seashell directly, use the crab prefix on a command. Need root? Try crab shellget ; cache -o".NL+"Need MX loaded on this host ? Use command mx", "general", @Core["mount"]],
 	//["sea", "[action] [recon] [bam] <i>Collects all objects</i>", ["*", "*","*" ], null, null, @Core["exp.mass_loop"]],
-	//["db", "[name] [version] database search", ["*", "*"], null, null, @Core["browse_exploits"]],
+	["db", "Exploit database search", ["*", "*"], "Exploit Database Viewer".grey.NL+"PRIMARY ARGUMENTS".NL+"[lib] [version|action]", null, @Core["db"]],
 	//["api", "[connect|exploits|hashes|build] Utilize the NPM api", ["*"], null, "general", @Client["handle"]],
 	["crab", "Command Relay Access Bridge: used in addition to other commands".crab, ["*", "*", "*", "*"], ("C".red+"ommand "+"R".red+"elay "+"A".red+"ccess "+"B".red+"ridge is a remote option for using local SeaShell commands, and specified payloads").white.NL+"\n[cmd|info|module] [args]\nex: crab sudo -s | crab scanlan".grey.NL+"In essence, CRAB acts as a way to use commands that you can only use on a machine that you have originated from, get_shell | get_router for example.".lblue.NL.NL+"Try using".lblue+(" ""sudo -s""").red+" on a captured shell from ".lblue+("""entry/ns""").grey+" and it's root pw, this will fail, what you need to use is ".lblue+("""crab sudo -s""").green+" with that shell's password.".lblue.NL+"<u>This has now allowed you to use SeaShell as if it was uploaded to the target shell, without needing to transfer any files.".lblue.NL.NL+"This can be used in combination with all SeaShell commands, and in correct combination can result in quick and efficient pivoting through networks".grey, "result", @Core["crab"]],
 	["surf", "New surf loop on current shell host, works like a toggle for crab", [], "Begin surfing on a new host, essentially a toggle for crab.\nSurf Mode is a recursive loop of the main program, you can use this to loop and perform local operations on remote hosts".NL+"This will allow you to use commands like 'sudo' instead of having to specify its being used with crab like ""crab sudo""", "result", @Core["surf"]],
@@ -2533,7 +2575,7 @@ SS.CMD.list = [
 ///======================= Binary.Attack.Module =========================////
 SS.BAM = {}
 SS.BAM.bamstring = "LOG = @print;INPUT = @user_input;HOME = @home_dir;T = @typeof;NL = char(10);COLUMNS = @format_columns;CLEAR = function; return clear_screen; end function;"
-SS.BAM.bamstring = SS.BAM.bamstring+"SS = get_custom_object;SS.mutate;LOG(('Now walking. . .').crab.sys);args = SS.bamargs;if args.len == 0 then;if SS.bamrun.cb == 'general' then ; SS.CMD.invoke(SS.o, SS.bamrun.name);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name);else ;SS.CMD.invoke(SS.o, SS.bamrun.name);end if;else if args.len == 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);end if;else if args.len > 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join(' '));else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);end if;end if;if SS.bamret != null and SS.bamret != 'exit' then SS.CMD.result(SS.bamret)"
+SS.BAM.bamstring = SS.BAM.bamstring+"SS = get_custom_object;SS.mutate;BL='|'.lblue;YL='|'.yellow;RL='|'.red;LOG(('Now walking. . .').crab.sys);args = SS.bamargs;if args.len == 0 then;if SS.bamrun.cb == 'general' then ; SS.CMD.invoke(SS.o, SS.bamrun.name);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name);else ;SS.CMD.invoke(SS.o, SS.bamrun.name);end if;else if args.len == 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args[0]);end if;else if args.len > 1 then ;if SS.bamrun.cb == 'general' then  ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join(' '));else if SS.bamrun.cb == 'result' then ;SS.bamret = SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);else ;SS.CMD.invoke(SS.o, SS.bamrun.name+' '+args.join);end if;end if;if SS.bamret != null and SS.bamret != 'exit' then SS.CMD.result(SS.bamret)"
 SS.BAM.isModule = function(c)// check registered modules
 	for i in self.modules 
 		if i.name == c then; return i; break; end if
