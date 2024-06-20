@@ -3,11 +3,14 @@
 ////////////////////////////////////////////////////////////
 SS = get_custom_object// SEASHELL CUSTOM OBJECT
 SS.version = "1.0.7a"
+SS.buildv = "1.7.1"
 SS.cwd = current_path
 SS.ccd = ".ss"// current cache dir, this is where seashell builds
 SS.debug = null
 SS.anon = false
 SS.og = null
+SS.training_wheels = false // 8)
+TW = SS.training_wheels
 SS.pastecb = false//builder
 SS.o = null // current object
 SS.bamrun = null// BAM runtask
@@ -39,6 +42,7 @@ CLEAR = function; return clear_screen; end function;
 
 ///==================== Maps ========================////
 SS.mutate = function
+    TW = SS.training_wheels
     string.size = function(self, s)
         if T(s) == "number" then s = str(s)
         return "<size="+s+">"+self+"</size>"
@@ -187,7 +191,6 @@ SS.mutate = function
         if not hex then s_t = "["+self+"]"
         if sl >= n then return s_t
         for i in range(1, (n-sl)); s_t = s_t+"—"; end for;
-        //for i in range(1, (n-sl)); s_t = s_t+"-"; end for;
         return s_t
     end function
     string.cap = function(self, cap, hex = "FFFFFF", ih = null)
@@ -203,7 +206,6 @@ SS.mutate = function
         return s_t
     end function
     string.fromMd5 = function(self);
-        if SS.debug then LOG("from md5 --> ".debug.s+self);
         if T(SS.dbh) != "file" then return self;
         find = SS.MD5.find(self);
         if find != null then return find;
@@ -306,6 +308,10 @@ SS.mutate = function
         o = o+self
         return o
     end function
+    string.TW = function 
+        if SS.training_wheels == false then return
+        return "SeaShell Tips".title+NL+self.grey
+    end function
     string.a = function(self)
         if SS.anon == true then return "HIDDEN".grey.size(14)
         return self
@@ -340,6 +346,41 @@ SS.mutate = function
         self = to_int(self)
         self = str((300000/self))
         return self
+    end function
+    string.BL = function(self)
+        return "|".lblue+self
+    end function    
+    string.YL = function(self)
+        return "|".yellow+self
+    end function    
+    string.RL = function(self)
+        return "|".red+self
+    end function
+    string.genSimpleExpSummary = function(self)
+        fi = SS.c.File(self)
+        if T(fi) != "file" then return "ERROR".red
+        u = []
+        s = []
+        c = []
+        f = []
+        for h in SS.EXP.format(fi.get_content)
+            if h.len < 1 then continue
+            if h[0].exploit == "Unknown" then; u.push(h); continue; end if;
+            if h[0].exploit == "shell" then; s.push(h); continue; end if;
+            if h[0].exploit == "computer" then; c.push(h); continue; end if;
+            if h[0].exploit == "file" then; f.push(h); continue; end if;
+        end for
+        return NL+BL+"Shells".wrap("A5A5A5",15).cap(c.len.rate).NL+BL+"Computers".wrap("A5A5A5",15).cap(u.len.rate).NL+BL+"Files".wrap("A5A5A5",15).cap(f.len.rate).NL+BL+"Unknown".wrap("A5A5A5",15).cap(u.len.rate)
+    end function
+    string.progressBar = function(self,c,t)
+        if t > 100 then return null
+        rate = ceil((t/c)*100)
+
+        if t > 10 then pct = (ceil(((c/t)*100))-1)/10 else pct = ceil(((c/t)*100))
+        rem = t-c
+        if t > 10 then rem = ceil(rem)/10 else rem = rem
+        wait 0.2
+        LOG(self.sys+" ["+("#"* pct).lblue +("-"* rem).grey+"]—["+str(pct).white+"%".grey+"]",1)
     end function 
     // ======== LISTS
     list.table = function(title)
@@ -377,40 +418,11 @@ SS.mutate = function
         ret = ret+NL+"Select".prompt
         return ret
     end function
-    string.BL = function(self)
-        return "|".lblue+self
-    end function    
-    string.YL = function(self)
-        return "|".yellow+self
-    end function    
-    string.RL = function(self)
-        return "|".red+self
-    end function
-    string.genSimpleExpSummary = function(self)
-        fi = SS.c.File(self)
-        if T(fi) != "file" then return "ERROR".red
-        u = []
-        s = []
-        c = []
-        f = []
-        for h in SS.EXP.format(fi.get_content)
-            if h.len < 1 then continue
-            if h[0].exploit == "Unknown" then; u.push(h); continue; end if;
-            if h[0].exploit == "shell" then; s.push(h); continue; end if;
-            if h[0].exploit == "computer" then; c.push(h); continue; end if;
-            if h[0].exploit == "file" then; f.push(h); continue; end if;
+    list.oddOne = function(self,l2)
+        for item in l2
+           if self.indexOf(item) == null then return item 
         end for
-        return NL+BL+"Shells".wrap("A5A5A5",15).cap(c.len.rate).NL+BL+"Computers".wrap("A5A5A5",15).cap(u.len.rate).NL+BL+"Files".wrap("A5A5A5",15).cap(f.len.rate).NL+BL+"Unknown".wrap("A5A5A5",15).cap(u.len.rate)
-    end function
-    string.progressBar = function(self,c,t)
-        if t > 100 then return null
-        rate = ceil((t/c)*100)
-
-        if t > 10 then pct = (ceil(((c/t)*100))-1)/10 else pct = ceil(((c/t)*100))
-        rem = t-c
-        if t > 10 then rem = ceil(rem)/10 else rem = rem
-        wait 0.2
-        LOG(self.sys+" ["+("#"* pct).lblue +("-"* rem).grey+"]—["+str(pct).white+"%".grey+"]",1)
+        return null
     end function
     number.rate = function(self)
         if self < 3 then return str(self).green
@@ -432,7 +444,6 @@ SS.Utils.ds = function(o, type = "computer")
     for t in types 
         if t["t"] != type then continue
         if t["t"] == type then ds = t 
-        if SS.debug then LOG("ds: ".debug+T(o).white+" --> "+ds["t"].green)
         break
     end for
     if T(o) == "shell" or T(o) == "ftpshell" then
@@ -447,7 +458,6 @@ SS.Utils.ds = function(o, type = "computer")
         if ds["v"] == 2 then ret = o 
         if ds["v"] == 1 then ret = o.File("/")
     else if T(o) == "file" then
-        if SS.debug then LOG("ds: c3".debug) 
         if ds["v"] > 1 then
             LOG("Cannot perform this operation with a file".error)
             return null
@@ -459,12 +469,10 @@ SS.Utils.ds = function(o, type = "computer")
 end function
 SS.Utils.user = function(o)
     if not o then return LOG("Invalid parameter provided: ".error+o)
-    if SS.debug then LOG("Utils:user ".debug+T(o))
     h = null
     if T(o) != "file" then
         if T(o) != "computer" then o = o.host_computer
         if T(o.create_group("root", "fish")) != "string" then
-            if SS.debug then LOG("IsUser ".debug+"root") 
             o.delete_group("root", "fish")
             return "root"
         end if
@@ -496,7 +504,6 @@ SS.Utils.isRoot = function(o)
     return false;
 end function
 SS.Utils.path=function(p)
-    if SS.debug then LOG("Utils:path ".debug+p)
     if p[0] != "/" and SS.cwd != "/" then p = SS.cwd+"/"+p
     if p[0] != "/" and SS.cwd == "/" then p = SS.cwd+p
     if p == ".." and SS.cwd != "/" then 
@@ -529,26 +536,6 @@ SS.Utils.rootFromFile = function(o)
     end while
     return o
 end function
-SS.Utils.getFromFile = function(o, p)
-    if T(o) != "file" then return LOG("This is only intended for files".error)
-    o = SS.Utils.rootFromFile(o)
-    r = o.get_folders+o.get_files
-    if p[0] != "/" then p = SS.Utils.path(p)
-    parse = p.split("\/")// individual path
-    mo = null // mutable file
-    while 1
-        cf = r.pull
-        for i in range(0, parse.len-1)
-            if cf.name == parse[i] then mo = cf
-            if mo != null  and (i != parse.len-1) then break
-            if mo != null and (i == parse.len-1) then return mo
-        end for
-        if mo == null then break
-        if cf.is_folder then r = cf.get_folders+cf.get_files
-        mo = null
-    end while
-    return mo
-end function
 SS.Utils.fileFromPath = function(o, p)
     if T(o) != "file" then o = SS.Utils.ds(o, "file"); if o == null then return null
     cf = SS.Utils.rootFromFile(o)
@@ -572,11 +559,10 @@ SS.Utils.fileFromPath = function(o, p)
 end function
 SS.Utils.goHome = function(o, u = null)
     if not u then u = SS.Utils.user(o)
-    if SS.debug then LOG("go home --> ".debug+u)
     p = "/home/"+u
     if u == "root" then p = "/root"        
     frp = SS.Utils.fileFromPath(o, p)
-    if frp == null then LOG("GOHOME ERROR -- TAMPERED SYSTEM".error)
+    if frp == null then LOG("GOHOME ERROR -- TAMPERED SYSTEM".warning)
     if frp then return frp.path // p
     return "/" // changed from null to default /
 end function
@@ -872,69 +858,6 @@ SS.Utils.wipe_sys = function(o)
     if _c(boot) == true then return true
     return null
 end function 
-SS.Utils.secure = function(o, a)
-    pc = null
-    root = null
-    sys = null 
-    boot = null
-    home = null
-    if T(o) == "file" then 
-        r = SS.Utils.rootFromFile(o, "/")
-    else
-        pc = o
-        if T(o) != "computer" then pc = o.host_cmputer
-        r = pc.File("/")
-    end if
-    s1 = r.chmod("o-wrx", 1)
-    hp = SS.Utils.goHome(o)
-    cfg = SS.Utils.goConfig(o) 
-    s1=null;s2=null;s3=null;s4=null;s5=null;s6=null;
-    if a == "-s" then 
-        s2 = r.set_owner("root", 1)
-        s3 = r.set_group("root", 1)
-    else if a == "-h" then 
-        if T(o) == "file" then 
-            sys =  SS.Utils.fileFromPath(o, "/sys") 
-            boot = SS.Utils.fileFromPath(o, "/boot")
-            home = SS.Utils.fileFromPath(o, p)
-            cfg = SS.Utils.fileFromPath(o, hp)
-            root =  SS.Utils.fileFromPath(o, "/root")
-        else 
-            sys =  pc.File("/sys") 
-            boot = pc.File("/boot")
-            home = pc.File(p) 
-            cfg = pc.File(hp)
-            root = pc.File("/root")
-        end if
-        s2 = boot.chmod("u-rwx", 1)
-        s3 = sys.chmod("u-rwx", 1)
-        s4 = cfg.set_owner("root", 1)
-        s5 = cfg.set_group("root", 1)
-        s6 = cfg.chmod("u-wrx")
-    end if
-    if s1.len < 1 then; LOG("Stage 1 complete:".ok);else;LOG("Stage 1 failed: ".warning+stage1); end if;
-    if s2.len < 1 then; LOG("Stage 2 complete:".ok);else;LOG("Stage 2 failed: ".warning+stage1);end if;
-    if s3.len < 1 then; 
-        LOG("Stage 3 complete:".ok);
-    else;
-        LOG("Stage 3 failed: ".warning+stage1);
-    end if;
-    if s4 != null then;if s4.len < 1 then; LOG("Stage 4 complete:".ok);else;LOG("Stage 4 failed: ".warning+stage1); end if;end if;
-    if s5 != null then 
-        if s5.len < 1 then 
-            LOG("Stage 5 complete:".ok)
-        else
-            LOG("Stage 5 failed: ".warning+stage1) 
-        end if
-    end if
-    if s6 != null then 
-        if s6.len < 1 then 
-            LOG("Stage 6 complete:".ok)
-        else
-            LOG("Stage 6 failed: ".warning+stage1) 
-        end if
-    end if
-end function
 SS.Utils.patch = function(o)
     o = SS.Utils.ds(o, "computer")
     if not o then return
@@ -948,8 +871,9 @@ SS.Utils.patch = function(o)
             if o.create_folder("/", d) == 1 then LOG("Patched dir: ".ok+d)
         else;LOG("Directory is ok: ".sys+d)
         end if
-        if o.File == null then 
+        if o.File(d) == null then 
             LOG("Failed to patch: ".error+d)
+            continue
         end if
         r = null
         if d == "boot" then 
@@ -1104,7 +1028,6 @@ SS.Utils.menu = function(title, options, cb = null)
     selected_option = 0
     in_main = true
     while selecting == true
-        if SS.debug then LOG("Utils:menu Start ".debug+NL+"current_menu: "+selected_menu+NL+"current_option : "+selected_option+NL+"in_main: "+in_main) 
         if selecting == false then break
         c = 1
         choices = (title.cyan+":"+" Main Menu".white).title("FFFFFF", 80).blue
@@ -1125,7 +1048,6 @@ SS.Utils.menu = function(title, options, cb = null)
             continue
         else
             choices = options[selected_menu-1]["options"]
-            if SS.debug then LOG("Utils:menu choices: "+choices)
             in_main = false
             LOG((title.blue+": "+options[selected_menu-1]["name"].white).title("00FFE7", 80)+choices.select)
             inp	= INPUT("["+"CHOOSE OPTION".green+"]"+" --".white+" press 0 to return ".grey+"--> ".white)
@@ -1140,7 +1062,6 @@ SS.Utils.menu = function(title, options, cb = null)
             selected_option = i;
         end if
         if inp.val-1 > choices.len then continue
-        if SS.debug then LOG("Utils:menu c1".debug)
         selection = null
         if selected_menu > 0 and in_main == false then confirm = INPUT("1".white+"."+")".white+" Confirm".green+NL+"-- ".white+"* press any to return *".grey+" --> ".white)
         if (confirm == null) or (confirm == " ") or (confirm.val > 2) or (confirm.val == 0) then 
@@ -1149,7 +1070,6 @@ SS.Utils.menu = function(title, options, cb = null)
             break
         end if
     end while
-    if SS.debug then LOG("Utils:menu ".debug+selected_menu-1+" "+selected_option-1) 
     return [selected_menu-1, selected_option-1]
 end function
 ///======================== DATE & UPTIME =========================////
@@ -1303,7 +1223,6 @@ SS.Phim.edit = function
         footer(self.x, self.y, cc)
         if current_mode == 0 then // INSERT
             uInput = INPUT("["+"ANYKEY".lblue+"] "+"> ".lblue, 0, 1)
-            if SS.debug then LOG(uInput+" "+T(uInput))
             if uInput == "Escape" then break
             if self.invalidInput.indexOf(uInput) != null then continue
             if self.arrowInput.indexOf(uInput) != null then 
@@ -1319,7 +1238,7 @@ SS.Phim.edit = function
                     self.y=self.y+1
                 end if
                 continue
-            else if uInput == "" then
+            else if uInput == "" then // enter
                 current_parse.insert(self.y+1, " ")
                 self.x = 0
                 self.y = self.y+1
@@ -1346,10 +1265,19 @@ SS.Phim.edit = function
                 if uInput == ":wq" then return self.save_edit(current_parse)
                 if uInput == ":w" then; self.save(current_parse); continue; end if
                 wn = uInput.split(" "); if (wn == null) or (wn.len == 1) then continue
-                self.save_copy(current_parse, wn[1]); continue
+                self.save_copy(current_parse, wn[1]);continue
             else if uInput == ":r" then 
-                current_parse = self.file.get_content.split(NL)
-                continue
+                current_parse = self.file.get_content.split(NL);continue
+            else if uInput == ":nl" then 
+                current_parse.insert(self.y+1, " ");self.x = 0;self.y = self.y+1;continue
+            else if uInput == ":ul" then 
+                if self.y > 0 then self.y = self.y-1;continue
+            else if uInput == ":dl" then 
+                if self.y < current_parse.len then self.y = self.y+1;continue
+            else if uInput == ":uc" then 
+                if self.x > 0 then self.x = self.x-1;continue
+            else if uInput == ":dc" then 
+                if self.x < xLen then self.x = self.x+1;continue
             end if
         end if
         char_index = 0
@@ -1524,7 +1452,6 @@ SS.Network.getRouter = function(lan)
     return []
 end function
 SS.Network.mapsub = function(ip = null, g = null) // map a subnet, or the gateway
-    if SS.debug then LOG("init:mapsub:".debug+self)
     d_l = [];
     _p = function(p = null)
         ret = []
@@ -1561,19 +1488,22 @@ end function
 SS.Network.map = function(addr)
     LOG("Mapping network: ".sys+addr.a)
     i_i = is_valid_ip(addr); 
-    i_l = is_lan_ip(addr);    
+    i_l = is_lan_ip(addr);
+    self.domain = null
+    self.admin = null
+    self.email = null
+    self.phone = null
+    self.neurobox = " false"
+    self.mappedlan = null    
     v = null;
     if not i_i and not i_l then
-        if SS.debug then LOG("Net:map domain detected".debug)
         if not is_valid_ip(nslookup(addr)) then return null // LOG("SS.Network: Invalid Address".error)
         addr = nslookup(addr); 
     end if
     if i_l == true then
-        if SS.debug then LOG("mapnet: c1".debug)
         v = self.mapsub(addr)
         self.isLan = true
     else
-        if SS.debug then LOG("mapnet: c2".debug)
         v = self.mapsub(addr, true)
     end if
     if v == null then return null
@@ -1675,24 +1605,61 @@ SS.Server = {}
 SS.Server.ip = null
 SS.Server.description = "Unspecified"
 SS.Server.proxies = []
-SS.Server.proxybuild = function(o, p = null)
+SS.Server.root = null
+SS.Server.perms = "root"
+SS.Server.interface = null
+SS.Server.api = null
+SS.Server.proxybuild = function(o, a=null)
     if T(o) != "shell" then return LOG("type shell is needed".warning)
-    if not p then p = "/root"
-    pc = o.host_computer
+    pc = SS.Utils.ds(o, "computer"); if pc == null then return
     r = o.File("/")
     // build .ss cache 
-    cache = pc.File(p+"/"+SS.ccd)
-    if cache == null then 
-        t = pc.touch(p, SS.ccd)
-        if T(t) == "string" then return LOG("couldnt build the cache, is this a proxy?".warning)
+    cache = pc.File("/root/"+SS.ccd)
+    LOG("Beginning fs sweep. . .".grey.sys)
+    if (cache == null) and INPUT("No cache on server | 1 to import from host".prompt).to_int == 1 then 
+        if SS.cfg.i == null then 
+            LOG("No cache detected on launch host, defaulting to cache creation".warning)
+            t = pc.create_folder("/root", SS.ccd)
+            if T(t) == "string" then return LOG("couldnt build the cache, is this a proxy?".warning)
+        else
+            LOG("Cache detected on launch host, performing quick transfer") 
+            depo = SS.s.scp(SS.cfg.i.path, "/root", o)
+            if depo == 1 then LOG("cache mounted to new host".ok) else LOG("failed to mount cache to host: ".warning+depo)
+        end if
+        cache = pc.File("/root/"+SS.ccd)
+    else;LOG("Cache loaded! ".ok+parent_path(cache.path).grey+"/".grey+cache.name.lblue)
     end if
-    cache = pc.File(p+"/"+SS.ccd)
-    if cache == null then return LOG("No cache found".warning)
-    // chmod system
-    SS.Utils.Secure(o, "-s")
-    // 
-
+    if cache then cache.chmod("o-wrx",true)
+    LOG("Beginning security sweep. . .".grey.sys)
+    SS.Core.secure(o, "-s")
+    SS.Utils.wipe_logs(o)
 end function
+SS.Server.svcbuild = function(o, l)
+    if T(o) != "shell" then return LOG("type shell is needed".warning)
+    pc = SS.Utils.ds(o, "computer"); if pc == null then return
+    r = o.File("/")
+    // build .ss cache 
+    cache = pc.File("/root/"+SS.ccd)
+    if (cache == null) and INPUT("No cache on server | 1 to import from host".prompt).to_int == 1 then 
+        if SS.cfg.i == null then 
+            LOG("No cache detected on launch host, defaulting to cache creation".warning)
+            t = pc.create_folder("/root", SS.ccd)
+            if T(t) == "string" then return LOG("couldnt build the cache, is this a proxy?".warning)
+        else
+            LOG("Cache detected on launch host, performing quick transfer") 
+            depo = SS.s.scp(SS.cfg.i.path, "/root", o)
+            if depo == 1 then LOG("cache mounted to new host".ok) else LOG("failed to mount cache to host: ".warning+depo)
+            SS.Utils.wipe_logs(o)
+        end if
+        cache = pc.File("/root/"+SS.ccd)
+    else;LOG("Cache loaded! ".ok+parent_path(cache.path).grey+"/".grey+cache.name.lblue)
+    end if
+    if cache then cache.chmod("o-wrx",true)
+    LOG("Beginning security detail. . .".grey.sys)
+    SS.Core.secure(o, "-s")
+    SS.Utils.wipe_logs(o)
+end function
+
 SS.Server.proxtunnel = function(o)
     if T(o) != "shell" then return LOG("Must be of type shell".warning)
     base = o
@@ -1758,12 +1725,30 @@ SS.Server.dirtytunnel = function(o,a)
     end for
     return muteo
 end function
-SS.Server.API = {}
-SS.Server.API.ip = null
-SS.Server.API.memzone = null
-SS.Server.API.memval = null
-SS.Server.API.interface = {}
-SS.Server.API.set = function(ip=null, mem=null, value=null)
+SS.Server.map = function(o, ip=null, p=null, a1=null, a2=null)
+    self.interface = o
+    o = SS.Utils.ds(o,"computer")
+    if o == null then return null
+    if (ip != null) and (is_valid_ip(ip) == false) and SS.cfg.api1 != null then self.ip = SS.cfg.api1
+    self.ip = null
+    if self.ip == null then return null
+    self.description = "SS server"
+    self.proxies = []
+    self.root = o.File("/")
+    self.perms = SS.Utils.user(o)
+    self.api = new SS.API.map(SS.cmx, ip, p, a1, a2)
+    return self
+end function
+SS.API = {}
+SS.API.ip = null
+SS.API.p = null
+SS.API.x = null // api metaxploit
+SS.API.mz = null
+SS.API.ma = null
+SS.API.ai = null
+SS.API.ar = null
+SS.API.int = {"connection:":null}
+SS.API.set = function(ip=null, mem=null, value=null)
     if not ip and T(SS.cfg.dat) != "file" then return null
     if not ip then ip == SS.cfg.api1
     if not is_valid_ip(ip) then return LOG("Invalid IP specified".warning) 
@@ -1775,8 +1760,8 @@ SS.Server.API.set = function(ip=null, mem=null, value=null)
         return null
     end if
 end function
-SS.Server.API.get = function(mx, cv)
-    if T(metaxploit) != "MetaxploitLib" then return LOG("metaxploit required for api to work".warning)
+SS.API.get = function()
+    if T(self.x) != "MetaxploitLib" then return "metaxploit required for api connection".warning
     _rc = function
         if maxDepth == 0 then return true
         if @anyObject isa map or @anyObject isa list then
@@ -1790,7 +1775,7 @@ SS.Server.API.get = function(mx, cv)
         if @anyObject isa funcRef then return false
         return true
     end function
-    netSession = metaxploit.net_use(SS.Server.ip, 80)
+    netSession = self.x.net_use(a, p)
     if not netSession then return 501
     metaLib = netSession.dump_lib
     if not metaLib then return 500
@@ -1855,6 +1840,19 @@ SS.Server.API.get = function(mx, cv)
     //all api method end
     return api
 end function
+SS.API.map = function(x=null, a=null, p=null, m=null, s=null)
+    if x == null then self.x = SS.cmx else self.x = x
+    if T(SS.cmx) != "MetaxploitLib" then return "MX needed for api connection".warning
+    self.x = x
+    if a == null and SS.cfg.api1 == null then self.ip = INPUT("Specify API ip".prompt) else self.ip = a
+    if is_valid_ip(self.ip) == false then return "Invalid IP provided for api connection".warning
+    if p == null and SS.cfg.api4 == null then self.p = INPUT("Specify API port".prompt).to_int else self.p = p.to_int
+    if m == null and SS.cfg.api2 == null then self.ma = INPUT("Specify API memory zone".prompt) else self.mz = m
+    if s == null and SS.cfg.api3 == null then self.ma = INPUT("Specify API memory address".prompt) else self.ma = s
+    self.int={"connection":null, "api":null}
+
+    return self
+end function
 ///======================= CRYPTO =========================////
 SS.CRO = {}
 SS.CRO.o = null
@@ -1881,11 +1879,13 @@ SS.CRO.fi = function(o=null)
     ip = SS.cfg.repoip 
     if ip == null then ip = SS.cfg.hackip
     if not ip then ip = INPUT("Specify repo ip".prompt)
+    LOG("Beginning repo tasks. . .".grey.sys)
     o.launch("/bin/apt-get", "update")
     o.launch("/bin/apt-get", "addrepo "+ip)
     o.launch("/bin/apt-get", "update")
     o.launch("/bin/apt-get", "install crypto.so")
     o.launch("/bin/apt-get", "delrepo "+ip)
+    LOG("Concluding repo tasks. . .".white.sys+NL+"".fill)
     self.i(o)
     return self
 end function
@@ -1926,7 +1926,7 @@ SS.MX.x = null // metaxploitlib
 SS.MX.o = null // passed object
 SS.MX.libs = [] // libs dumped
 SS.MX.rshells = [] // reverse shell connections
-SS.MX.rsn = "bsession"
+SS.MX.rsn = "csession"
 SS.MX.seshes = []
 SS.MX.rsip = SS.rsip
 SS.MX.i = function(o)// include
@@ -1949,14 +1949,15 @@ SS.MX.i = function(o)// include
 end function
 SS.MX.fi = function(o, ip = null) // forced include
     if ip == null then ip = SS.cfg.hackip
-    LOG("Attempting to force include MX. . .".grey.sys)
     if T(self.o) != "shell" and (T(o) != "shell") then return null
     if not ip then ip = INPUT("Specify repo ip".prompt)
+    LOG("Attempting to force include MX. . .".grey.sys+NL+"".fill)
     o.launch("/bin/apt-get", "update")
     o.launch("/bin/apt-get", "addrepo "+ip)
     o.launch("/bin/apt-get", "update")
     o.launch("/bin/apt-get", "install metaxploit.so")
     o.launch("/bin/apt-get", "delrepo "+ip)
+    LOG("Concluding repo tasks. . .".white.sys+NL+"".fill)
     self.i(o)
     return self
 end function
@@ -2028,6 +2029,15 @@ SS.MX.rs = function(a, i = null, d = null)
             self.depoOne(r)
             //TODO: add bank mails etc, 
         end for
+    else if a == "-wipe-logs" then 
+        if self.rshells.len == 0 then self.rshells = self.rsGet
+        if self.rshells.len == 0 then return null
+        for r in self.rshells
+            LOG("Wiping logs for: ".grey.sys+r.host_computer.public_ip) 
+            SS.Utils.wipe_logs(r)
+            //TODO: add bank mails etc, 
+        end for
+        
     else;LOG("Invalid arguments, expected:".warning+" -l|-p|-c|-depo")
     end if
 end function
@@ -2080,13 +2090,14 @@ SS.MX.rsCfg = function
         if not il then il = true
     end while
     if opt == 0 then return 
-    choice = INPUT(["Surf Mode", "Terminal", "Implode", "Kill System", "Log Collection"].select+NL+"Select".prompt).to_int
+    choice = INPUT(["Surf Mode", "Terminal", "Implode", "Kill System", "Log Collection", "Log Wipe"].select+NL+"Select".prompt).to_int
     if choice == 0 then ;return null;
     else if choice == 1 then ; return rs[opt-1];
     else if choice == 2 then ; rs[opt-1].start_terminal ;
     else if choice == 3 then ; self.implode(rs[opt-1]);
     else if choice == 4 then ; self.ks(rs[opt-1]);
     else if choice == 5 then ; self.depoOne(rs[opt-1]);
+    else if choice == 6 then ; SS.Utils.wipe_logs(rs[opt-1])
     end if
     return null
 end function
@@ -2355,7 +2366,6 @@ SS.ML.scan = function(t, mx = null)
 end function
 SS.ML.map = function(ml, flag, x)
     if not ml then return null
-    if SS.debug then LOG("ML: "+ml+" flag: "+flag+" mx: "+T(x))
     if T(ml) == "file" then ml = self.x.load(ml.path)
     if T(ml) != "MetaLib" then return null 
     if not flag then flag = "-a"
@@ -2399,7 +2409,6 @@ SS.ML.of = function(vuln = null, data = null)// OVERFLOW, NO MAPPING
     ret = []
     _d = self.m
     _h = function(hack, data)
-        if SS.debug then LOG("hack: ".debug+hack+NL+hack[1]["memory"]+" "+hack[2]["string"]+" "+data)
         r = null
         if hack.len < 2 then return
         LOG("".fill)
@@ -2433,7 +2442,6 @@ SS.ML.ofe = function(vuln = null, data = null)//OVERFLOW EVALUATE
     self.results = []
     eo = null
     _h = function(hack, data)
-        if SS.debug then LOG("hack: ".debug+hack+NL+hack[1]["memory"]+" "+hack[2]["string"]+" "+data)
         r = null
         if hack.len < 2 then return
         LOG("".fill)
@@ -2801,7 +2809,6 @@ SS.EO.cache = function
     return self
 end function
 SS.EO.credentials = function(self, u = "root")
-    if SS.debug then LOG("EO credentials task: ".debug+u+" "+self.type+" : "+self.is)
     if SS.dbhl.len == 0 and SS.dbh != null then SS.loadHashes(SS.dbh)
     if u == "any" then u = "root"
     if self.pw.indexOf(":") == null then return null
@@ -2809,7 +2816,6 @@ SS.EO.credentials = function(self, u = "root")
     for parse in self.pw.split("::")
         p = parse.split(":")
         if not p or p.len == 1 then continue
-        if SS.debug then LOG("EO:credentials "+p)
         if p[0] == u then
             return p[1].fromMd5
         end if
@@ -3024,7 +3030,6 @@ SS.MD5.paste = function(o, p = null)
     pc = SS.Utils.ds(o, "computer") 
     if pc == null then return null
     if not p then p = SS.Utils.goHome(o)+"/.ss/dict"
-    if SS.debug then LOG("SS.MD5:PASTE ".debug+p)
     if p[0] != "/" then p = SS.Utils.path(p)
     if SS.Utils.fileFromPath(o, p) == null then return LOG("warning".warning)
     for i in range(1,7)
@@ -3163,7 +3168,6 @@ SS.Logger.map = function(n,o=null,i=null)// build the file
     if self.file then; self.content = self.file.get_content; return self; end if
     // get the target dir
     if o != null then
-        if SS.debug then LOG("C1")
         if not SS.c.File(SS.dbl.path+"/"+("db."+n)) then 
             if SS.c.create_folder(SS.dbl.path, ("db."+n)) == 1 then LOG("Created log folder:".ok+("db."+n)) else LOG("An error occured creating the required log folder".warning)
         end if
@@ -3173,7 +3177,6 @@ SS.Logger.map = function(n,o=null,i=null)// build the file
         if not tfi then SS.c.touch(tf.path, (n+".db"))
         tfi = SS.c.File(tf.path+"/"+(n+".db"))
     else 
-        if SS.debug then LOG("C2")
         tf = SS.dbl
         tfi = SS.c.File(tf.path+"/"+(n+".db"))
         if not tfi then SS.c.touch(tf.path, (n+".db"))
