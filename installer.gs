@@ -640,8 +640,13 @@ build_launch = function(CACHEFILE)
 end function
 build_hashes = function(CACHEFILE)
     LOG("<color=green>[init]</color> Building hash files . . .") 
-    if not CACHEFILE then C.create_folder(HOME, ".ss")  
-    p = CACHEFILE.path
+    if not CACHEFILE then 
+        C.create_folder(HOME, ".ss")
+        CACHEFILE = C.File(HOME+"/.ss")
+    else 
+        p = CACHEFILE.path
+
+    end if
     builder_src = "data = get_custom_object;import_"+"code('"+p+"/dict/brute1.src');import_"+"code('"+p+"/dict/brute2.src');import_"+"code('"+p+"/dict/brute3.src');import_"+"code('"+p+"/dict/brute4.src');import_"+"code('"+p+"/dict/brute5.src');import_"+"code('"+p+"/dict/brute6.src');import_"+"code('"+p+"/dict/brute7.src');;Crack={'isNum':['0','1','2','3','4','5','6','7','8','9'],'alpha':'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789','max':64,'classID':'CrackLib','Version':'2.5.1-rc.1'}; Crack.dump = function;print 'Building the rainbow tables ...';l=[];l=brute1+brute2+brute3+brute4+brute5+brute6+brute7;r=[];a=0;c=get_shell.host_computer;p=c.File('"+p+"/dict/rainbow').path;for b in l;if self.isNum.indexOf(b[0])!=null then ;r.push b+':'+md5(b);continue;end if;r.push b+':'+md5(b);r.push b.lower+':'+md5(b.lower);if r.len>3792 then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));r=[];a=a+1;end if;end for;if r.len then;f=null;c.touch(p,'r'+a);f=c.File(p+'/r'+a);f.set_content(r.join(char(10)));data.cb = true;exit('completed build process');end if;end function;Crack.dump"
     p1 = CACHEFILE.path+"/dict/builder.src"
 
@@ -668,7 +673,7 @@ build_hashes = function(CACHEFILE)
     end if
 
 end function
-CLEAR;LOG("SeaShell Installer".title("FFFFFF", 30))
+CLEAR;LOG(("SeaShell Installer v"+SS.version).title("FFFFFF", 30))
 if params.len < 1 or (["help", "-h", "-help"].indexOf(params[0]) != null) then EXIT("SeaShell Installer: ".sys.NL+"PRIMARY ARGUMENTS".grey.b.NL+" -a ".wrap.cap("Installs SeaShell, and all required files and directories").NL+" -src ".wrap.cap("Build SeaShell's source code").NL+" -cache ".wrap.cap("Build SeaShell cache").NL+" -db ".wrap.cap("Build exploit database").NL+" -hash ".wrap.cap("Build hash database"))
 if params[0] == "-a" then
     NEXT("build SeaShell src, cache, hash + exploit db")
