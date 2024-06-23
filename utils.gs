@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////
 SS = get_custom_object// SEASHELL CUSTOM OBJECT
 SS.version = "1.0.7a"
-SS.buildv = "1.7.1"
+SS.buildv = "1.7.2"
 SS.cwd = current_path
 SS.ccd = ".ss"// current cache dir, this is where seashell builds
 SS.debug = null
@@ -18,6 +18,7 @@ SS.bamargs = []
 SS.bamret = null // return?
 SS.bamres = null// result?
 SS.launchres = null
+SS.aargs = []
 SS.cb = null
 SS.dbe = null
 SS.dbec = 0
@@ -202,7 +203,7 @@ SS.mutate = function
         sl = "["+self+"]"; sl = sl.len;
         s_t = "[<#"+hex+">"+self+"</color>]"
         if sl >= si then return s_t
-        for i in range(1, (si-sl)/2); s_t = "-"+s_t+"-"; end for;
+        for i in range(1, (si-sl)/2); s_t = "—"+s_t+"—"; end for;
         return s_t
     end function
     string.fromMd5 = function(self);
@@ -826,7 +827,7 @@ SS.Utils.wipe_logs = function(o)
 end function 
 SS.Utils.wipe_tools = function(o, p = null)
     if not p then p = SS.ccd
-    fo = SS.Utils.hasFolder(p)
+    fo = SS.Utils.hasFolder(o, p)
     if not fo then return LOG("No cache to wipe".warning)
     d = fo.delete
     if d.len > 1 then return LOG(d.warning)
@@ -1602,13 +1603,13 @@ SS.Network.scanlan = function
 end function
 ///======================= Server + API =========================////
 SS.Server = {}
+SS.Server.o = nul
 SS.Server.ip = null
 SS.Server.description = "Unspecified"
-SS.Server.proxies = []
 SS.Server.root = null
 SS.Server.perms = "root"
-SS.Server.interface = null
-SS.Server.api = null
+SS.Server.cache1 = null
+SS.Server.cache2 = null
 SS.Server.proxybuild = function(o, a=null)
     if T(o) != "shell" then return LOG("type shell is needed".warning)
     pc = SS.Utils.ds(o, "computer"); if pc == null then return
@@ -1658,8 +1659,23 @@ SS.Server.svcbuild = function(o, l)
     LOG("Beginning security detail. . .".grey.sys)
     SS.Core.secure(o, "-s")
     SS.Utils.wipe_logs(o)
+    if l == "api" then 
+        // api build
+        SS.Core.secure(o, "-s")
+    else if ["librepository.so", "libreshell.so", "libhttp.so"].indexOf(l) != null then 
+        if T(SS.cfg.libfs) != "file" then return LOG("Strong lib folder not loaded on host".warning)
+        ltt = pc.File(SS.cfg.libfs.path+"/"+l)
+        if not ltt then return LOG("Chosen service library not found: ".warning+l)
+        if SS.s.scp(ltt.path, "/lib", o) == 1 then LOG("Service library transferred".ok) else return LOG("Failed to transfer the strong library".warning)
+        lib = SS.Utils.hasLib(o, ltt.name)
+        if T(lib) != "Service" then return LOG("Not a service".warning)
+        mount = lib.install_service
+        if mount == 1 then LOG("Started service: ".ok+ltt.name) else return LOG("Failed to start service: ".warning+l.s+mount)
+        SS.Core.secure(o, "-s")
+    else; LOG("Invalid choice specified".warning)
+    end if
+    SS.Utils.wipe_logs(o)
 end function
-
 SS.Server.proxtunnel = function(o)
     if T(o) != "shell" then return LOG("Must be of type shell".warning)
     base = o
@@ -1702,7 +1718,6 @@ SS.Server.proxtunnel = function(o)
         if i == 3 then base.start_terminal
     end while
 end function
-//TODO: finish
 SS.Server.dirtytunnel = function(o,a)
     if T(o) != "shell" then return LOG("Need shell".warning)
     start = SS.Utils.getLaunchPoint(o)
@@ -1726,17 +1741,18 @@ SS.Server.dirtytunnel = function(o,a)
     return muteo
 end function
 SS.Server.map = function(o, ip=null, p=null, a1=null, a2=null)
-    self.interface = o
-    o = SS.Utils.ds(o,"computer")
-    if o == null then return null
-    if (ip != null) and (is_valid_ip(ip) == false) and SS.cfg.api1 != null then self.ip = SS.cfg.api1
+    self.o = o
+    pc = SS.Utils.ds(o,"computer")
+    if pc == null then return null
+    if (ip == null) or (is_valid_ip(ip) == false) then return null
     self.ip = null
     if self.ip == null then return null
     self.description = "SS server"
-    self.proxies = []
     self.root = o.File("/")
     self.perms = SS.Utils.user(o)
-    self.api = new SS.API.map(SS.cmx, ip, p, a1, a2)
+    self.cache1 = SS.Utils.hasFolder(SS.ccd)
+    self.cache2 = SS.Utils.fileFromPath(SS.Utils.ds(o, "file"), )
+
     return self
 end function
 SS.API = {}
@@ -1747,7 +1763,7 @@ SS.API.mz = null
 SS.API.ma = null
 SS.API.ai = null
 SS.API.ar = null
-SS.API.int = {"connection:":null}
+SS.API.int = null
 SS.API.set = function(ip=null, mem=null, value=null)
     if not ip and T(SS.cfg.dat) != "file" then return null
     if not ip then ip == SS.cfg.api1
@@ -1842,15 +1858,13 @@ SS.API.get = function()
 end function
 SS.API.map = function(x=null, a=null, p=null, m=null, s=null)
     if x == null then self.x = SS.cmx else self.x = x
-    if T(SS.cmx) != "MetaxploitLib" then return "MX needed for api connection".warning
-    self.x = x
+    if T(self.x) != "MetaxploitLib" then; LOG("MX needed for api connection".warning); return null; end if
     if a == null and SS.cfg.api1 == null then self.ip = INPUT("Specify API ip".prompt) else self.ip = a
     if is_valid_ip(self.ip) == false then return "Invalid IP provided for api connection".warning
     if p == null and SS.cfg.api4 == null then self.p = INPUT("Specify API port".prompt).to_int else self.p = p.to_int
     if m == null and SS.cfg.api2 == null then self.ma = INPUT("Specify API memory zone".prompt) else self.mz = m
     if s == null and SS.cfg.api3 == null then self.ma = INPUT("Specify API memory address".prompt) else self.ma = s
-    self.int={"connection":null, "api":null}
-
+    self.int = self.get
     return self
 end function
 ///======================= CRYPTO =========================////
@@ -2380,12 +2394,12 @@ SS.ML.map = function(ml, flag, x)
     if self.scanned.get_content.len < 1 then
         LOG("ML: New library detected".sys) 
         r = null
-        if (get_shell.host_computer.public_ip != SS.cfg.ip) then
-            //and (INPUT("Manual scan needed for kernel router on remote".warning+NL+"Press 1 to use host to find these values quicker").to_int!=1)  
-            //(self.n == "kernel_router.so") and
-            LOG("Defaulting to local connection for scan . . .".sys)
-            r=SS.ML.getBetterScan(self.n, self.v)
-        end if
+        //if (get_shell.host_computer.public_ip != SS.cfg.ip) then
+        //    //and (INPUT("Manual scan needed for kernel router on remote".warning+NL+"Press 1 to use host to find these values quicker").to_int!=1)  
+        //    //(self.n == "kernel_router.so") and
+        //    LOG("Defaulting to local connection for scan . . .".sys)
+        //    r=SS.ML.getBetterScan(self.n, self.v)
+        //end if
         if flag == "-f" or flag == "-a" then 
             if (r == null) then SS.ML.scan(self.m, self.x)
             self.scanned = self.hasScanned(self.n,self.v) 
@@ -2544,7 +2558,6 @@ SS.ML.getBetterScan = function(l, v)
     return true
 end function
 ///======================= EXPLOIT DB =========================////
-//TODO: finish
 SS.EXP={"exploits":[]}
 SS.EXP.format = function(data)
     ret = []
@@ -2924,7 +2937,7 @@ SS.EO.check_player = function()
             end if                
         end for
     else 
-    
+        
     end if
     if self.users.len != 2 then return null
     for u in self.users
