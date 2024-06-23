@@ -837,9 +837,9 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                             return task
                                         end if
                                         ez = _ezb(eo, sumstring, target_lan);if ez != null then;sumstring = sumstring+NL+"Root bounce via local object".grey;self.results.push("Completed: Via root bounce");self.results2.push(sumstring);return ez;end if;
-                                    else if T(svc) == "string" then
-                                        if (svc == "Remote host is down") and (label == "system corruption") then return true// pretty sure we dont even capture this, so
-                                        LOG("simple connect: ".warning+svc)
+                                    else if T(rooted) == "string" then
+                                        if (rooted == "Remote host is down") and (label == "system corruption") then return true// pretty sure we dont even capture this, so
+                                        LOG("simple connect: ".warning+rooted)
                                     end if
                                 end for 
                             end if   
@@ -889,7 +889,7 @@ SS.NPC.run = function (id, label, target, target_ip, target_lan)
                                             eo.map(l, target_ip, target_lan)
                                             // TODO:
                                             if eo.type == "computer" and eo.is == "root" then LOG(("ROOT COMPUTER DETECTED".green).sys)
-                                            if (tu.len == 0) and (eo.lan == self.lan) then tu = eo.users
+                                            if (tu.len == 0) and (eo.lan == eo.lan) then tu = eo.users
                                             if tu.len > 0 and (eo.users == tu) then
                                                 // file objects might be able to handle the job, lets stop sleeping on them 
                                                 if eo.lan == "Unspecified" then eo.lan = tl
