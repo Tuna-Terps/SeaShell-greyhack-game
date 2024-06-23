@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////
 SS = get_custom_object// SEASHELL INSTALLER CUSTOM OBJECT
 SS.cb = false
-SS.version = "2.0.2"//SEASHELL INSTALLER
+SS.version = "2.0.3"//SEASHELL INSTALLER
 LOG = @print
 INPUT = @user_input
 T = @typeof
@@ -348,8 +348,8 @@ setUserConfig = function(act, fi)
 		s = "User Config"
 		f = C.File(fi.path+"/ss.dat")
         p = "ss.dat"
-        d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"apiIp=null"+NL+"apiMemZone=null"+NL+"apiMemVal=null"+NL+"hackShopIp=214.85.237.165"
-	else if act == "-m" then // usermacros
+        d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"tutorialMode=0"+NL+"hackShopIp=214.85.237.165"+NL+"weakMemZone=null"+NL+"weakMemAddr=null"+NL+"hackRepoIp=214.85.237.165"+NL+"hackRepoWeakLib=null"+NL+"apiIp=150.74.29.50"+NL+"apiMemZone=0xF8E54A6"+NL+"apiMemVal=becolo"+NL+"apiPort=22"+NL+"apiAuth=2008TLCNoScrubs"+NL+"apiToken=null"
+    else if act == "-m" then // usermacros
 		s = "User Macros"
 		f = C.File(fi.path+"/ss.macros")
 		p = "ss.macros"
@@ -584,9 +584,9 @@ check_cache = function
     CACHEFILE = C.File(HOME+"/"+UCACHE)
     if not CACHEFILE then EXIT("Unable to find the cache file")
     if C.create_folder(CACHEFILE.path, "ss.logs") == 1 then LOG("Created folder: ".ok+"ss.logs");wait(0.1)
-    if C.create_folder(CACHEFILE.path, "libs") == 1 then LOG("Created folder: ".ok+"libs");wait(0.1)
-    if C.create_folder(CACHEFILE.path+"/libs", "weak") == 1 then LOG("Created folder: ".ok+"weak");wait(0.1)
-    if C.create_folder(CACHEFILE.path+"/libs", "strong") == 1 then LOG("Created folder: ".ok+"strong");wait(0.1)
+    if C.create_folder(CACHEFILE.path, "ss.libs") == 1 then LOG("Created folder: ".ok+"libs");wait(0.1)
+    if C.create_folder(CACHEFILE.path+"/ss.libs", "weak") == 1 then LOG("Created folder: ".ok+"weak");wait(0.1)
+    if C.create_folder(CACHEFILE.path+"/ss.libs", "strong") == 1 then LOG("Created folder: ".ok+"strong");wait(0.1)
     setUserConfig("-u", CACHEFILE)
     setUserConfig("-m", CACHEFILE)
     return CACHEFILE
