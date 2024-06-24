@@ -31,6 +31,10 @@ Once complete, the only required filed are ss
 2.) The script will ask you to paste the contents into the script, using CTRL+SHIFT+V copy the correspnding.src to the terminal running installer.<br>
 3.) You will be prompted for your user in order for the builder script to build the hashes <br>
 4. The installer script can be ran in stages, or provides a full installation. 
+# WEAK LIB # (MP only)<br>
+The script makes use of a WEAK LIBRARY to perform major operations<br>
+Currently it is utilizing init.so version _ hosted in game on www.google.com labelled as init.weak.so<br>
+Donwload this file to /path/to/cache/ss.libs/weak and rename it as init.so , see -h rn
 
 DELETE ALL SRC FILES ONCE YOU HAVE SUCCESFULLY RAN SS<br>
 <img src="https://github.com/Tuna-Terps/SeaShell-greyhack-game/assets/62733984/3cb07e0a-6208-4a4e-a55c-0f2ed79f4669" width=50% height=50%>
