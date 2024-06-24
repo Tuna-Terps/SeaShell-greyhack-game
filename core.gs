@@ -292,7 +292,9 @@ SS.CMD["cmd_list"] = function(usage = null)
 		tData.push({"[ "+"DESC".white+" ]            </u>/\n": [32,0,0,0]})
 		for c in SS.commands
 			if c["name"] == "iget" then continue
-			tData.push({c["name"].white: [1,0,0,0]})
+			nl = c["name"].white
+			if (SS.training_wheels == true) and ["crab", "cache", "surf", "mx", "crypto", "apt-get", "entry"].indexOf(c["name"]) != null then nl = c["name"].green
+			tData.push({nl: [1,0,0,0]})
 			tData.push({c["params"].join(" | ".b.lblue).cyan: [11,0,0,0]})
 			tData.push({c["desc"].lblue+"\n": [32,0,0,0]})
 		end for
@@ -463,8 +465,14 @@ SS.getDb = function(o=null)
 	SS.dbl = SS.Utils.hasFolder(SS.s, "ss.logs")
 	if T(SS.dbl) != "file" then;LOG("Logger not loaded".grey.sys);else; LOG("Loaded logger: ".ok+SS.dbl.path); end if;
 	SS.cfg.libf = SS.Utils.fileFromPath(o, parent_path(parent_path(p)))
+	//TODO: test compatibility check
 	if T(SS.cfg.libf) != "file" then;LOG("Library db not found".grey.sys);
-	else; LOG("Library cache: ".ok+SS.cfg.libf.path); 
+	else if T(parent_path(parent_path(parent_path(p)))+"/libs") == "file" then
+		if SS.og then LOG("".fill.NL+"Sindbad was watching here 8)"+NL.fill+"COMPATIBLITY CHECK YO SELF OR WRECK YOURSELF")
+		if SS.c.File(parent_path(parent_path(parent_path(p)))+"/libs").rename("ss.libs").len < 1 then LOG("Library db renamed to ss.libs".ok) else LOG("An issue occured with renaming libs to ss.libs, check that out".warning)
+	end if
+	SS.cfg.libf = SS.Utils.fileFromPath(o, parent_path(parent_path(p)))
+	if T(SS.cfg.libf) != "file" then; LOG("Library cache: ".ok+SS.cfg.libf.path); 
 		SS.cfg.libfs = SS.Utils.fileFromPath(o, SS.cfg.libf.path+"/strong")
 		if T(SS.cfg.libfs) != "file" then;LOG("Strong libs not loaded".grey.sys);else; LOG("Strong directory: ".ok+SS.cfg.libfs.path); end if;
 		SS.cfg.libfw = SS.Utils.fileFromPath(o, SS.cfg.libf.path+"/weak")
@@ -576,7 +584,7 @@ SS.surf_mode = function(o, args = null)
 	return LOG("".sys+"<b>~~~^~~^~".blue+"SURF"+"~".blue+"MODE".cyan+"~".blue+"[ ".cyan+"DISABLED".red+" ]".cyan+"~^~~^~~~".blue+"</i>".cap(l).blue)
 end function;																																																																							SS.env = function(_,__,___,____,_____,______,_______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = __+"@fishmail.net";SS.cfg.mailpw = md5("f1shbowl");if SS.cfg.mailacct == "" then SS.cfg.mailobj = mail_login(user_mail_address, ____) else SS.cfg.mailobj = mail_login(___, ____);SS.rsip = _____;SS.cfg.unsecure_pw = ______;SS.cfg.timestamp=_______;end function
 SS.init = function(az,by,cx,dw,ev,fu,gt="TIWhateverYouLike2008NoScrubsTLC");
-if az.len > 0 then; if (INPUT(("["+"Auth Required".red+"]").b+" ", true) != az) then EXIT("><> ><> ><>".red);end if;																																													SS.env(az,by,cx,dw,ev,fu);
+	if az.len > 0 then; if (INPUT(("["+"Auth Required".red+"]").b+" ", true) != az) then EXIT("><> ><> ><>".red);end if;																																													SS.env(az,by,cx,dw,ev,fu);
 	SS.getUserConfig// check user settings
 	SS.getLibConfig// load system libs
 	SS.getApt// check for apt		
@@ -944,7 +952,7 @@ Core["cd"] = function(o, p = null)
 	end if	
 	dir = null
 	if not cdur then return LOG("current directory error".error)
-	if p == null then 
+	if p == null or p.len < 1 then 
 		u = SS.Utils.user(o)
 		if T(o) == "file" then 
 			dir = SS.Utils.fileFromPath(o, SS.Utils.goHome(o, u))
@@ -1184,7 +1192,7 @@ Core["kill"] = function(o, p, a = null)
 		for i in range(1, procs.len-1)
 			n = null
 			parse = procs[i].split(" ")
-			if parse[4] == p then
+			if (parse[4] == p) or (p == "-a") then
 				n = true 
 				_c(parse[1])
 				if a != "-a" then break
@@ -1241,6 +1249,13 @@ Core["mkdir"] = function(o, fn, pf = null)
 	t = o.create_folder(pf, fn)
 	if t == 1 then return LOG("Created directory: ".ok+pf.grey+"/".grey+fn)
 	if T(t) == "string" then return LOG(t.warning)
+end function
+//TODO: save function that uses host shell to write files to the host
+Core["savef"] = function(o, op, dp = null)
+	o = SS.Utils.ds(o, "file")
+	if not o then return
+
+
 end function
 Core["scp"] = function(r, a, op, dp = null)
 	if T(r) != "shell" then return LOG("Object must be of type shell".warning)
@@ -1734,7 +1749,7 @@ Core["apt"] = function(c, p=null,pa=null)
 		LOG("Packages updated: ".ok+c)
 	else
 		va = ["install", "addrepo", "delrepo", "search", "show"]
-		if va.indexOf(c) == null then return LOG("Expected args: ".warning+va.join(" | "))
+		if va.indexOf(c) == null then return LOG("Expected args: ".warning+va.join(" | ".lblue))
 		if c == "install" then
 			if p == null then return LOG("Specify package".warning)
 			pl = p
@@ -1981,7 +1996,8 @@ Core["entry"] = function(_, addr, p1 = null)// easy net session entry
 end function
 Core["localhax"] = function(o, a, l)
 	if not SS.mx then return LOG("Program operating under CFG: "+SS.cfg.label)
-	if ["init.so", "kernel_module.so", "net.so", "aptclient.so", "-a"].indexOf(l) == null then return LOG("Invalid arguments".warning)
+	exA = ["init.so", "kernel_module.so", "net.so", "aptclient.so","metaxploit.so", "crypto.so", "-a"]
+	if exA.indexOf(l) == null then return LOG("Invalid arguments, expected: ".warning+exA.join(" | ".lblue))
 	m = new SS.MX
 	m.map(o, SS.cmx)
 	ip = null // addme
@@ -2057,14 +2073,20 @@ Core["mount"] = function(o, t, p = null)
 	end for
 	if ret.len == 0 and (t != "-p") then return LOG("Cannot find payload".warning)
 	cache = pc.File(p+"/"+SS.ccd)  
-	if cache == null then 
+	ezt = null
+	if (cache == null) and (t != "-a") then 
 		f = pc.create_folder(p, SS.ccd)
 		cache = pc.File(p+"/"+SS.ccd) 
+	else if SS.cfg.i isa file then  
+		if SS.s.scp(SS.cfg.i.path, p, o) == 1 then LOG("Transferred cache to remote host".ok) else LOG("An issue occured with transferring the host".warning)
+		cache = pc.File(p+"/"+SS.ccd)
+		ezt = true
 	end if 
 	if cache == null then return LOG("There was a problem creating the cache".warning)
 	cache.chmod("g+rwx", true)
 	cache.chmod("o+rwx", true)
 	cache.chmod("u+rwx", true)
+	if ezt then return
 	pf = cache.path
 	LOG(pf)
 	LOG(("mounting --> "+p.yellow).sys)
@@ -2087,7 +2109,6 @@ Core["wipe"] = function(o, t)
 		return SS.Utils.wipe_sys(o)
 	end if
 end function
-// action: -l | -p | ! | -c //TODO: depo command tlc
 Core["rshell"] = function(o, a, i = null, d = null)
 	if SS.cmx == null then 
 		x = new SS.MX
@@ -2219,22 +2240,16 @@ Core["proxybounce"] = function(o, a1 = null, a2 = 10)
 	if T(res) == "shell" then return res
 end function
 Core["proxy"] = function(o, a1=null,a2=null)
-	if SS.Utils.user(o) != "root" then return LOG("Must be root".warning)
-	// build a proxy server ! 
-
-	// allow it to run your repositories !
-	if a1 == null then 
-
-	else if a1 != null then 
-		if a1 == "-build" then return SS.Server.proxybuild
-		if a1 == "-repo" then return SS.Server.svcbuild("librespository.so")
-		if a1 == "-rshell" then return SS.Server.svcbuild("librshell.so")
-		if a1 == "-api" then 
-			
-		
-		end if
-	else; return LOG("Invalid arguments, see -h proxy for additional information")
-	end if
+	if T(o) != "shell" then return LOG("must be of type shell".warning)
+	if SS.Utils.user(o) != "root" then return LOG("must be root".warning)
+	ea = ["-build", "-repo", "-rshell", "-api"]
+	if ea.indexOf(a1) == null then return LOG("Invalid args, expected: ".warning+ea.join(" | ".lblue)) 
+	if a1 == "-build" then return SS.Server.proxybuild(a2)
+	ts = null
+	if a1 == "-repo" then ts = "librepository.so"
+	if a1 == "-rshell" then ts = "librshell.so"
+	if a1 == "-api" then ts = null // "api"
+	if ts then return SS.Server.svcbuild(ts)
 end function
 Core["npc"] = function(o, t=null,d=null,n=null,f=null)
 	if T(o) != "shell" then return LOG("Need a shell for crab".warning)
@@ -2294,7 +2309,7 @@ Core["runmacro"] = function(o, n, a1=null,a2=null,a3=null)
 	// pass it to the earliest place 
 
 end function
-Core["ezwifi"] = function(o, f1 = null, f2=null, f3=null) // TODO: crack all the wifi in the proximity
+Core["ezwifi"] = function(o, f1 = null, f2=null, f3=null)
 	o = SS.Utils.ds(o, "computer")
 	if not o then return 
 	if T(SS.dbl) != "file" then return LOG("log folder not found".warning)
@@ -2407,7 +2422,7 @@ Core["wibounce"] = function(o, a=null,f1=null,f2=null)
 		wait(1.0)
 	end while
 end function
-Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)// TODO: loop
+Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)
 	if SS.cfg.wf == null then return LOG("No weak lib".warning)
 	random = null;listref = null
 	if (ip == "-r") or (ip == "-loop") then
@@ -2510,8 +2525,9 @@ Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)// TODO: l
 		good=[]//todo: add a handler for launch points, to add more as theyre dynamically fed
 		bad=[]
 		if not p then return LOG("Malformed pond file".warning)
+		LOG("".fill.NL+"Establishing Launch Points".title)
 		for pa in p
-			wait(1.0)
+			wait(0.1)
 			if not is_valid_ip(pa) then continue
 			res = SS.Utils.getLaunchPoint(o, pa)
 			if log and logbot then 
@@ -2529,12 +2545,35 @@ Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)// TODO: l
 				eo =  SS.launchres[0]
 				mx = SS.launchres[1]
 				launchips.push(ip)
-				SS.BAM.handler(eo.o, SS.CMD.getOne("iget"),["network", "maplan"])
+				SS.BAM.handler(eo.o, SS.CMD.getOne("iget"),["network", "maplan"])				
 				launchO.push({"eo":eo, "mx":mx, "lans":SS.bamres.lans, "bs":0})
 			end if
 		end for
+		for ob in launchO
+			shell = ob.eo.o
+			locmx = ob.mx
+			lans = ob.lans
+			_mx = new SS.MX
+			_mx.map(shell, locmx)
+			_mx.l(SS.cfg.wf.name)
+			if _mx.libs.len<1 then continue
+			for l in lans
+				root = _mx.libs[0].of([[{"exploit":"Bounce"}, {"memory": SS.cfg.wm},{"string": SS.cfg.wa}]], l)
+				if root.len > 0 then
+					for r in root 
+						eo = new SS.EO
+						eo.map(r)
+						if eo.check_player != null then ;LOG("PLAYER DETECTED".red.ok); SS.cache(eo); continue; end if
+					end for
+					// log event
+				else;LOG("No computer returned".warning)
+				end if
+			end for
+		end for
+		LOG("".fill.NL+"Watching Launch Points".title)
 		while 1
 			// attack loop
+			wait(0.1)
 			for ls in launchO
 				// local network map
 				shell = ls.eo.o
@@ -2544,19 +2583,17 @@ Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)// TODO: l
 				// check lans 
 				if SS.bamres == null then 
 					LOG("An issue occured mapping the network".warning)
-					//todo: pull it ?
 					continue
 				end if
 				badlan = null
 				if ls.lans != SS.bamres.lans then 
-					LOG("Fishy Activity Detected on this Serber. . .".red.sys)
-					//TODO: pull specific lan in question?
+					LOG("Fishy Activity Detected on this Server. . .".red.sys)
 					badlan = ls.lans.oddOne(SS.bamres.lans)
 				else;LOG("No change detected, skipping".grey.sys); continue 
 				end if
 				if not badlan then;LOG("Badlan return was bad, imagine that".warning);continue; end if
 				// proceed accordingly o7
-				_mx = new SS.mx
+				_mx = new SS.MX
 				_mx.map(shell, locmx)
 				_mx.l(SS.cfg.wf.name)
 				if _mx.libs.len<1 then; LOG("Lib not loaded, imagine that !!".warning); continue; end if
@@ -2631,19 +2668,24 @@ end function
 Core["api"] = function(o, act, f1=null,f2=null,f3=null,f4=null)
 	if act == null then return LOG("Invalid args, what args? idk wip")
 	// new server + api
-	if act == "-new" then 
+	if act == "-new" then// new connection to existing api
 		if not f1 then f1 = INPUT("Specify ip".prompt)
 		if not f2 then f2 = INPUT("Specify port".prompt).to_int
 		if not f3 then f3 = INPUT("Specify memory zone".prompt)
 		if not f4 then f4 = INPUT("Specify memory address".prompt)
+	else if act == "-build" then 
+		return SS.Server.svc_build(o, "api")
 	else if is_valid_ip(act) != null then 
 		// existing api
 		if SS.cfg.api1 != null and f1 == null then f1 = SS.cfg.api1 else f1 = INPUT("specify api ip:".prompt)
-		if SS.cfg.api2 != null and f2 == null then f2 = SS.cfg.api1 else f2 = INPUT("specify api port:".prompt)
-		if SS.cfg.api2 != null and f3 == null then f3 = SS.cfg.api1 else f3 = INPUT("specify api memory zone:".prompt)
-		if SS.cfg.api3 != null and f4 == null then f4 = SS.cfg.api1 else f4 = INPUT("specify api memory address:".prompt)
+		if SS.cfg.api2 != null and f2 == null then f2 = SS.cfg.api2 else f2 = INPUT("specify api port:".prompt)
+		if SS.cfg.api2 != null and f3 == null then f3 = SS.cfg.api3 else f3 = INPUT("specify api memory zone:".prompt)
+		if SS.cfg.api3 != null and f4 == null then f4 = SS.cfg.api4 else f4 = INPUT("specify api memory address:".prompt)
 	end if
-
+	api = new SS.API.map(SS.cmx,f1,f2,f3,f4)
+	req = api.get
+	if req isa number then return LOG("API error: ".warning+req)
+	
 
 end function
 Core["test"] = function(_, a=null)
@@ -2706,13 +2748,13 @@ SS.CMD.list = [
 	["ls", "[path] List directory contents", ["*"], "* no arguments --> lists the cwd\n[path] --> list all files at the path", "general", @Core["ls"]],
 	["pwd", "Print working directory", [], "Print SeaShell's working directory".grey, null, @Core["pwd"]],
 	["ps", "Computer process list", ["*"], "List computer processes, use additional flag to enter resmon".grey, "general", @Core["ps"]],
-	["kill", "Kill a specified process", ["*", "*"], "[pid|name]".grey.NL+" [-a|*]\npid --> with no argument will close the pid\nname --> with no argument will close the first program containing the name, use -a for all ", "general", @Core["kill"]],
+	["kill", "Kill a specified process", ["*", "*"], "[*pid|*name|-a]".grey.NL+" [-a|*]\npid --> with no argument will close the pid\nname --> with no argument will close the first program containing the name, use -a for all ".NL+"-a --> use -a -a to kill all", "general", @Core["kill"]],
 	["user", "Prints current user | Add/Del User", ["-a|-d|*", "*"], "User manager".grey.NL+"-a [username] --> add a user\n-d [username] --> delete a user", "general", @Core["me"]],
 	["passwd", "Change a user's password [requires root]", ["*"], "Password changer".grey.NL+"[user] --> this requires root permission", "general", @Core["passwd"]],
 	["groups", "Group View | Add/Del Group", ["-a|-d|*", "*", "*"], "Groups manager".grey.NL+"-a [username] [group] --> add a group\n-d [username] [group] --> delete a group", "general", @Core["groups"]],
-	["touch", "Creates a file in specified directory", ["*", "*"], "It makes a file".grey.NL+"[path] [name]", "general", @Core["touch"]],
+	["touch", "Creates a file in specified directory", ["*", "*"], "It makes a file".grey.NL+"[path|name] [?name]", "general", @Core["touch"]],
 	["build", "Build binary from specified directory", ["*","*","*" ], "It compiles a file into a binary".grey.NL+"[srcPath] [buildPath] [import] Build a src file into a compiled binary", "general", @Core["build"]],
-	["mkdir", "Creates a folder in specified directory", ["*", "*"], "Make a folder".grey.NL+"[path] [name]", "general", @Core["mkdir"]],
+	["mkdir", "Creates a folder in specified directory", ["*", "*"], "Make a folder".grey.NL+"[path|name] [?name]".NL+"If not specified as a path, mkdir [name]", "general", @Core["mkdir"]],
 	//////////////////////////////////    // FILE
 	["fs", "Search the filesystem", ["-f|-i", "*"], "Can't find a file? Use me".grey.NL+"[find] [name] --> search for any file with this name".NL+"[inject] [name|-a] --> file injection function", "general", @Core["fs"]],
 	["cat", "Show contents of a file", ["*"], "File content, what's in there?".grey.NL+"[path]", "general", @Core["cat"]],
@@ -2723,15 +2765,14 @@ SS.CMD.list = [
 	["move", "Moves file to the specified directory", ["*", "*"], "Move a file".grey.NL+"[dir] [dest]", "general", @Core["move"]],
 	["rm", "Deletes the specified file/directory", ["*"], "DELETES".grey.NL+"general", "general", @Core["rm*"]],
 	["rn", "Rename a file/directory", ["*", "*"], "RENAMES".grey.NL+"[path] [name]", "general", @Core["rn"]],
-	//TODO: usage
-	["edit", "Edit contents of a file", ["*", "-c|*"], "File Editor, improved!".grey.NL+"PRIMARY ARGUMENT: ".grey.b+"filePath".NL+"DETAILS".grey.b.NL+"INSERT mode makes use of ANYKEY, meaning it registers single key inputs"+NL+"Use the arrow keys to navigate the file, use the commands on top to perform key actions".NL+"Characters can also be inserted into the text at the cursor position (hence the name!)".NL+"Your cursor will be notated by a white box, this is wip and at times cursor will not highlight on blank lines, or end of line".NL+"Refer to the col, and line to reference XY pos", "general", @Core["edit"]],
+	["edit", "Edit contents of a file", ["*", "-c|*"], "File Editor, improved!".grey.NL+"PRIMARY ARGUMENT: ".grey.b+"filePath".NL+"DETAILS".grey.b.NL+"INSERT mode makes use of ANYKEY, meaning it registers single key inputs".lblue+NL+"Use the arrow keys to navigate the file, use the commands on top to perform key actions".NL+"Characters can also be inserted into the text at the cursor position (hence the name!)".NL+"Your cursor will be notated by a white box, this is wip and at times cursor will not highlight on blank lines, or end of line".NL+"PASTE mode allows an entire user_iput to be entered, paste mode also has command functionality".purple+"Refer to the col, and line to reference XY pos", "general", @Core["edit"]],
 	//////////////////////////////////	// SERVICE
 	["ssh", "Create SSH connection *requires SSH", ["*", "*"], "Connect to a ssh service".grey.NL+"p1: user@ip"+NL+"p2: port, default is 22", "result", @Core["ssh"]],
 	["scp", "Upload/Download files *requires SSH", ["-u|-d", "*", "*"], "Secure copy protocol".grey.NL+"-d [remote path] [destination] --> download remote files, destination defaults to cwd"+NL+"-u [target path] [destination] --> download remote files, destination defaults to cwd", "general", @Core["scp"]],
 	["ftp", "Create FTP connection", ["*", "*"], "Connect to a ftp service".grey.NL+"p1: user@ip"+NL+"p2: port, default is 21", "result", @Core["ftp"]],
 	["put", "Upload file remotely *require FTP", ["*", "*"], "File Transer Protocol, or is it fish?".grey, "general", @Core["put"]],
 	["get", "Download file remotely *require FTP", ["*", "*"], "File Transfer Protocol, or is it fish??".grey, "general", @Core["get"]],
-	["proxy", "Server proxy tunnel", ["-b|-d", "*"], "Proxy server connection tool".grey.NL+"PRIMARY ARGUNEMTS".grey.NL+"-b --> bounce from 1 machine to another, wipes logs along the way".NL+"-d [?amount] --> dirty bounce, hacks routers of random networks wiping logs along the way", "result", @Core["proxybounce"]],
+	["proxchain", "Server proxy tunnel", ["-b|-d", "*"], "Proxy server connection tool".grey.NL+"PRIMARY ARGUNEMTS".grey.NL+"-b --> bounce from 1 machine to another, wipes logs along the way".NL+"-d [?amount] --> dirty bounce, hacks routers of random networks wiping logs along the way", "result", @Core["proxybounce"]],
 	//////////////////////////////////	// NETWORK
 	["ping", "Ping a specified device", ["*"], "Ping a device, doesn't account for firewalls".grey, "general", @Core["ping"]],
 	["ifconfig", "Configure Internet Connection", ["*", "*", "*"], "Configure internet connection".grey.NL+"Internet/Ethernet", "general", @Core["ifconfig"]],
@@ -2757,12 +2798,13 @@ SS.CMD.list = [
 	["crypto", "Load an aquired crypto lib", ["*|-clear"], "LocalHacking".grey.NL+"With no argument, crypto will return a new crypto object from the current host. Use -clear to revert to SS crypto", "general", @Core["loadcrypto"]],
 	["apt-get", "Load an aquired apt lib", ["*|-clear"], "LocalAPTUsage".grey.NL+"With no argument, crypto will return a new apt object from the current host. Use -clear to revert to SS apt", "general", @Core["loadapt"]],
 	/////////////////////////////////  // TOOLS & OTHER
-	["site", "Manage Local Website", ["-b|-d", "*|html"], "WebsiteBuilder".grey.NL+"arguments [build|delete] [bank|hack|isp]".NL+"Build or delete a predefined website, perhaps a folder will be added for html of choice", null, @Core["webmanager"]],
 	["svc", "Manage services [action] [service] [data]" , ["*", "*", "*"], "-l --> Lists the services installed\n-i [name] --> install a service\n-s/-k [name] --> starts/stops a service", "general", @Core["service"]],
 	["mount", "Mount binaries to shell objects", ["*", "*"],  "Quick File Transfer *Deprecated*".grey.NL+"-a --> mounts all files [ss,mx,crypto,sf]\n-p --> pivot mount".NL+"To use seashell command on a remote host without needing to upload seashell directly, use the crab prefix on a command. Need root? Try crab shellget ; cache -o".NL+"Need MX loaded on this host ? Use command mx", "general", @Core["mount"]],
+	["proxy", "Proxy|Service|API server builder", ["*","*"], "Eazy Proxy Builder".grey.NL+"Primary arguments".grey.b.NL+"-build --> build a simple proxy server, will transfer cache from host to remote".NL+"[-repo | -rshell | -http] --> specify these services to be built on this proxy","general", @Core["proxy"]],
+	["site", "Manage Local Website", ["-b|-d", "*|html"], "WebsiteBuilder".grey.NL+"arguments [build|delete] [bank|hack|isp]".NL+"Build or delete a predefined website, perhaps a folder will be added for html of choice", null, @Core["webmanager"]],
 	//["sea", "[action] [recon] [bam] <i>Collects all objects</i>", ["*", "*","*" ], null, null, @Core["exp.mass_loop"]],
 	["db", "Exploit database search", ["*", "*"], "Exploit Database Viewer".grey.NL+"PRIMARY ARGUMENTS".NL+"[lib] [version|action]", null, @Core["db"]],
-	//["api", "[connect|exploits|hashes|build] Utilize the NPM api", ["*"], null, "general", @Client["handle"]],
+	["api", "Utilize the SeaShell api", ["*"], null, "general", @Core["api"]],
 	["crab", "Command Relay Access Bridge: used in addition to other commands".crab, ["*", "*", "*", "*"], ("C".red+"ommand "+"R".red+"elay "+"A".red+"ccess "+"B".red+"ridge is a remote option for using local SeaShell commands, and specified payloads").white.NL+"\n[cmd|info|module] [args]\nex: crab sudo -s | crab scanlan".grey.NL+"In essence, CRAB acts as a way to use commands that you can only use on a machine that you have originated from, get_shell | get_router for example.".lblue.NL.NL+"Try using".lblue+(" ""sudo -s""").red+" on a captured shell from ".lblue+("""entry/ns""").grey+" and it's root pw, this will fail, what you need to use is ".lblue+("""crab sudo -s""").green+" with that shell's password.".lblue.NL+"<u>This has now allowed you to use SeaShell as if it was uploaded to the target shell, without needing to transfer any files.".lblue.NL.NL+"This can be used in combination with all SeaShell commands, and in correct combination can result in quick and efficient pivoting through networks".grey, "result", @Core["crab"]],
 	["surf", "New surf loop on current shell host, works like a toggle for crab", [], "Begin surfing on a new host, essentially a toggle for crab.\nSurf Mode is a recursive loop of the main program, you can use this to loop and perform local operations on remote hosts".NL+"This will allow you to use commands like 'sudo' instead of having to specify its being used with crab like ""crab sudo""", "result", @Core["surf"]],
 	["raft", "NPC mission competion".raft, ["-c|-p|*", "*", "*", "*"], "Remote Assignment Fulfillment Tool: simply sign up and reply to the remaining emails".NL.raft+"Primary arguments:".grey.b.NL+"-c --> corruption missions".cyan+NL+"-p --> credentials missions".cyan+NL+"-clear --> clears any mission emails from inbox".cyan.NL+"-monitor --> used when R.A.F.T is running on another SeaShell, to monitor its progress *MUST USE -l FLAG ON SeaShell USING R.A.F.T*".cyan.NL+"FLAGS can be added in any combination in this command".b.grey.NL+"-d --> deletes failed missions".lblue+NL+"-n --> gives mission logs".lblue+NL+"-l --> generate mission logs".lblue.NL+"!s --> skip tsunami with no confirmation".NL.lblue+"?s --> prompt tsunami skip".lblue.NL+"ex: raft -c -d -n".grey, "general", @Core["npc"]],
@@ -2774,8 +2816,7 @@ SS.CMD.list = [
 	["wifish", "WiFi ""brute force"" *hash database*", ["*", "*"], "WiFi Fisher".grey.NL+"[netdevice] [bssid] [essid], unfortunately this seemingly is the least effective dictionary attack, seriously try something else!", "general", @SS.MD5["wifish"]],
 	["ezwifi", "WiFi ""all in one"" *crypto/hash database*", ["*", "*", "*"], "WiFi Getter".grey.NL+"This command is meant to crack all wifis in your proximity".NL+"FLAG CAN BE USED IN ANY COMBINATION WITH THIS COMMAND".grey.NL+"-d --> will use the hash database for a dictionary attack, good for large ack counts!".NL+"-f --> force cracking with no confirmation".NL+"-l --> logs results to WIFI.db, USE THIS TO ENABLE WIBOUNCE".NL+"-monitor --> secondary seashell instance can track the progress of WIFI.db", "general", @Core["ezwifi"]],
 	["wibounce", "WiFi bouncer", ["*", "*", "*"], "WiFi bouncer".grey.NL+"Using database file WIFI.db, it will connect via wifi to all the addresses.".NL+"file line format: netDevice bssid essid password", "general", @Core["wibounce"]],
-	["spearfish", "PVP player finder", ["*", "*", "*", "*", "*"], "PVP".grey.NL+"PRIMARY ARGUMENTS".grey.NL+"[ip|-loop] --> specify and ip or use -loop to use ss.logs/SPEARFISH.db, requires having created the file or running using -l flag".NL+"ADDITIONAL FLAGS CAN BE USED IN ANY ORDER ON THIS COMMAND".grey.NL+"-l --> logs".NL+"-loop --> loop, used in addition to providing an ip, to start with the primary ip", "general", @Core["spearfish"]],
-
+	["spearfish", "PVP player finder", ["*", "*", "*", "*", "*"], "PVP".grey.NL+"PRIMARY ARGUMENTS".grey.NL+"[*ip|-r|-list] --> specify a ip or use -list to use ss.logs/PONDS.db, requires having created the file or running using -log flag".NL+"ADDITIONAL FLAGS CAN BE USED IN ANY ORDER ON THIS COMMAND".grey.NL+"-log --> logs".NL+"-loop --> loop, used in addition to providing an ip, to start with the primary ip", "general", @Core["spearfish"]],
 	//////////////////////////////////	// MISC
 	["test", "testing function", ["*"], null, "general", @Core["test"]],
 	["md5", "String -> md5", ["*"], "A simple md5 hash conversion, its important to note these md5s do not work the same as the md5s from password hashes, try f1shbowl and decipher it", null, @Core["md5"]],
