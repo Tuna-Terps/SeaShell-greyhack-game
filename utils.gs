@@ -1408,15 +1408,15 @@ SS.Network.maplan = function(self)
         subnet["essid"] = lanDev.essid_name
         subnet["rules"] = lanDev.firewall_rules
         subnet["ports"] = []
-        _p = lanDev.device_ports(device)
-        if (_p) and (_p.len > 0) then 
-            for p in _p 
-                if T(p) == "string" then continue
-                i = lanDev.port_info(p)
-                if i == null then continue
-                subnet["ports"].push([p.port_number, p.is_closed, i])
-            end for
-        end if
+        //_p = lanDev.device_ports(device)
+        //if (_p) and (_p.len > 0) then 
+        //    for p in _p 
+        //        if T(p) == "string" then continue
+        //        i = lanDev.port_info(p)
+        //        if i == null then continue
+        //        subnet["ports"].push([p.port_number, p.is_closed, i])
+        //    end for
+        //end if
         subnet["subdevices"] = []
         for subDev in lanDev.devices_lan_ip
             if self.lans.indexOf(subDev) then continue;
@@ -1603,7 +1603,7 @@ SS.Network.scanlan = function
 end function
 ///======================= Server + API =========================////
 SS.Server = {}
-SS.Server.o = nul
+SS.Server.o = null
 SS.Server.ip = null
 SS.Server.description = "Unspecified"
 SS.Server.root = null
@@ -1751,7 +1751,7 @@ SS.Server.map = function(o, ip=null, p=null, a1=null, a2=null)
     self.root = o.File("/")
     self.perms = SS.Utils.user(o)
     self.cache1 = SS.Utils.hasFolder(SS.ccd)
-    self.cache2 = SS.Utils.fileFromPath(SS.Utils.ds(o, "file"), )
+    self.cache2 = SS.Utils.fileFromPath(SS.Utils.ds(o, "file"), "/")
 
     return self
 end function
