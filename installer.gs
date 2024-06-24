@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////
 SS = get_custom_object// SEASHELL INSTALLER CUSTOM OBJECT
 SS.cb = false
-SS.version = "2.0.3"//SEASHELL INSTALLER
+SS.version = "2.0.4"//SEASHELL INSTALLER
 LOG = @print
 INPUT = @user_input
 T = @typeof
@@ -354,7 +354,12 @@ setUserConfig = function(act, fi)
 		f = C.File(fi.path+"/ss.macros")
 		p = "ss.macros"
 		d = "[MACRO NAME] [SS.CMD NAME] [ARGUMENTS] ; [SS.CMD NAME] [ARGUMENTS]"+NL+"EXAMPLE ls ; cd /"
-	else 
+    else if act == "-a" then // usermacros
+		s = "User Aliases"
+		f = C.File(fi.path+"/ss.macros")
+		p = "ss.aliases"
+		d = "aliasExampleName=cache"
+    else 
 		return LOG("Invalid arguments".warning)
 	end if
 	dat = null
@@ -589,6 +594,7 @@ check_cache = function
     if C.create_folder(CACHEFILE.path+"/ss.libs", "strong") == 1 then LOG("Created folder: ".ok+"strong");wait(0.1)
     setUserConfig("-u", CACHEFILE)
     setUserConfig("-m", CACHEFILE)
+    setUserConfig("-a", CACHEFILE)
     return CACHEFILE
 end function
 build_db = function(CACHEFILE)
