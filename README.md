@@ -10,7 +10,9 @@
 <br>
 ## INSTALL ##
 # FILESYSTEM #<br>
-1.) Use installer to create the required file structure, (*be sure to launch as home user*) alternatively you can: <br>
+1.) Use installer to create the required file structure <br>
+Installer tutorial + SeaShell demo --> https://www.youtube.com/watch?v=rGP8ajRrfPs <br>
+MANUALLY: <br>
 *create a folder named src, and place all scripts inside of it via the game code editor <br>
  <br>
 -- You can pass the src code from here to the files, then easily compile them all using the installer <br>
