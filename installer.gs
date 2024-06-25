@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////
 SS = get_custom_object// SEASHELL INSTALLER CUSTOM OBJECT
 SS.cb = false
-SS.version = "2.0.4a"//SEASHELL INSTALLER
+SS.version = "2.0.4c"//SEASHELL INSTALLER
 LOG = @print
 INPUT = @user_input
 T = @typeof
