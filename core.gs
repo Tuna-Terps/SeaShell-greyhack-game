@@ -462,13 +462,14 @@ SS.getDb = function(o=null)
 	end if
 	if SS.cfg.user == "root" then p = "/root/"+SS.ccd+"/ss.libs/weak/init.so"
 	if SS.cfg.user != "root" then p = "/home/"+SS.cfg.user+"/"+SS.ccd+"/ss.libs/weak/init.so"
+	if SS.cfg.user != active_user then p = home_dir+"/"+SS.ccd+"/ss.libs/weak/init.so"
 	SS.dbl = SS.Utils.hasFolder(SS.s, "ss.logs")
 	if T(SS.dbl) != "file" then;LOG("Logger not loaded".grey.sys);else; LOG("Loaded logger: ".ok+SS.dbl.path); end if;
-	SS.cfg.libf = SS.Utils.fileFromPath(o, parent_path(parent_path(p)))
-	//TODO: test compatibility check
+	SS.cfg.libf = SS.Utils.hasFolder(SS.s, "ss.libs")
+	//SS.cfg.libf = SS.Utils.fileFromPath(o, parent_path(parent_path(p)))
 	if T(SS.cfg.libf) != "file" then;LOG("Library db not found".grey.sys);
 	else if T(parent_path(parent_path(parent_path(p)))+"/libs") == "file" then
-		if SS.og then LOG("".fill.NL+"Sindbad was watching here 8)"+NL.fill+"COMPATIBLITY CHECK YO SELF OR WRECK YOURSELF")
+		if SS.og then LOG(("COMPATIBLITY CHECK -- RENAME ""libs"" TO: ""ss.libs""").warning)
 		if SS.c.File(parent_path(parent_path(parent_path(p)))+"/libs").rename("ss.libs").len < 1 then LOG("Library db renamed to ss.libs".ok) else LOG("An issue occured with renaming libs to ss.libs, check that out".warning)
 	end if
 	SS.cfg.libf = SS.Utils.fileFromPath(o, parent_path(parent_path(p)))
@@ -479,7 +480,7 @@ SS.getDb = function(o=null)
 		if T(SS.cfg.libfw) != "file" then;LOG("Weak libs not loaded".grey.sys);else; LOG("Weak directory  : ".ok+SS.cfg.libfw.path); end if;
 	end if;
 	SS.cfg.wf = SS.Utils.fileFromPath(o, p)
-	if T(SS.cfg.wf) != "file" then;LOG("No weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.path);if SS.mx then;SS.cfg.wv=SS.mx.load(SS.cfg.wf.path).version;end if; end if;
+	if T(SS.cfg.wf) != "file" then;LOG("Weak lib not loaded".grey.sys);else; LOG("Loaded weak lib: ".ok+SS.cfg.wf.path);if SS.mx then;SS.cfg.wv=SS.mx.load(SS.cfg.wf.path).version;end if; end if;
 	if (SS.dbe == null and SS.dbh == null) then return LOG("Database was not configured".warning)
 	if SS.dbe != null then
 		for each in SS.dbe.get_folders 
@@ -2105,8 +2106,9 @@ Core["wipe"] = function(o, t)
 		return SS.Utils.wipe_logs(o)
 	else if t == "-t" then
 		return SS.Utils.wipe_tools(o)
-	else if t == "-s" then 
+	else if t == "-s" then
 		return SS.Utils.wipe_sys(o)
+	else;LOG("Invalid arguments, expected: ".warning+(["-l", "-t", "-s"].join(" | ".lblue)))
 	end if
 end function
 Core["rshell"] = function(o, a, i = null, d = null)
@@ -2336,7 +2338,7 @@ Core["ezwifi"] = function(o, f1 = null, f2=null, f3=null)
 	if log != null then 
 		logger = new SS.Logger
 		logger.map("WIFI")
-		if logger.file then logger.entry("SOE", ("NETWORKS CRACKED: "+logger.file.get_content.split(NL).len))
+		if logger.file then logger.entry("", ("NETWORKS CRACKED: "+logger.file.get_content.split(NL).len-1))
 		if mon then return logger.monitor("")
 	end if
 	net = "wlan0"
@@ -2563,7 +2565,8 @@ Core["spearfish"] = function(o, ip, f1=null,f2=null, f3=null, f4=null)
 					for r in root 
 						eo = new SS.EO
 						eo.map(r)
-						if eo.check_player != null then ;LOG("PLAYER DETECTED".red.ok); SS.cache(eo); continue; end if
+						fish = eo.check_player
+						if fish != null then ;LOG(("!!! ".red+" PLAYER DETECTED ".orange.b+" !!!".red).ok); SS.cache(eo); wait(5.0);continue; end if
 					end for
 					// log event
 				else;LOG("No computer returned".warning)
