@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////
 SS = get_custom_object// SEASHELL CUSTOM OBJECT
 SS.version = "1.0.7a"
-SS.buildv = "1.7.2"
+SS.buildv = "1.7.2a"
 SS.cwd = current_path
 SS.ccd = ".ss"// current cache dir, this is where seashell builds
 SS.debug = null
@@ -1726,17 +1726,17 @@ SS.Server.dirtytunnel = function(o,a)
     muteo = SS.launchres[0].o
     SS.Utils.wipe_logs(muteo)
     mutmx = SS.launchres[1]
-    sa = a
-    for i in range(0, a)
-        //LOG("Diry Tunnel: ".progressBar(a, sa))
+    for i in range(0, a-1)
         res = SS.Utils.getLaunchPoint(muteo, null, mutmx)
-        if res == null then continue
-        if T(res) != "MetaxploitLib" then continue
+        if res == null then 
+			LOG("There was an issue with the launch acquisition".warning)
+			continue
+		else if T(SS.launchres[1]) != "MetaxploitLib" then
+			continue
+		end if
         muteo = SS.launchres[0].o
         mutmx = SS.launchres[1]
         SS.Utils.wipe_logs(muteo)
-        a=a-1
-        wait(0.1) 
     end for
     return muteo
 end function
@@ -2932,7 +2932,7 @@ SS.EO.check_player = function()
                 LOG(("PLAYER COMPUTER FOUND".ok).oggotroot+NL+self.ip+NL+self.lan)
                 return self
             else if pn !=  "dsession" and pn.len > 1 then 
-                LOG(("PLAYER PROCESS FOUND".ok+ pn).ogsniff)
+                LOG(("PLAYER PROCESS FOUND".ok+NL+pn).ogsniff)
                 return self
             end if                
         end for
