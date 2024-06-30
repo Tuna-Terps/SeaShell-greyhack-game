@@ -9,6 +9,7 @@
 // Thank you to the members of the GreyHack community & discord<br>
 <br>
 ## INSTALL ##
+<br><p>SeaShell installation guide:<br> https://www.youtube.com/watch?v=rGP8ajRrfPs
 # FILESYSTEM #<br>
 1.) Use installer to create the required file structure <br>
 Installer tutorial + SeaShell demo --> https://www.youtube.com/watch?v=rGP8ajRrfPs <br>
