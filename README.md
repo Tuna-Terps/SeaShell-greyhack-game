@@ -11,9 +11,8 @@
 ## INSTALL ##
 <br><p>SeaShell installation guide:<br> https://www.youtube.com/watch?v=rGP8ajRrfPs
 # BASIC INSTALL *installer script* #<br>
-1.) Compile the installer script and use -a flag to build the entire project
-2.) Use installer to create the required file structure
- <br>
+1.) Compile the installer script and use -a flag to build the entire project <br>
+2.) Use installer to create the required file structure <br>
 
 # MANUAL COMPILE #<br>
 -- You will need to compile the following files in this order, name the binary the same as the src<br>
