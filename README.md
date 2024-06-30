@@ -10,16 +10,17 @@
 <br>
 ## INSTALL ##
 <br><p>SeaShell installation guide:<br> https://www.youtube.com/watch?v=rGP8ajRrfPs
-# FILESYSTEM #<br>
-1.) Use installer to create the required file structure 
-MANUALLY: <br>
-*create a folder named src, and place all scripts inside of it via the game code editor <br>
+# BASIC INSTALL *installer script* #<br>
+1.) Compile the installer script and use -a flag to build the entire project
+2.) Use installer to create the required file structure
  <br>
--- You can pass the src code from here to the files, then easily compile them all using the installer <br>
--- adjust the paths for the refernce code in main.src and payload.src <br>
-ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
+
 # MANUAL COMPILE #<br>
--- You will need to compile the following files in this order, name the binary the same as the src<br><br>
+-- You will need to compile the following files in this order, name the binary the same as the src<br>
+-- You can pass the src code from here to the files, then easily recompile them all using the installer, or individual files manually as updates occur <br>
+-- adjust the paths for the refernce code in main.src<br>
+ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
+<br>
 <br> MAIN PROGRAM <br><br>
 1.) utils.src --> ** MUST ALLOW IMPORTS **<br>
 2.) core.src --> ** MUST ALLOW IMPORTS **<br>
