@@ -11,8 +11,7 @@
 ## INSTALL ##
 <br><p>SeaShell installation guide:<br> https://www.youtube.com/watch?v=rGP8ajRrfPs
 # FILESYSTEM #<br>
-1.) Use installer to create the required file structure <br>
-Installer tutorial + SeaShell demo --> https://www.youtube.com/watch?v=rGP8ajRrfPs <br>
+1.) Use installer to create the required file structure 
 MANUALLY: <br>
 *create a folder named src, and place all scripts inside of it via the game code editor <br>
  <br>
