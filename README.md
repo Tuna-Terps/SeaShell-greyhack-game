@@ -11,11 +11,11 @@
 ## INSTALL ##
 <br><p>SeaShell installation guide:<br> https://www.youtube.com/watch?v=rGP8ajRrfPs
 # BASIC INSTALL *installer script* #<br>
-1.) Compile the installer script and use -a flag to build the entire project <br>
-2.) Use installer to create the required file structure <br>
+1.) Compile the installer script<br>
+2.) Run installer with -a argument to create the required file structure <br>
 
 # MANUAL COMPILE #<br>
--- You will need to compile the following files in this order, name the binary the same as the src<br>
+-- You will need to compile the following files, name the binary the same, removing the .src extension<br>
 -- You can pass the src code from here to the files, then easily recompile them all using the installer, or individual files manually as updates occur <br>
 -- adjust the paths for the refernce code in main.src<br>
 ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
@@ -26,7 +26,14 @@ ex: import_code("/home/USER/src/utils.src") -- only if done manually !!
 3.) modules.src --> ** MUST ALLOW IMPORTS **<br>
 4.) main.src --> RENAME TO ss <br>
 <br> ESSENTIAL COMMANDS <br><br>
-1.) -cfg -ccd --> builds entire user cache
+1.) -cfg -ccd --> builds entire user cache <br>
+2.) entry --> main automated remote entry <br>
+3.) local --> main local entry tool <br>
+4.) wipe --> system | logs | etc wiper <br>
+5.) mx | crypto | apt-get --> host library loader <br>
+6.) crab --> command prefix to run functions in a local context, remotely! <br><br>
+
+
 Once complete, the only required filed are ss 
 # LOCAL DB # (NPC PW hashes)<br>
 1.) Youll need the dictionary files from https://github.com/linuxgruven/dictionary<br>
