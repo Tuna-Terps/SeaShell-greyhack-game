@@ -3,7 +3,7 @@
 ////////////////////////////////////////////////////////////
 SS = get_custom_object// SEASHELL INSTALLER CUSTOM OBJECT
 SS.cb = false
-SS.version = "2.0.4c"//SEASHELL INSTALLER
+SS.version = "2.0.4d"//SEASHELL INSTALLER
 LOG = @print
 INPUT = @user_input
 T = @typeof
@@ -348,7 +348,7 @@ setUserConfig = function(act, fi)
 		s = "User Config"
 		f = C.File(fi.path+"/ss.dat")
         p = "ss.dat"
-        d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"tutorialMode=0"+NL+"hackShopIp=214.85.237.165"+NL+"weakMemZone=null"+NL+"weakMemAddr=null"+NL+"hackRepoIp=214.85.237.165"+NL+"hackRepoWeakLib=null"+NL+"apiIp=150.74.29.50"+NL+"apiMemZone=0xF8E54A6"+NL+"apiMemVal=becolo"+NL+"apiPort=22"+NL+"apiAuth=2008TLCNoScrubs"+NL+"apiToken=null"
+        d = "anonymousMode=0"+NL+"debugMode=0"+NL+"oldArtMode=1"+NL+"tutorialMode=0"+NL+"hackShopIp=214.85.237.165"+NL+"weakMemZone=0x73CBD7B0"+NL+"weakMemAddr=havedoutlinenumbe"+NL+"hackRepoIp=214.85.237.165"+NL+"hackRepoWeakLib=null"+NL+"apiIp=150.74.29.50"+NL+"apiMemZone=0xF8E54A6"+NL+"apiMemVal=becolo"+NL+"apiPort=22"+NL+"apiAuth=2008TLCNoScrubs"+NL+"apiToken=null"
     else if act == "-m" then // usermacros
 		s = "User Macros"
 		f = C.File(fi.path+"/ss.macros")
