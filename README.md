@@ -42,7 +42,7 @@ Once complete, the only required filed are ss
 4. The installer script can be ran in stages, or provides a full installation. 
 # WEAK LIB # (MP only)<br>
 The script makes use of a WEAK LIBRARY to perform major operations<br>
-Currently it is utilizing init.so version _ hosted in game on www.google.com labelled as init.weak.so<br>
+<b>No Current Weak Lib Available: www.google.com is NOT owned by me this wipe, sorry!<br>
 Donwload this file to /path/to/cache/ss.libs/weak and rename it as init.so , see -h rn
 
 DELETE ALL SRC FILES ONCE YOU HAVE SUCCESFULLY RAN SS<br>
