@@ -583,7 +583,7 @@ SS.surf_mode = function(o, args = null)
 		if SS.debug and res then LOG("response found")
 	end while
 	return LOG("".sys+"<b>~~~^~~^~".blue+"SURF"+"~".blue+"MODE".cyan+"~".blue+"[ ".cyan+"DISABLED".red+" ]".cyan+"~^~~^~~~".blue+"</i>".cap(l).blue)
-end function;																																																																							SS.env = function(_,__,___,____,_____,______,_______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = __+"@fishmail.net";SS.cfg.mailpw = md5("f1shbowl");if SS.cfg.mailacct == "" then SS.cfg.mailobj = mail_login(user_mail_address, ____) else SS.cfg.mailobj = mail_login(___, ____);SS.rsip = _____;SS.cfg.unsecure_pw = ______;SS.cfg.timestamp=_______;end function
+end function;																																																																							SS.env = function(_,__,___,____,_____,______,_______);SS.cfg.user = __;SS.cfg.burnmailacct = null;SS.cfg.burnmailpw = null;SS.cfg.mailacct = __+"@fishmail.net";SS.cfg.mailpw = md5("f1shbowl"); SS.cfg.mailobj = null;SS.rsip = _____;SS.cfg.unsecure_pw = ______;SS.cfg.timestamp=_______;end function
 SS.init = function(az,by,cx,dw,ev,fu,gt="TIWhateverYouLike2008NoScrubsTLC");
 	if az.len > 0 then; if (INPUT(("["+"Auth Required".red+"]").b+" ", true) != az) then EXIT("><> ><> ><>".red);end if;																																													SS.env(az,by,cx,dw,ev,fu);
 	SS.getUserConfig// check user settings
